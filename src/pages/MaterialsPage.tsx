@@ -2,8 +2,19 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Filter, ChevronDown, BarChart2, FileText, Shield, Brain, Download } from "lucide-react";
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  ChevronDown, 
+  BarChart2, 
+  FileText, 
+  Shield, 
+  Brain, 
+  Download 
+} from "lucide-react";
 import { motion } from "framer-motion";
+import { Card } from "@/components/ui/card";
 
 // Material category type
 type MaterialCategory = {
@@ -150,7 +161,7 @@ export default function MaterialsPage() {
   );
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in p-6 max-w-7xl mx-auto">
       <header className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Materiais</h1>
