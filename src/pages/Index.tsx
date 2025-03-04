@@ -10,7 +10,7 @@ const Index = () => {
       <div className="text-center">
         <h1 className="text-4xl font-bold mb-4">Welcome to Your Trading Education Platform</h1>
         <p className="text-xl text-gray-600 mb-8">Start your journey to become a better trader!</p>
-        <div className="flex gap-4 justify-center">
+        <div className="flex flex-wrap gap-4 justify-center">
           <Button onClick={() => navigate("/dashboard")}>
             Go to Dashboard
           </Button>
@@ -20,6 +20,13 @@ const Index = () => {
             className="hover:bg-trade-light-blue hover:text-trade-blue"
           >
             Educational Materials
+          </Button>
+          <Button 
+            onClick={() => navigate("/videos")} 
+            variant="outline"
+            className="hover:bg-trade-light-blue hover:text-trade-blue"
+          >
+            Video Courses
           </Button>
         </div>
       </div>
