@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { Shield } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -27,6 +28,14 @@ const Index = () => {
             className="hover:bg-trade-light-blue hover:text-trade-blue"
           >
             Video Courses
+          </Button>
+          <Button 
+            onClick={() => navigate("/admin")} 
+            variant="outline"
+            className="flex items-center gap-2 hover:bg-trade-light-blue hover:text-trade-blue"
+          >
+            <Shield size={16} />
+            Admin Panel
           </Button>
         </div>
       </div>
