@@ -17,7 +17,8 @@ import {
   Star,
   History,
   Bookmark,
-  Clock
+  Clock,
+  CheckCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
