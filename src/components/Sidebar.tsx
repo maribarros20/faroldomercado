@@ -16,12 +16,40 @@ import { useEffect, useState } from "react";
 import Logo from "./Logo";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  
+  // Check if current user is admin
+  const { data: isAdmin, isLoading: isCheckingAdmin } = useQuery({
+    queryKey: ['sidebar-check-admin'],
+    queryFn: async () => {
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) return false;
+      
+      // Get user role from profiles
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching user role:", error);
+        return false;
+      }
+      
+      return data?.role === 'admin';
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   useEffect(() => {
     // Close sidebar on mobile when route changes
@@ -35,7 +63,8 @@ const Sidebar = () => {
     setIsOpen(!isMobile);
   }, [isMobile]);
 
-  const menuItems = [
+  // Base menu items that all users can see
+  const baseMenuItems = [
     { 
       name: "Dashboard", 
       icon: <Home size={20} />, 
@@ -51,12 +80,19 @@ const Sidebar = () => {
       icon: <Video size={20} />, 
       path: "/videos",
     },
-    { 
-      name: "Admin", 
-      icon: <Shield size={20} />, 
-      path: "/admin",
-    },
   ];
+  
+  // Admin menu item
+  const adminMenuItem = { 
+    name: "Admin", 
+    icon: <Shield size={20} />, 
+    path: "/admin",
+  };
+  
+  // Combine menu items based on user role
+  const menuItems = isAdmin 
+    ? [...baseMenuItems, adminMenuItem] 
+    : baseMenuItems;
 
   const isActive = (path: string) => {
     // For exact matches
