@@ -12,17 +12,19 @@ import { Pencil, Trash2, Search } from "lucide-react";
 
 interface User {
   id: string;
-  email: string;
+  email?: string;
   first_name: string;
   last_name: string;
-  created_at: string;
   company: string;
   role: string;
-}
-
-interface Plan {
-  id: string;
-  name: string;
+  created_at?: string; // Making this optional
+  plan?: {
+    name: string;
+  };
+  subscription_id?: string;
+  subscription_active?: boolean;
+  subscription_started?: string;
+  subscription_expires?: string;
 }
 
 const AdminSubscribers = () => {
@@ -59,7 +61,7 @@ const AdminSubscribers = () => {
             subscription_active: subscriptionData?.is_active,
             subscription_started: subscriptionData?.started_at,
             subscription_expires: subscriptionData?.expires_at
-          };
+          } as User;
         })
       );
       
@@ -124,7 +126,9 @@ const AdminSubscribers = () => {
                       <Badge variant="outline">Inativo</Badge>
                     )}
                   </TableCell>
-                  <TableCell>{format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                  <TableCell>
+                    {user.updated_at ? format(new Date(user.updated_at), "dd/MM/yyyy", { locale: ptBR }) : "-"}
+                  </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button variant="ghost" size="icon">

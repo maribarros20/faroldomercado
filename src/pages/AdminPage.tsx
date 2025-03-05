@@ -10,6 +10,8 @@ import AdminMaterials from "@/components/admin/AdminMaterials";
 import AdminVideos from "@/components/admin/AdminVideos";
 import AdminPlans from "@/components/admin/AdminPlans";
 import { toast } from "@/components/ui/use-toast";
+import MarketNews from "@/components/admin/MarketNews";
+import FinanceSpreadsheet from "@/components/admin/FinanceSpreadsheet";
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("subscribers");
@@ -32,7 +34,7 @@ const AdminPage = () => {
         .single();
       
       if (error) {
-        console.error('Error checking admin status:', error);
+        console.error('Erro ao verificar status de admin:', error);
         return false;
       }
       
@@ -40,7 +42,7 @@ const AdminPage = () => {
     },
     meta: {
       onError: (error: any) => {
-        console.error('Error checking admin status:', error);
+        console.error('Erro ao verificar status de admin:', error);
         toast({
           title: "Erro",
           description: "Não foi possível verificar suas permissões",
@@ -84,6 +86,8 @@ const AdminPage = () => {
           <TabsTrigger value="materials">Materiais</TabsTrigger>
           <TabsTrigger value="videos">Vídeos</TabsTrigger>
           <TabsTrigger value="plans">Planos</TabsTrigger>
+          <TabsTrigger value="market-news">Notícias do Mercado</TabsTrigger>
+          <TabsTrigger value="finance-spreadsheet">Planilha Financeira</TabsTrigger>
         </TabsList>
         
         <Card>
@@ -102,6 +106,14 @@ const AdminPage = () => {
             
             <TabsContent value="plans" className="mt-0">
               <AdminPlans />
+            </TabsContent>
+
+            <TabsContent value="market-news" className="mt-0">
+              <MarketNews />
+            </TabsContent>
+
+            <TabsContent value="finance-spreadsheet" className="mt-0">
+              <FinanceSpreadsheet />
             </TabsContent>
           </CardContent>
         </Card>
