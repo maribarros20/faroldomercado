@@ -110,7 +110,7 @@ const AdminPlans = () => {
         };
       }));
 
-      return plansWithFeatures;
+      return plansWithFeatures as Plan[];
     }
   });
 
@@ -414,7 +414,6 @@ const AdminPlans = () => {
     setNewFeatures(updatedFeatures);
   };
 
-  // Content for Add/Edit plan dialog
   const planFormContent = (
     <div className="grid gap-4 py-4">
       <div className="grid gap-2">

@@ -30,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-// Subscriber type
+// Subscription type
 type SubscriptionStatus = "active" | "trial" | "expired" | "canceled";
 
 type Subscriber = {
@@ -46,10 +46,13 @@ type Subscriber = {
   total_spent: number;
 };
 
+// Define proper user data type from Supabase Auth
 type UserData = {
   user?: {
+    id?: string;
     email?: string;
   };
+  error?: Error;
 };
 
 const AdminSubscribers = () => {
@@ -124,13 +127,11 @@ const AdminSubscribers = () => {
 
         // Get user email from auth.users - this needs a different approach
         // Since we can't directly access auth.users with the JS client
-        // We'll use a workaround or admin API
         let userEmail = 'Email não disponível';
         try {
-          // Try to get the user's email - this is a placeholder approach
-          // In a real implementation, you might need a serverless function or back-channel API
-          const { data: userData } = await supabase.auth.admin.getUserById(sub.user_id);
-          userEmail = userData?.user?.email || 'Email não disponível';
+          // Try to get the user's email
+          const { data }: { data: UserData | null } = await supabase.auth.admin.getUserById(sub.user_id);
+          userEmail = data?.user?.email || 'Email não disponível';
         } catch (e) {
           console.error(`Error fetching user email for ${sub.user_id}:`, e);
         }
