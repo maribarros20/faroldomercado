@@ -44,24 +44,18 @@ const AdminPage = () => {
       
       return data?.role === 'admin';
     },
-    retry: false
-  });
-
-  // Handle redirect if not admin
-  useEffect(() => {
-    if (isAdmin === false) {
-      toast({
-        title: "Acesso negado",
-        description: "Você não tem permissão para acessar o painel administrativo.",
-        variant: "destructive",
-      });
-      navigate('/dashboard');
-    }
-  }, [isAdmin, navigate]);
-
-  // Handle error cases
-  useEffect(() => {
-    if (error) {
+    retry: false,
+    onSuccess: (isAdmin) => {
+      if (!isAdmin) {
+        toast({
+          title: "Acesso negado",
+          description: "Você não tem permissão para acessar o painel administrativo.",
+          variant: "destructive",
+        });
+        navigate('/dashboard');
+      }
+    },
+    onError: (error) => {
       console.error("Error checking admin status:", error);
       toast({
         title: "Erro",
@@ -70,7 +64,7 @@ const AdminPage = () => {
       });
       navigate('/dashboard');
     }
-  }, [error, navigate]);
+  });
 
   if (isLoading) {
     return (
