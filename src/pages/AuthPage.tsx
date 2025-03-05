@@ -4,13 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, ChevronRight, CheckCircle } from "lucide-react";
+import { ArrowLeft, ChevronRight, CheckCircle, Mail, KeyRound, User, Building, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
-import Logo from "@/components/Logo";
+import ForgotPassword from "@/components/ForgotPassword";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,6 +24,7 @@ const AuthPage = () => {
 
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
+    setShowForgotPassword(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -78,18 +80,57 @@ const AuthPage = () => {
     }
   };
 
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen flex flex-col md:flex-row">
+        {/* Left Panel */}
+        <div className="w-full md:w-2/5 lg:w-1/3 bg-blue-400 p-8 flex flex-col">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold">Farol do Mercado</h2>
+          </div>
+          
+          <nav className="flex gap-8 mb-16">
+            <a href="https://painel.faroldomercado.com.br" className="text-gray-800 hover:text-black font-medium">Site</a>
+            <a href="https://painel.faroldomercado.com/farolito-blog" className="text-gray-800 hover:text-black font-medium">Blog</a>
+            <a href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" className="text-gray-800 hover:text-black font-medium">Falar com Luma</a>
+          </nav>
+          
+          <div className="flex-grow flex flex-col justify-center">
+            <h2 className="text-2xl font-semibold mb-6">
+              Para recuperar sua senha
+            </h2>
+            <p className="text-gray-800">
+              siga as instruções para redefinir sua senha de acesso. Você receberá um código de verificação no e-mail associado à sua conta.
+            </p>
+          </div>
+        </div>
+        
+        {/* Right Panel */}
+        <div className="w-full md:w-3/5 lg:w-2/3 p-4 md:p-8 lg:p-12 flex items-center justify-center">
+          <ForgotPassword 
+            onBack={() => setShowForgotPassword(false)} 
+            onReset={() => {
+              setShowForgotPassword(false);
+              setIsLogin(true);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Left Panel */}
       <div className="w-full md:w-2/5 lg:w-1/3 bg-blue-400 p-8 flex flex-col">
         <div className="mb-6">
-          <Logo />
+          <h2 className="text-xl font-bold">Farol do Mercado</h2>
         </div>
         
         <nav className="flex gap-8 mb-16">
-          <a href="#" className="text-gray-800 hover:text-black font-medium">Site</a>
-          <a href="#" className="text-gray-800 hover:text-black font-medium">Blog</a>
-          <a href="#" className="text-gray-800 hover:text-black font-medium">Falar com Luma</a>
+          <a href="https://painel.faroldomercado.com.br" className="text-gray-800 hover:text-black font-medium">Site</a>
+          <a href="https://painel.faroldomercado.com/farolito-blog" className="text-gray-800 hover:text-black font-medium">Blog</a>
+          <a href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" className="text-gray-800 hover:text-black font-medium">Falar com Luma</a>
         </nav>
         
         <div className="flex-grow flex flex-col justify-center">
@@ -143,35 +184,47 @@ const AuthPage = () => {
             {!isLogin && (
               <div className="space-y-2">
                 <Label htmlFor="name">Primeiro e último nome</Label>
-                <Input 
-                  id="name" 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Digite seu nome completo"
-                />
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <Input 
+                    id="name" 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Digite seu nome completo"
+                    className="pl-10"
+                  />
+                </div>
               </div>
             )}
             
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
-              <Input 
-                id="email" 
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Digite seu e-mail"
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <Input 
+                  id="email" 
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Digite seu e-mail"
+                  className="pl-10"
+                />
+              </div>
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <Input 
-                id="password" 
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Digite sua senha"
-              />
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <Input 
+                  id="password" 
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Digite sua senha"
+                  className="pl-10"
+                />
+              </div>
               {!isLogin && (
                 <p className="text-xs text-gray-500 mt-1">
                   A senha deve ter pelo menos 8 caracteres, sendo 1 número, 1 letra maiúscula e 1 caractere especial
@@ -183,32 +236,44 @@ const AuthPage = () => {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="company">Empresa ou Mentor</Label>
-                  <Input 
-                    id="company" 
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    placeholder="Digite o nome da empresa ou mentor"
-                  />
+                  <div className="relative">
+                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input 
+                      id="company" 
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                      placeholder="Digite o nome da empresa ou mentor"
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="cnpj">CNPJ</Label>
-                  <Input 
-                    id="cnpj" 
-                    value={cnpj}
-                    onChange={(e) => setCnpj(e.target.value)}
-                    placeholder="Digite o CNPJ"
-                  />
+                  <div className="relative">
+                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input 
+                      id="cnpj" 
+                      value={cnpj}
+                      onChange={(e) => setCnpj(e.target.value)}
+                      placeholder="Digite o CNPJ"
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Celular</Label>
-                  <Input 
-                    id="phone" 
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Digite seu celular"
-                  />
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input 
+                      id="phone" 
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Digite seu celular"
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
                 
                 <div className="flex items-center gap-2">
@@ -228,7 +293,11 @@ const AuthPage = () => {
             
             {isLogin && (
               <div className="flex justify-between items-center">
-                <button type="button" className="text-sm text-primary">
+                <button 
+                  type="button" 
+                  className="text-sm text-primary"
+                  onClick={() => setShowForgotPassword(true)}
+                >
                   Esqueceu a senha?
                 </button>
               </div>

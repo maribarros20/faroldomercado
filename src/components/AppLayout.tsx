@@ -26,7 +26,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   const isAuthPage = location.pathname === "/auth" || location.pathname === "/";
   
   if (isAuthPage) {
-    return <>{children}</>;
+    return <div className="min-h-screen bg-white">{children}</div>;
   }
 
   return (
