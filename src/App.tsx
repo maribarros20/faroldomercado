@@ -12,6 +12,7 @@ import VideosPage from "./pages/VideosPage";
 import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
 import ProfileSettingsPage from "./pages/ProfileSettingsPage";
+import PlansPage from "./pages/PlansPage";
 import AppLayout from "./components/AppLayout";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/videos" element={<VideosPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/profile" element={<ProfileSettingsPage />} />
+            <Route path="/plans" element={<PlansPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

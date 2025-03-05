@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -17,196 +17,338 @@ import {
   Trash, 
   Check,
   X,
-  Package
+  Package,
+  Loader2
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // Plan type
+type PlanFeature = {
+  id: string;
+  text: string;
+  is_included: boolean;
+  plan_id: string;
+}
+
 type Plan = {
   id: string;
   name: string;
   description: string;
-  monthlyPrice: number;
-  yearlyPrice: number;
-  features: {
-    id: string;
-    text: string;
-    included: boolean;
-  }[];
-  isPopular: boolean;
-  isActive: boolean;
-  subscribers: number;
-};
-
-// Sample data
-const samplePlans: Plan[] = [
-  {
-    id: "1",
-    name: "Básico",
-    description: "Ideal para iniciantes que querem aprender os fundamentos do trading",
-    monthlyPrice: 49.90,
-    yearlyPrice: 499.00,
-    features: [
-      { id: "1-1", text: "Acesso aos materiais básicos", included: true },
-      { id: "1-2", text: "Vídeos introdutórios", included: true },
-      { id: "1-3", text: "Suporte por email", included: true },
-      { id: "1-4", text: "Comunidade exclusiva", included: false },
-      { id: "1-5", text: "Webinars ao vivo", included: false }
-    ],
-    isPopular: false,
-    isActive: true,
-    subscribers: 145
-  },
-  {
-    id: "2",
-    name: "Premium Mensal",
-    description: "Para traders que buscam aprimorar suas estratégias",
-    monthlyPrice: 99.90,
-    yearlyPrice: 999.00,
-    features: [
-      { id: "2-1", text: "Acesso a todos os materiais", included: true },
-      { id: "2-2", text: "Biblioteca completa de vídeos", included: true },
-      { id: "2-3", text: "Suporte prioritário", included: true },
-      { id: "2-4", text: "Comunidade exclusiva", included: true },
-      { id: "2-5", text: "Webinars ao vivo", included: false }
-    ],
-    isPopular: true,
-    isActive: true,
-    subscribers: 320
-  },
-  {
-    id: "3",
-    name: "Premium Anual",
-    description: "A melhor opção para traders comprometidos com seu desenvolvimento",
-    monthlyPrice: 0,
-    yearlyPrice: 997.00,
-    features: [
-      { id: "3-1", text: "Acesso a todos os materiais", included: true },
-      { id: "3-2", text: "Biblioteca completa de vídeos", included: true },
-      { id: "3-3", text: "Suporte prioritário 24/7", included: true },
-      { id: "3-4", text: "Comunidade exclusiva", included: true },
-      { id: "3-5", text: "Webinars ao vivo", included: true }
-    ],
-    isPopular: false,
-    isActive: true,
-    subscribers: 78
-  }
-];
+  monthly_price: number | null;
+  yearly_price: number | null;
+  is_popular: boolean;
+  is_active: boolean;
+  features: PlanFeature[];
+  subscribers?: number;
+}
 
 const AdminPlans = () => {
-  const [plans, setPlans] = useState<Plan[]>(samplePlans);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
-  const [newPlan, setNewPlan] = useState<Omit<Plan, "id" | "subscribers">>({
+  const [newPlan, setNewPlan] = useState<Omit<Plan, "id" | "subscribers" | "features">>({
     name: "",
     description: "",
-    monthlyPrice: 0,
-    yearlyPrice: 0,
-    features: [
-      { id: "new-1", text: "Recurso 1", included: true },
-      { id: "new-2", text: "Recurso 2", included: true },
-      { id: "new-3", text: "Recurso 3", included: true },
-      { id: "new-4", text: "Recurso 4", included: false },
-      { id: "new-5", text: "Recurso 5", included: false }
-    ],
-    isPopular: false,
-    isActive: true
+    monthly_price: 0,
+    yearly_price: 0,
+    is_popular: false,
+    is_active: true
   });
+  const [newFeatures, setNewFeatures] = useState<Omit<PlanFeature, "id" | "plan_id">[]>([
+    { text: "Recurso 1", is_included: true },
+    { text: "Recurso 2", is_included: true },
+    { text: "Recurso 3", is_included: true },
+    { text: "Recurso 4", is_included: false },
+    { text: "Recurso 5", is_included: false }
+  ]);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch plans from Supabase
+  const { data: plans = [], isLoading, error } = useQuery({
+    queryKey: ['plans'],
+    queryFn: async () => {
+      // Fetch plans
+      const { data: plansData, error: plansError } = await supabase
+        .from('plans')
+        .select('*')
+        .order('monthly_price', { ascending: true, nullsLast: true });
+      
+      if (plansError) {
+        console.error("Error fetching plans:", plansError);
+        throw plansError;
+      }
+
+      // Fetch features for each plan
+      const plansWithFeatures = await Promise.all(plansData.map(async (plan) => {
+        const { data: featuresData, error: featuresError } = await supabase
+          .from('plan_features')
+          .select('*')
+          .eq('plan_id', plan.id);
+        
+        if (featuresError) {
+          console.error(`Error fetching features for plan ${plan.id}:`, featuresError);
+          return { ...plan, features: [] };
+        }
+
+        // Get subscriber count
+        const { count, error: countError } = await supabase
+          .from('subscriptions')
+          .select('*', { count: 'exact', head: true })
+          .eq('plan_id', plan.id)
+          .eq('is_active', true);
+        
+        return { 
+          ...plan, 
+          features: featuresData,
+          subscribers: count || 0
+        };
+      }));
+
+      return plansWithFeatures;
+    }
+  });
+
+  // Add plan mutation
+  const addPlanMutation = useMutation({
+    mutationFn: async () => {
+      // Insert plan
+      const { data: planData, error: planError } = await supabase
+        .from('plans')
+        .insert({
+          name: newPlan.name,
+          description: newPlan.description,
+          monthly_price: newPlan.monthly_price || null,
+          yearly_price: newPlan.yearly_price || null,
+          is_popular: newPlan.is_popular,
+          is_active: newPlan.is_active
+        })
+        .select()
+        .single();
+      
+      if (planError) throw planError;
+      
+      // Insert features
+      const featuresWithPlanId = newFeatures.map(feature => ({
+        plan_id: planData.id,
+        text: feature.text,
+        is_included: feature.is_included
+      }));
+      
+      const { error: featuresError } = await supabase
+        .from('plan_features')
+        .insert(featuresWithPlanId);
+      
+      if (featuresError) throw featuresError;
+      
+      return planData;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plans'] });
+      setIsAddDialogOpen(false);
+      resetNewPlan();
+      
+      toast({
+        title: "Plano adicionado",
+        description: "O plano foi adicionado com sucesso!",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error("Error adding plan:", error);
+      toast({
+        title: "Erro ao adicionar plano",
+        description: "Ocorreu um erro ao adicionar o plano. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Edit plan mutation
+  const editPlanMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingPlanId) throw new Error("No plan ID for editing");
+      
+      // Update plan
+      const { error: planError } = await supabase
+        .from('plans')
+        .update({
+          name: newPlan.name,
+          description: newPlan.description,
+          monthly_price: newPlan.monthly_price || null,
+          yearly_price: newPlan.yearly_price || null,
+          is_popular: newPlan.is_popular,
+          is_active: newPlan.is_active,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingPlanId);
+      
+      if (planError) throw planError;
+      
+      // Delete existing features and add new ones
+      const { error: deleteError } = await supabase
+        .from('plan_features')
+        .delete()
+        .eq('plan_id', editingPlanId);
+      
+      if (deleteError) throw deleteError;
+      
+      const featuresWithPlanId = newFeatures.map(feature => ({
+        plan_id: editingPlanId,
+        text: feature.text,
+        is_included: feature.is_included
+      }));
+      
+      const { error: featuresError } = await supabase
+        .from('plan_features')
+        .insert(featuresWithPlanId);
+      
+      if (featuresError) throw featuresError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plans'] });
+      setIsEditDialogOpen(false);
+      setEditingPlanId(null);
+      resetNewPlan();
+      
+      toast({
+        title: "Plano atualizado",
+        description: "O plano foi atualizado com sucesso!",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error("Error editing plan:", error);
+      toast({
+        title: "Erro ao atualizar plano",
+        description: "Ocorreu um erro ao atualizar o plano. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Delete plan mutation
+  const deletePlanMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('plans')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plans'] });
+      
+      toast({
+        title: "Plano removido",
+        description: "O plano foi removido com sucesso!",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting plan:", error);
+      toast({
+        title: "Erro ao remover plano",
+        description: "Ocorreu um erro ao remover o plano. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Toggle active status mutation
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const { error } = await supabase
+        .from('plans')
+        .update({ is_active: isActive, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plans'] });
+      
+      toast({
+        title: "Status alterado",
+        description: "O status do plano foi alterado com sucesso!",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error("Error toggling status:", error);
+      toast({
+        title: "Erro ao alterar status",
+        description: "Ocorreu um erro ao alterar o status do plano. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Toggle popular status mutation
+  const togglePopularMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // First, set all plans to not popular
+      const { error: resetError } = await supabase
+        .from('plans')
+        .update({ is_popular: false, updated_at: new Date().toISOString() });
+      
+      if (resetError) throw resetError;
+      
+      // Then set this plan to popular
+      const { error } = await supabase
+        .from('plans')
+        .update({ is_popular: true, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plans'] });
+      
+      toast({
+        title: "Plano destacado",
+        description: "O plano foi definido como 'Popular'!",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error("Error setting popular:", error);
+      toast({
+        title: "Erro ao destacar plano",
+        description: "Ocorreu um erro ao destacar o plano. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  });
 
   const handleAddPlan = () => {
-    const plan: Plan = {
-      id: (plans.length + 1).toString(),
-      name: newPlan.name,
-      description: newPlan.description,
-      monthlyPrice: newPlan.monthlyPrice,
-      yearlyPrice: newPlan.yearlyPrice,
-      features: newPlan.features,
-      isPopular: newPlan.isPopular,
-      isActive: newPlan.isActive,
-      subscribers: 0
-    };
-
-    setPlans([...plans, plan]);
-    setIsAddDialogOpen(false);
-    resetNewPlan();
-
-    toast({
-      title: "Plano adicionado",
-      description: "O plano foi adicionado com sucesso!",
-      variant: "default",
-    });
+    addPlanMutation.mutate();
   };
 
   const handleEditPlan = () => {
-    if (!editingPlanId) return;
-
-    setPlans(plans.map(plan => 
-      plan.id === editingPlanId 
-        ? { 
-            ...plan, 
-            name: newPlan.name,
-            description: newPlan.description,
-            monthlyPrice: newPlan.monthlyPrice,
-            yearlyPrice: newPlan.yearlyPrice,
-            features: newPlan.features,
-            isPopular: newPlan.isPopular,
-            isActive: newPlan.isActive
-          } 
-        : plan
-    ));
-    
-    setIsEditDialogOpen(false);
-    setEditingPlanId(null);
-    resetNewPlan();
-
-    toast({
-      title: "Plano atualizado",
-      description: "O plano foi atualizado com sucesso!",
-      variant: "default",
-    });
+    editPlanMutation.mutate();
   };
 
   const handleDeletePlan = (id: string) => {
-    setPlans(plans.filter(plan => plan.id !== id));
-    
-    toast({
-      title: "Plano removido",
-      description: "O plano foi removido com sucesso!",
-      variant: "default",
-    });
+    deletePlanMutation.mutate(id);
   };
 
   const handleToggleActive = (id: string) => {
-    setPlans(plans.map(plan => 
-      plan.id === id ? { ...plan, isActive: !plan.isActive } : plan
-    ));
-
-    toast({
-      title: "Status alterado",
-      description: "O status do plano foi alterado com sucesso!",
-      variant: "default",
-    });
+    const plan = plans.find(p => p.id === id);
+    if (plan) {
+      toggleActiveMutation.mutate({ id, isActive: !plan.is_active });
+    }
   };
 
   const handleTogglePopular = (id: string) => {
-    // Only one plan can be popular at a time
-    setPlans(plans.map(plan => 
-      plan.id === id 
-        ? { ...plan, isPopular: true } 
-        : { ...plan, isPopular: false }
-    ));
-
-    toast({
-      title: "Plano destacado",
-      description: "O plano foi definido como 'Popular'!",
-      variant: "default",
-    });
+    togglePopularMutation.mutate(id);
   };
 
   const startEditPlan = (id: string) => {
@@ -216,12 +358,16 @@ const AdminPlans = () => {
     setNewPlan({
       name: planToEdit.name,
       description: planToEdit.description,
-      monthlyPrice: planToEdit.monthlyPrice,
-      yearlyPrice: planToEdit.yearlyPrice,
-      features: [...planToEdit.features],
-      isPopular: planToEdit.isPopular,
-      isActive: planToEdit.isActive
+      monthly_price: planToEdit.monthly_price || 0,
+      yearly_price: planToEdit.yearly_price || 0,
+      is_popular: planToEdit.is_popular,
+      is_active: planToEdit.is_active
     });
+
+    setNewFeatures(planToEdit.features.map(feature => ({
+      text: feature.text,
+      is_included: feature.is_included
+    })));
 
     setEditingPlanId(id);
     setIsEditDialogOpen(true);
@@ -231,42 +377,42 @@ const AdminPlans = () => {
     setNewPlan({
       name: "",
       description: "",
-      monthlyPrice: 0,
-      yearlyPrice: 0,
-      features: [
-        { id: "new-1", text: "Recurso 1", included: true },
-        { id: "new-2", text: "Recurso 2", included: true },
-        { id: "new-3", text: "Recurso 3", included: true },
-        { id: "new-4", text: "Recurso 4", included: false },
-        { id: "new-5", text: "Recurso 5", included: false }
-      ],
-      isPopular: false,
-      isActive: true
+      monthly_price: 0,
+      yearly_price: 0,
+      is_popular: false,
+      is_active: true
     });
+    
+    setNewFeatures([
+      { text: "Recurso 1", is_included: true },
+      { text: "Recurso 2", is_included: true },
+      { text: "Recurso 3", is_included: true },
+      { text: "Recurso 4", is_included: false },
+      { text: "Recurso 5", is_included: false }
+    ]);
   };
 
-  const handleFeatureChange = (index: number, field: 'text' | 'included', value: string | boolean) => {
-    const updatedFeatures = [...newPlan.features];
+  const handleFeatureChange = (index: number, field: 'text' | 'is_included', value: string | boolean) => {
+    const updatedFeatures = [...newFeatures];
     updatedFeatures[index] = { 
       ...updatedFeatures[index], 
       [field]: value 
     };
-    setNewPlan({ ...newPlan, features: updatedFeatures });
+    setNewFeatures(updatedFeatures);
   };
 
   const addFeature = () => {
     const newFeature = { 
-      id: `new-${newPlan.features.length + 1}`, 
-      text: `Novo recurso ${newPlan.features.length + 1}`, 
-      included: false 
+      text: `Novo recurso ${newFeatures.length + 1}`, 
+      is_included: false 
     };
-    setNewPlan({ ...newPlan, features: [...newPlan.features, newFeature] });
+    setNewFeatures([...newFeatures, newFeature]);
   };
 
   const removeFeature = (index: number) => {
-    const updatedFeatures = [...newPlan.features];
+    const updatedFeatures = [...newFeatures];
     updatedFeatures.splice(index, 1);
-    setNewPlan({ ...newPlan, features: updatedFeatures });
+    setNewFeatures(updatedFeatures);
   };
 
   // Content for Add/Edit plan dialog
@@ -296,8 +442,8 @@ const AdminPlans = () => {
             type="number"
             step="0.01"
             min="0"
-            value={newPlan.monthlyPrice} 
-            onChange={(e) => setNewPlan({...newPlan, monthlyPrice: parseFloat(e.target.value) || 0})} 
+            value={newPlan.monthly_price || ""} 
+            onChange={(e) => setNewPlan({...newPlan, monthly_price: parseFloat(e.target.value) || null})} 
           />
         </div>
         <div className="grid gap-2">
@@ -307,8 +453,8 @@ const AdminPlans = () => {
             type="number"
             step="0.01"
             min="0"
-            value={newPlan.yearlyPrice} 
-            onChange={(e) => setNewPlan({...newPlan, yearlyPrice: parseFloat(e.target.value) || 0})} 
+            value={newPlan.yearly_price || ""} 
+            onChange={(e) => setNewPlan({...newPlan, yearly_price: parseFloat(e.target.value) || null})} 
           />
         </div>
       </div>
@@ -326,8 +472,8 @@ const AdminPlans = () => {
           </Button>
         </div>
         <div className="space-y-2 mt-2">
-          {newPlan.features.map((feature, index) => (
-            <div key={feature.id} className="flex items-center justify-between gap-2 p-2 border rounded-md">
+          {newFeatures.map((feature, index) => (
+            <div key={index} className="flex items-center justify-between gap-2 p-2 border rounded-md">
               <div className="flex-1">
                 <Input 
                   value={feature.text}
@@ -339,11 +485,11 @@ const AdminPlans = () => {
                 <div className="flex items-center space-x-2">
                   <Switch 
                     id={`feature-${index}`}
-                    checked={feature.included} 
-                    onCheckedChange={(checked) => handleFeatureChange(index, 'included', checked)}
+                    checked={feature.is_included} 
+                    onCheckedChange={(checked) => handleFeatureChange(index, 'is_included', checked)}
                   />
                   <Label htmlFor={`feature-${index}`} className="text-sm">
-                    {feature.included ? "Incluído" : "Não incluído"}
+                    {feature.is_included ? "Incluído" : "Não incluído"}
                   </Label>
                 </div>
                 <Button
@@ -363,21 +509,45 @@ const AdminPlans = () => {
       <div className="flex items-center space-x-2">
         <Switch 
           id="active"
-          checked={newPlan.isActive} 
-          onCheckedChange={(checked) => setNewPlan({...newPlan, isActive: checked})}
+          checked={newPlan.is_active} 
+          onCheckedChange={(checked) => setNewPlan({...newPlan, is_active: checked})}
         />
         <Label htmlFor="active">Plano Ativo</Label>
       </div>
       <div className="flex items-center space-x-2">
         <Switch 
           id="popular"
-          checked={newPlan.isPopular} 
-          onCheckedChange={(checked) => setNewPlan({...newPlan, isPopular: checked})}
+          checked={newPlan.is_popular} 
+          onCheckedChange={(checked) => setNewPlan({...newPlan, is_popular: checked})}
         />
         <Label htmlFor="popular">Destacar como Popular</Label>
       </div>
     </div>
   );
+
+  if (isLoading) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500 mb-4" />
+        <p className="text-gray-500">Carregando planos...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center py-12">
+        <p className="text-red-500 mb-2">Erro ao carregar planos</p>
+        <p className="text-gray-500 text-sm">{(error as Error).message}</p>
+        <Button 
+          className="mt-4"
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['plans'] })}
+        >
+          Tentar novamente
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -403,9 +573,16 @@ const AdminPlans = () => {
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
               <Button 
                 onClick={handleAddPlan} 
-                disabled={!newPlan.name || !newPlan.description}
+                disabled={!newPlan.name || !newPlan.description || addPlanMutation.isPending}
               >
-                Adicionar
+                {addPlanMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adicionando...
+                  </>
+                ) : (
+                  "Adicionar"
+                )}
               </Button>
             </div>
           </DialogContent>
@@ -421,9 +598,16 @@ const AdminPlans = () => {
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
               <Button 
                 onClick={handleEditPlan} 
-                disabled={!newPlan.name || !newPlan.description}
+                disabled={!newPlan.name || !newPlan.description || editPlanMutation.isPending}
               >
-                Salvar Alterações
+                {editPlanMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  "Salvar Alterações"
+                )}
               </Button>
             </div>
           </DialogContent>
@@ -432,15 +616,15 @@ const AdminPlans = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {plans.map((plan) => (
-          <Card key={plan.id} className={`border-gray-200 relative overflow-hidden ${plan.isPopular ? 'ring-2 ring-trade-blue' : ''}`}>
-            {plan.isPopular && (
+          <Card key={plan.id} className={`border-gray-200 relative overflow-hidden ${plan.is_popular ? 'ring-2 ring-trade-blue' : ''}`}>
+            {plan.is_popular && (
               <div className="absolute top-3 right-3">
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-trade-blue text-white">
                   Popular
                 </span>
               </div>
             )}
-            {!plan.isActive && (
+            {!plan.is_active && (
               <div className="absolute inset-0 bg-gray-100 bg-opacity-50 flex items-center justify-center">
                 <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-700 text-white">
                   Inativo
@@ -459,15 +643,15 @@ const AdminPlans = () => {
             </CardHeader>
             <CardContent>
               <div className="mb-4">
-                {plan.monthlyPrice > 0 && (
+                {plan.monthly_price > 0 && (
                   <div className="mb-2">
-                    <span className="text-2xl font-bold text-gray-900">R$ {plan.monthlyPrice.toFixed(2)}</span>
+                    <span className="text-2xl font-bold text-gray-900">R$ {plan.monthly_price.toFixed(2)}</span>
                     <span className="text-gray-500 text-sm ml-1">/mês</span>
                   </div>
                 )}
-                {plan.yearlyPrice > 0 && (
+                {plan.yearly_price > 0 && (
                   <div>
-                    <span className="text-2xl font-bold text-gray-900">R$ {plan.yearlyPrice.toFixed(2)}</span>
+                    <span className="text-2xl font-bold text-gray-900">R$ {plan.yearly_price.toFixed(2)}</span>
                     <span className="text-gray-500 text-sm ml-1">/ano</span>
                   </div>
                 )}
@@ -476,10 +660,10 @@ const AdminPlans = () => {
               <div className="space-y-2 mb-6">
                 {plan.features.map((feature) => (
                   <div key={feature.id} className="flex items-start">
-                    <div className={`mt-0.5 ${feature.included ? 'text-green-500' : 'text-red-500'}`}>
-                      {feature.included ? <Check size={16} /> : <X size={16} />}
+                    <div className={`mt-0.5 ${feature.is_included ? 'text-green-500' : 'text-red-500'}`}>
+                      {feature.is_included ? <Check size={16} /> : <X size={16} />}
                     </div>
-                    <span className={`ml-2 text-sm ${feature.included ? 'text-gray-700' : 'text-gray-400'}`}>
+                    <span className={`ml-2 text-sm ${feature.is_included ? 'text-gray-700' : 'text-gray-400'}`}>
                       {feature.text}
                     </span>
                   </div>
@@ -490,19 +674,20 @@ const AdminPlans = () => {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className={`flex-1 ${plan.isActive ? 'border-red-200 text-red-500 hover:bg-red-50' : 'border-green-200 text-green-500 hover:bg-green-50'}`}
+                  className={`flex-1 ${plan.is_active ? 'border-red-200 text-red-500 hover:bg-red-50' : 'border-green-200 text-green-500 hover:bg-green-50'}`}
                   onClick={() => handleToggleActive(plan.id)}
+                  disabled={toggleActiveMutation.isPending}
                 >
-                  {plan.isActive ? 'Desativar' : 'Ativar'}
+                  {plan.is_active ? 'Desativar' : 'Ativar'}
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   className="flex-1"
-                  disabled={plan.isPopular}
+                  disabled={plan.is_popular || togglePopularMutation.isPending}
                   onClick={() => handleTogglePopular(plan.id)}
                 >
-                  {plan.isPopular ? 'Destacado' : 'Destacar'}
+                  {plan.is_popular ? 'Destacado' : 'Destacar'}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -517,6 +702,7 @@ const AdminPlans = () => {
                   size="icon" 
                   className="h-8 w-8 text-red-500"
                   onClick={() => handleDeletePlan(plan.id)}
+                  disabled={deletePlanMutation.isPending}
                 >
                   <Trash size={16} />
                 </Button>
@@ -536,10 +722,10 @@ const AdminPlans = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[200px]">Recurso</TableHead>
-                  {plans.filter(p => p.isActive).map((plan) => (
+                  {plans.filter(p => p.is_active).map((plan) => (
                     <TableHead key={plan.id} className="text-center">
                       {plan.name}
-                      {plan.isPopular && <span className="ml-1 text-trade-blue">(Popular)</span>}
+                      {plan.is_popular && <span className="ml-1 text-trade-blue">(Popular)</span>}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -547,17 +733,17 @@ const AdminPlans = () => {
               <TableBody>
                 <TableRow>
                   <TableCell className="font-medium">Preço Mensal</TableCell>
-                  {plans.filter(p => p.isActive).map((plan) => (
+                  {plans.filter(p => p.is_active).map((plan) => (
                     <TableCell key={`${plan.id}-monthly`} className="text-center">
-                      {plan.monthlyPrice > 0 ? `R$ ${plan.monthlyPrice.toFixed(2)}` : 'N/A'}
+                      {plan.monthly_price ? `R$ ${plan.monthly_price.toFixed(2)}` : 'N/A'}
                     </TableCell>
                   ))}
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">Preço Anual</TableCell>
-                  {plans.filter(p => p.isActive).map((plan) => (
+                  {plans.filter(p => p.is_active).map((plan) => (
                     <TableCell key={`${plan.id}-yearly`} className="text-center">
-                      {plan.yearlyPrice > 0 ? `R$ ${plan.yearlyPrice.toFixed(2)}` : 'N/A'}
+                      {plan.yearly_price ? `R$ ${plan.yearly_price.toFixed(2)}` : 'N/A'}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -565,11 +751,11 @@ const AdminPlans = () => {
                 {Array.from(new Set(plans.flatMap(plan => plan.features.map(f => f.text)))).map((featureText) => (
                   <TableRow key={featureText}>
                     <TableCell className="font-medium">{featureText}</TableCell>
-                    {plans.filter(p => p.isActive).map((plan) => {
+                    {plans.filter(p => p.is_active).map((plan) => {
                       const feature = plan.features.find(f => f.text === featureText);
                       return (
                         <TableCell key={`${plan.id}-${featureText}`} className="text-center">
-                          {feature?.included ? (
+                          {feature?.is_included ? (
                             <Check className="mx-auto text-green-500" size={16} />
                           ) : (
                             <X className="mx-auto text-red-500" size={16} />

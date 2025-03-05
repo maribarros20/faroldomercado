@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -19,144 +19,258 @@ import {
   Clock,
   UserCog,
   UserX,
-  Calendar
+  Calendar,
+  Loader2
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // Subscriber type
 type SubscriptionStatus = "active" | "trial" | "expired" | "canceled";
 
 type Subscriber = {
   id: string;
+  user_id: string;
   name: string;
   email: string;
-  plan: string;
-  subscriptionStatus: SubscriptionStatus;
-  joinDate: string;
-  nextBillingDate: string;
-  totalSpent: number;
+  plan_name: string;
+  plan_id: string;
+  subscription_status: SubscriptionStatus;
+  join_date: string;
+  next_billing_date: string | null;
+  total_spent: number;
 };
 
-// Sample data
-const sampleSubscribers: Subscriber[] = [
-  {
-    id: "1",
-    name: "João Silva",
-    email: "joao.silva@example.com",
-    plan: "Premium Anual",
-    subscriptionStatus: "active",
-    joinDate: "2023-05-12",
-    nextBillingDate: "2024-05-12",
-    totalSpent: 997
-  },
-  {
-    id: "2",
-    name: "Maria Oliveira",
-    email: "maria.oliveira@example.com",
-    plan: "Premium Mensal",
-    subscriptionStatus: "active",
-    joinDate: "2023-10-05",
-    nextBillingDate: "2023-11-05",
-    totalSpent: 297
-  },
-  {
-    id: "3",
-    name: "Carlos Souza",
-    email: "carlos.souza@example.com",
-    plan: "Básico",
-    subscriptionStatus: "trial",
-    joinDate: "2023-12-01",
-    nextBillingDate: "2023-12-15",
-    totalSpent: 0
-  },
-  {
-    id: "4",
-    name: "Ana Pereira",
-    email: "ana.pereira@example.com",
-    plan: "Premium Mensal",
-    subscriptionStatus: "expired",
-    joinDate: "2023-08-15",
-    nextBillingDate: "2023-11-15",
-    totalSpent: 297
-  },
-  {
-    id: "5",
-    name: "Pedro Santos",
-    email: "pedro.santos@example.com",
-    plan: "Premium Anual",
-    subscriptionStatus: "canceled",
-    joinDate: "2023-02-20",
-    nextBillingDate: "2023-10-20",
-    totalSpent: 997
-  }
-];
-
-const plans = [
-  { id: "1", name: "Básico" },
-  { id: "2", name: "Premium Mensal" },
-  { id: "3", name: "Premium Anual" }
-];
-
 const AdminSubscribers = () => {
-  const [subscribers, setSubscribers] = useState<Subscriber[]>(sampleSubscribers);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newSubscriber, setNewSubscriber] = useState({
     name: "",
     email: "",
-    plan: "",
-    subscriptionStatus: "trial" as SubscriptionStatus
+    plan_id: "",
+    subscription_status: "trial" as SubscriptionStatus
   });
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch plans for dropdown
+  const { data: plans = [] } = useQuery({
+    queryKey: ['plans-for-dropdown'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('plans')
+        .select('id, name')
+        .eq('is_active', true);
+      
+      if (error) {
+        console.error("Error fetching plans:", error);
+        throw error;
+      }
+      
+      return data;
+    }
+  });
+
+  // Fetch subscribers
+  const { 
+    data: subscribers = [], 
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['subscribers'],
+    queryFn: async () => {
+      // We need to join subscriptions with profiles and auth.users
+      const { data: subscriptions, error: subError } = await supabase
+        .from('subscriptions')
+        .select(`
+          id,
+          user_id,
+          plan_id,
+          started_at,
+          expires_at,
+          is_active,
+          plans(name)
+        `);
+      
+      if (subError) {
+        console.error("Error fetching subscriptions:", subError);
+        throw subError;
+      }
+
+      // For each subscription, get user profile information
+      const subscribersData = await Promise.all(subscriptions.map(async (sub) => {
+        const { data: profiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, cpf, phone, company')
+          .eq('id', sub.user_id)
+          .single();
+        
+        if (profileError) {
+          console.error(`Error fetching profile for user ${sub.user_id}:`, profileError);
+          return null;
+        }
+
+        // Get user email from auth.users
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(sub.user_id);
+        
+        if (userError || !userData) {
+          console.error(`Error fetching user data for ${sub.user_id}:`, userError);
+          return null;
+        }
+
+        // Calculate total spent based on subscriptions - this is a placeholder
+        // In a real app, you would have a payments table to calculate this
+        const totalSpent = sub.plans?.name?.includes('Premium') ? 99.90 : 49.90;
+
+        return {
+          id: sub.id,
+          user_id: sub.user_id,
+          name: `${profiles.first_name || ''} ${profiles.last_name || ''}`.trim() || 'Usuário sem nome',
+          email: userData.user?.email || 'Email não disponível',
+          plan_name: sub.plans?.name || 'Plano desconhecido',
+          plan_id: sub.plan_id,
+          subscription_status: sub.is_active ? 'active' : (sub.expires_at && new Date(sub.expires_at) < new Date() ? 'expired' : 'canceled'),
+          join_date: new Date(sub.started_at).toISOString().split('T')[0],
+          next_billing_date: sub.expires_at ? new Date(sub.expires_at).toISOString().split('T')[0] : null,
+          total_spent: totalSpent
+        };
+      }));
+
+      // Filter out null values
+      return subscribersData.filter(Boolean) as Subscriber[];
+    }
+  });
+
+  // Add subscriber mutation
+  const addSubscriberMutation = useMutation({
+    mutationFn: async () => {
+      // First, check if user exists
+      const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+      
+      if (userError) throw userError;
+      
+      const userExists = userData.users.find(u => u.email === newSubscriber.email);
+      
+      if (!userExists) {
+        throw new Error("Usuário não encontrado. O email informado não está cadastrado no sistema.");
+      }
+      
+      // Check if user already has a subscription
+      const { data: existingSub, error: existingSubError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', userExists.id);
+      
+      if (existingSubError) throw existingSubError;
+      
+      if (existingSub && existingSub.length > 0) {
+        throw new Error("Este usuário já possui uma assinatura ativa.");
+      }
+      
+      // Create subscription
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days trial
+
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: userExists.id,
+          plan_id: newSubscriber.plan_id,
+          is_active: newSubscriber.subscription_status === 'active',
+          expires_at: expiresAt.toISOString()
+        })
+        .select();
+      
+      if (error) throw error;
+      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscribers'] });
+      setIsAddDialogOpen(false);
+      setNewSubscriber({
+        name: "",
+        email: "",
+        plan_id: "",
+        subscription_status: "trial"
+      });
+      
+      toast({
+        title: "Assinante adicionado",
+        description: "O assinante foi adicionado com sucesso!",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error("Error adding subscriber:", error);
+      toast({
+        title: "Erro ao adicionar assinante",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao adicionar o assinante. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Update subscription status
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, userId, status }: { id: string; userId: string; status: SubscriptionStatus }) => {
+      const isActive = status === 'active';
+      
+      // Calculate new expiration date if needed
+      let expiresAt = null;
+      if (status === 'active' || status === 'trial') {
+        expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + (status === 'trial' ? 15 : 30));
+      }
+      
+      const { error } = await supabase
+        .from('subscriptions')
+        .update({ 
+          is_active: isActive,
+          expires_at: expiresAt ? expiresAt.toISOString() : null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscribers'] });
+      
+      toast({
+        title: "Status alterado",
+        description: "O status da assinatura foi alterado com sucesso!",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error("Error updating subscription status:", error);
+      toast({
+        title: "Erro ao alterar status",
+        description: "Ocorreu um erro ao alterar o status da assinatura. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  });
 
   const handleAddSubscriber = () => {
-    const subscriber: Subscriber = {
-      id: (subscribers.length + 1).toString(),
-      name: newSubscriber.name,
-      email: newSubscriber.email,
-      plan: newSubscriber.plan,
-      subscriptionStatus: newSubscriber.subscriptionStatus,
-      joinDate: new Date().toISOString().split("T")[0],
-      nextBillingDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split("T")[0],
-      totalSpent: 0
-    };
-
-    setSubscribers([...subscribers, subscriber]);
-    setIsAddDialogOpen(false);
-    setNewSubscriber({
-      name: "",
-      email: "",
-      plan: "",
-      subscriptionStatus: "trial"
-    });
-
-    toast({
-      title: "Assinante adicionado",
-      description: "O assinante foi adicionado com sucesso!",
-      variant: "default",
-    });
+    addSubscriberMutation.mutate();
   };
 
-  const handleStatusChange = (id: string, status: SubscriptionStatus) => {
-    setSubscribers(subscribers.map(subscriber => 
-      subscriber.id === id ? { ...subscriber, subscriptionStatus: status } : subscriber
-    ));
-
-    toast({
-      title: "Status alterado",
-      description: "O status da assinatura foi alterado com sucesso!",
-      variant: "default",
-    });
+  const handleStatusChange = (id: string, userId: string, status: SubscriptionStatus) => {
+    updateStatusMutation.mutate({ id, userId, status });
   };
 
   const filteredSubscribers = subscribers.filter(subscriber => 
     subscriber.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     subscriber.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    subscriber.plan.toLowerCase().includes(searchQuery.toLowerCase())
+    subscriber.plan_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getStatusBadge = (status: SubscriptionStatus) => {
@@ -175,10 +289,34 @@ const AdminSubscribers = () => {
   };
 
   // Calculate statistics
-  const activeSubscribers = subscribers.filter(sub => sub.subscriptionStatus === "active").length;
-  const trialSubscribers = subscribers.filter(sub => sub.subscriptionStatus === "trial").length;
-  const canceledSubscribers = subscribers.filter(sub => sub.subscriptionStatus === "canceled").length;
-  const totalRevenue = subscribers.reduce((total, sub) => total + sub.totalSpent, 0);
+  const activeSubscribers = subscribers.filter(sub => sub.subscription_status === "active").length;
+  const trialSubscribers = subscribers.filter(sub => sub.subscription_status === "trial").length;
+  const canceledSubscribers = subscribers.filter(sub => sub.subscription_status === "canceled").length;
+  const totalRevenue = subscribers.reduce((total, sub) => total + sub.total_spent, 0);
+
+  if (isLoading) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500 mb-4" />
+        <p className="text-gray-500">Carregando assinantes...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center py-12">
+        <p className="text-red-500 mb-2">Erro ao carregar assinantes</p>
+        <p className="text-gray-500 text-sm">{(error as Error).message}</p>
+        <Button 
+          className="mt-4"
+          onClick={() => refetch()}
+        >
+          Tentar novamente
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -201,34 +339,30 @@ const AdminSubscribers = () => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Nome</Label>
-                <Input 
-                  id="name" 
-                  value={newSubscriber.name} 
-                  onChange={(e) => setNewSubscriber({...newSubscriber, name: e.target.value})} 
-                />
-              </div>
-              <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input 
                   id="email" 
                   type="email"
                   value={newSubscriber.email} 
                   onChange={(e) => setNewSubscriber({...newSubscriber, email: e.target.value})} 
+                  placeholder="Email do usuário já cadastrado"
                 />
+                <p className="text-xs text-gray-500">
+                  O usuário deve estar cadastrado no sistema. Esta funcionalidade apenas adiciona uma assinatura para um usuário existente.
+                </p>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="plan">Plano</Label>
                 <Select 
-                  value={newSubscriber.plan} 
-                  onValueChange={(value) => setNewSubscriber({...newSubscriber, plan: value})}
+                  value={newSubscriber.plan_id} 
+                  onValueChange={(value) => setNewSubscriber({...newSubscriber, plan_id: value})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um plano" />
                   </SelectTrigger>
                   <SelectContent>
                     {plans.map((plan) => (
-                      <SelectItem key={plan.id} value={plan.name}>{plan.name}</SelectItem>
+                      <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -236,8 +370,8 @@ const AdminSubscribers = () => {
               <div className="grid gap-2">
                 <Label htmlFor="status">Status</Label>
                 <Select 
-                  value={newSubscriber.subscriptionStatus} 
-                  onValueChange={(value: SubscriptionStatus) => setNewSubscriber({...newSubscriber, subscriptionStatus: value})}
+                  value={newSubscriber.subscription_status} 
+                  onValueChange={(value: SubscriptionStatus) => setNewSubscriber({...newSubscriber, subscription_status: value})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um status" />
@@ -255,9 +389,16 @@ const AdminSubscribers = () => {
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
               <Button 
                 onClick={handleAddSubscriber} 
-                disabled={!newSubscriber.name || !newSubscriber.email || !newSubscriber.plan}
+                disabled={!newSubscriber.email || !newSubscriber.plan_id || addSubscriberMutation.isPending}
               >
-                Adicionar
+                {addSubscriberMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adicionando...
+                  </>
+                ) : (
+                  "Adicionar"
+                )}
               </Button>
             </div>
           </DialogContent>
@@ -368,20 +509,28 @@ const AdminSubscribers = () => {
                         <div className="text-sm text-gray-500 md:hidden">{subscriber.email}</div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{subscriber.email}</TableCell>
-                      <TableCell className="hidden md:table-cell">{subscriber.plan}</TableCell>
+                      <TableCell className="hidden md:table-cell">{subscriber.plan_name}</TableCell>
                       <TableCell className="hidden md:table-cell">
-                        {getStatusBadge(subscriber.subscriptionStatus)}
+                        {getStatusBadge(subscriber.subscription_status)}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">{subscriber.joinDate}</TableCell>
-                      <TableCell className="hidden md:table-cell">{subscriber.nextBillingDate}</TableCell>
+                      <TableCell className="hidden md:table-cell">{subscriber.join_date}</TableCell>
+                      <TableCell className="hidden md:table-cell">{subscriber.next_billing_date || 'N/A'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => window.open(`mailto:${subscriber.email}`, '_blank')}>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-8 w-8" 
+                            onClick={() => window.open(`mailto:${subscriber.email}`, '_blank')}
+                          >
                             <Mail size={16} />
                           </Button>
                           <Select 
-                            value={subscriber.subscriptionStatus} 
-                            onValueChange={(value: SubscriptionStatus) => handleStatusChange(subscriber.id, value)}
+                            value={subscriber.subscription_status} 
+                            onValueChange={(value: SubscriptionStatus) => 
+                              handleStatusChange(subscriber.id, subscriber.user_id, value)
+                            }
+                            disabled={updateStatusMutation.isPending}
                           >
                             <SelectTrigger className="h-8 w-24">
                               <SelectValue placeholder="Status" />

@@ -9,6 +9,74 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      plan_features: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_included: boolean | null
+          plan_id: string
+          text: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_included?: boolean | null
+          plan_id: string
+          text: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_included?: boolean | null
+          plan_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_features_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          is_active: boolean | null
+          is_popular: boolean | null
+          monthly_price: number | null
+          name: string
+          updated_at: string | null
+          yearly_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          monthly_price?: number | null
+          name: string
+          updated_at?: string | null
+          yearly_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          monthly_price?: number | null
+          name?: string
+          updated_at?: string | null
+          yearly_price?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           cnpj: string | null
@@ -41,6 +109,50 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          payment_type: string | null
+          plan_id: string
+          started_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          payment_type?: string | null
+          plan_id: string
+          started_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          payment_type?: string | null
+          plan_id?: string
+          started_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
