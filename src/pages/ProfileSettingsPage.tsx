@@ -79,10 +79,10 @@ const ProfileSettingsPage = () => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="max-w-4xl mx-auto"
+      className="w-full"
     >
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Configurações do Perfil</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">Configurações do Perfil</h1>
         <p className="text-gray-500 mt-2">Gerencie suas informações, preferências e segurança</p>
       </div>
       
@@ -170,7 +170,7 @@ const ProfileSettingsPage = () => {
                   </div>
                 </div>
                 
-                <CardFooter className="px-0 pt-6">
+                <CardFooter className="px-0 pt-6 pb-0">
                   <Button type="submit">Salvar alterações</Button>
                 </CardFooter>
               </form>
@@ -224,7 +224,7 @@ const ProfileSettingsPage = () => {
                   />
                 </div>
                 
-                <CardFooter className="px-0 pt-6">
+                <CardFooter className="px-0 pt-6 pb-0">
                   <Button type="submit">Atualizar senha</Button>
                 </CardFooter>
               </form>

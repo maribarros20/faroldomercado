@@ -58,7 +58,15 @@ const Sidebar = () => {
     },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    // For exact matches
+    if (location.pathname === path) return true;
+    
+    // For nested routes (if we had them)
+    if (path !== "/dashboard" && location.pathname.startsWith(path)) return true;
+    
+    return false;
+  };
 
   // Hamburger button for mobile
   const MobileMenuButton = () => (
@@ -106,17 +114,17 @@ const Sidebar = () => {
             {menuItems.map((item) => (
               <li key={item.name}>
                 <Button
-                  variant="ghost"
+                  variant={isActive(item.path) ? "default" : "ghost"}
                   onClick={() => navigate(item.path)}
                   className={cn(
                     "w-full justify-start sidebar-item",
-                    isActive(item.path) && "active",
+                    isActive(item.path) && "bg-sidebar-accent text-sidebar-accent-foreground",
                     !isOpen && "md:justify-center"
                   )}
                 >
                   {item.icon}
                   <span className={cn(
-                    "transition-all duration-300",
+                    "ml-2 transition-all duration-300",
                     !isOpen && "md:hidden md:w-0"
                   )}>
                     {item.name}
@@ -131,17 +139,17 @@ const Sidebar = () => {
           <ul className="space-y-2">
             <li>
               <Button
-                variant="ghost"
+                variant={isActive("/profile") ? "default" : "ghost"}
                 onClick={() => navigate("/profile")}
                 className={cn(
                   "w-full justify-start sidebar-item",
-                  isActive("/profile") && "active",
+                  isActive("/profile") && "bg-sidebar-accent text-sidebar-accent-foreground",
                   !isOpen && "md:justify-center"
                 )}
               >
                 <User size={20} />
                 <span className={cn(
-                  "transition-all duration-300",
+                  "ml-2 transition-all duration-300",
                   !isOpen && "md:hidden md:w-0"
                 )}>
                   Meu Perfil
@@ -159,7 +167,7 @@ const Sidebar = () => {
               >
                 <LogOut size={20} />
                 <span className={cn(
-                  "transition-all duration-300",
+                  "ml-2 transition-all duration-300",
                   !isOpen && "md:hidden md:w-0"
                 )}>
                   Sair
