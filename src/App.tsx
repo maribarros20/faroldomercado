@@ -10,6 +10,9 @@ import DashboardPage from "./pages/DashboardPage";
 import MaterialsPage from "./pages/MaterialsPage";
 import VideosPage from "./pages/VideosPage";
 import AdminPage from "./pages/AdminPage";
+import AuthPage from "./pages/AuthPage";
+import ProfileSettingsPage from "./pages/ProfileSettingsPage";
+import AppLayout from "./components/AppLayout";
 
 const queryClient = new QueryClient();
 
@@ -19,15 +22,19 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/materials" element={<MaterialsPage />} />
-          <Route path="/videos" element={<VideosPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AppLayout>
+          <Routes>
+            <Route path="/" element={<AuthPage />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/materials" element={<MaterialsPage />} />
+            <Route path="/videos" element={<VideosPage />} />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/profile" element={<ProfileSettingsPage />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AppLayout>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

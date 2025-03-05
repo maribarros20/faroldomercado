@@ -1,46 +1,16 @@
 
-import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Trading Education Platform</h1>
-        <p className="text-xl text-gray-600 mb-8">Start your journey to become a better trader!</p>
-        <div className="flex flex-wrap gap-4 justify-center">
-          <Button onClick={() => navigate("/dashboard")}>
-            Go to Dashboard
-          </Button>
-          <Button 
-            onClick={() => navigate("/materials")} 
-            variant="outline"
-            className="hover:bg-trade-light-blue hover:text-trade-blue"
-          >
-            Educational Materials
-          </Button>
-          <Button 
-            onClick={() => navigate("/videos")} 
-            variant="outline"
-            className="hover:bg-trade-light-blue hover:text-trade-blue"
-          >
-            Video Courses
-          </Button>
-          <Button 
-            onClick={() => navigate("/admin")} 
-            variant="outline"
-            className="flex items-center gap-2 hover:bg-trade-light-blue hover:text-trade-blue"
-          >
-            <Shield size={16} />
-            Admin Panel
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
+  useEffect(() => {
+    // Redirect to auth page
+    navigate("/auth");
+  }, [navigate]);
+
+  return null;
 };
 
 export default Index;
