@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import Logo from "@/components/Logo";
 import { motion } from "framer-motion";
@@ -116,15 +116,15 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row w-full">
+    <div className="min-h-screen flex flex-col md:flex-row w-full max-h-screen overflow-hidden">
       {/* Left Section - Login Form */}
-      <div className="w-full md:w-1/2 p-8 flex flex-col items-center justify-center bg-white">
+      <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col items-center justify-center bg-white">
         <div className="w-full max-w-md">
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-6 flex items-center justify-between">
             <Logo />
             <div>
-              <span className="text-gray-600">Já tem conta?</span>{" "}
-              <Button variant="link" className="text-trade-blue p-0" onClick={() => navigate("/auth")}>
+              <span className="text-gray-600 text-sm">Já tem conta?</span>{" "}
+              <Button variant="link" className="text-trade-blue p-0 text-sm" onClick={() => navigate("/auth")}>
                 Entrar
               </Button>
             </div>
@@ -134,21 +134,21 @@ const Index = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-lg p-6 shadow-sm"
+            className="bg-white rounded-lg p-5 shadow-sm"
           >
-            <h2 className="text-2xl font-semibold mb-6">Acessar plataforma</h2>
-            <p className="text-gray-600 mb-6">
+            <h2 className="text-xl font-semibold mb-4">Acessar plataforma</h2>
+            <p className="text-gray-600 mb-4 text-sm">
               Se você ainda não é membro ou não possui cadastro, você pode solicitar{" "}
               <Button 
                 variant="link" 
-                className="text-trade-blue p-0 font-semibold" 
+                className="text-trade-blue p-0 font-semibold text-sm" 
                 onClick={() => setShowRegisterDialog(true)}
               >
                 clicando aqui
               </Button>.
             </p>
             
-            <form onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
                 <Input 
@@ -174,7 +174,7 @@ const Index = () => {
               </div>
               
               <div className="flex justify-between items-center">
-                <Button variant="link" className="text-gray-600 p-0">
+                <Button variant="link" className="text-gray-600 p-0 text-sm">
                   Esqueceu a senha?
                 </Button>
               </div>
@@ -189,11 +189,12 @@ const Index = () => {
 
       {/* Right Section - Image */}
       <div className="w-full md:w-1/2 bg-gradient-to-r from-blue-50 to-blue-100 hidden md:block">
-        <div className="h-full w-full flex items-center justify-center relative">
+        <div className="h-full w-full flex items-center justify-center">
           <img 
             src="/lovable-uploads/42d43b84-f455-4272-a9c7-96160af1bce2.png" 
             alt="Profissional usando um tablet" 
-            className="object-cover h-full w-full object-center"
+            className="object-cover h-full w-full"
+            style={{ maxHeight: "100vh", objectPosition: "center top" }}
           />
         </div>
       </div>
@@ -204,17 +205,17 @@ const Index = () => {
           <div className="flex flex-col md:flex-row w-full">
             {/* Left Section in Dialog - Blue Background */}
             <div className="bg-trade-blue w-full md:w-1/2 p-8 flex flex-col">
-              <div className="flex space-x-8 mb-12 text-white">
-                <a href="#" className="text-lg font-medium hover:underline">Site</a>
-                <a href="#" className="text-lg font-medium hover:underline">Blog</a>
-                <a href="#" className="text-lg font-medium hover:underline">Falar com Luma</a>
+              <div className="flex space-x-6 mb-8 text-white">
+                <a href="#" className="text-base font-medium hover:underline">Site</a>
+                <a href="#" className="text-base font-medium hover:underline">Blog</a>
+                <a href="#" className="text-base font-medium hover:underline">Falar com Luma</a>
               </div>
               
               <div className="flex-1 flex flex-col justify-center max-w-md">
-                <h1 className="text-2xl md:text-3xl font-bold text-white mb-6">
+                <h1 className="text-xl md:text-2xl font-bold text-white mb-6">
                   Para acessar a plataforma do Farol do Mercado
                 </h1>
-                <p className="text-white mb-8">
+                <p className="text-white mb-8 text-sm">
                   você deve realizar o cadastro dos seus dados e do mentor. Após o registro, 
                   acompanhe em seu e-mail as etapas para usar todas as funcionalidade e iniciar 
                   uma gestão inteligente em saúde corporativa.
@@ -223,7 +224,7 @@ const Index = () => {
             </div>
 
             {/* Right Section in Dialog - Registration Form */}
-            <div className="w-full md:w-1/2 bg-white p-8">
+            <div className="w-full md:w-1/2 bg-white p-6 md:p-8">
               <div className="flex items-center mb-4">
                 <Button 
                   variant="ghost" 
@@ -234,8 +235,8 @@ const Index = () => {
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                 </Button>
                 <div className="flex-1 text-right">
-                  <span className="text-gray-600">Já tem conta?</span>{" "}
-                  <Button variant="link" className="text-trade-blue p-0" onClick={() => {
+                  <span className="text-gray-600 text-sm">Já tem conta?</span>{" "}
+                  <Button variant="link" className="text-trade-blue p-0 text-sm" onClick={() => {
                     setShowRegisterDialog(false);
                     navigate("/auth");
                   }}>
@@ -244,13 +245,13 @@ const Index = () => {
                 </div>
               </div>
 
-              <DialogHeader className="pb-4">
-                <DialogTitle className="text-center text-2xl font-bold">
+              <div className="pb-4 text-center">
+                <h2 className="text-xl font-bold">
                   Vamos <span className="text-trade-blue">iniciar</span>
-                </DialogTitle>
-              </DialogHeader>
+                </h2>
+              </div>
               
-              <form onSubmit={handleRegister} className="space-y-4 py-4">
+              <form onSubmit={handleRegister} className="space-y-4 py-2">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Primeiro e último nome</Label>
                   <Input 
@@ -319,14 +320,14 @@ const Index = () => {
                   />
                 </div>
                 
-                <div className="flex items-center space-x-2 mt-6">
+                <div className="flex items-center space-x-2 mt-4">
                   <Checkbox 
                     id="terms" 
                     checked={registerData.acceptTerms}
                     onCheckedChange={handleRegisterCheckboxChange}
                   />
                   <label htmlFor="terms" className="text-sm text-gray-700">
-                    Eu aceito os <Button variant="link" className="h-auto p-0 text-trade-blue">Termos e Condições</Button>
+                    Eu aceito os <Button variant="link" className="h-auto p-0 text-trade-blue text-sm">Termos e Condições</Button>
                   </label>
                 </div>
                 

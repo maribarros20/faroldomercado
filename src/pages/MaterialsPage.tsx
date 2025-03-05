@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,6 @@ import {
   Download 
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { Card } from "@/components/ui/card";
 
 // Material category type
 type MaterialCategory = {
@@ -161,10 +159,10 @@ export default function MaterialsPage() {
   );
 
   return (
-    <div className="animate-fade-in p-6 max-w-7xl mx-auto">
-      <header className="flex justify-between items-center mb-8">
+    <div className="animate-fade-in p-4 max-w-7xl mx-auto">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Materiais</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Materiais</h1>
           <p className="text-gray-500 mt-1">Aprenda com conteúdos exclusivos</p>
         </div>
         <Button className="bg-trade-blue hover:bg-trade-blue/90">
@@ -174,7 +172,7 @@ export default function MaterialsPage() {
       </header>
       
       <motion.div 
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
         variants={containerVariants}
         initial="hidden"
         animate="show"
@@ -182,29 +180,29 @@ export default function MaterialsPage() {
         {categories.map((category) => (
           <motion.div 
             key={category.id}
-            className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
+            className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
             variants={itemVariants}
           >
-            <div className="w-12 h-12 bg-trade-light-blue rounded-lg flex items-center justify-center mb-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-trade-light-blue rounded-lg flex items-center justify-center mb-3">
               {category.icon}
             </div>
-            <h3 className="font-medium text-lg text-gray-900 mb-1">{category.title}</h3>
+            <h3 className="font-medium text-base md:text-lg text-gray-900 mb-1">{category.title}</h3>
             <p className="text-gray-500 text-sm">{category.count} materiais</p>
           </motion.div>
         ))}
       </motion.div>
       
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <div className="relative w-full md:w-auto md:flex-1 max-w-2xl">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+        <div className="relative w-full sm:w-auto sm:flex-1 max-w-2xl">
           <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <Input 
-            className="pl-10 py-6 bg-white border-gray-200 rounded-xl" 
+            className="pl-10 py-5 bg-white border-gray-200 rounded-xl" 
             placeholder="Pesquisar materiais..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className="flex gap-3 w-full sm:w-auto">
           <Button variant="outline" className="gap-2 border-gray-200 text-gray-700">
             <Filter size={18} />
             Filtro
@@ -217,7 +215,7 @@ export default function MaterialsPage() {
       </div>
       
       <motion.div 
-        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+        className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
         variants={containerVariants}
         initial="hidden"
         animate="show"
@@ -228,15 +226,15 @@ export default function MaterialsPage() {
             className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1"
             variants={itemVariants}
           >
-            <div className="p-6">
-              <div className="flex items-start gap-4">
+            <div className="p-4 md:p-6">
+              <div className="flex items-start gap-3">
                 {getTypeIcon(material.type)}
                 <div className="flex-1">
-                  <h3 className="font-medium text-lg text-gray-900 mb-1">{material.title}</h3>
+                  <h3 className="font-medium text-base md:text-lg text-gray-900 mb-1">{material.title}</h3>
                   <p className="text-gray-500 text-sm">{material.description}</p>
                 </div>
               </div>
-              <div className="flex justify-between items-center mt-6">
+              <div className="flex justify-between items-center mt-4">
                 <span className="text-xs text-gray-500">Adicionado há {material.addedTime}</span>
                 <Button size="sm" variant="ghost" className="rounded-full h-8 w-8 p-0">
                   <Download size={16} />

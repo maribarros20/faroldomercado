@@ -34,8 +34,8 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       <div className="flex min-h-screen flex-col w-full">
         <div className="flex flex-1 w-full">
           <Sidebar />
-          <main className="flex-1 flex flex-col">
-            <div className="flex-1 px-4 md:px-6 py-4 md:py-8">
+          <main className="flex-1 flex flex-col max-w-full overflow-x-hidden">
+            <div className="flex-1 px-3 md:px-6 py-4 md:py-6">
               {children}
             </div>
             <Footer />

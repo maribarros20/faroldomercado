@@ -9,10 +9,11 @@ const Logo = () => {
       className="flex items-center cursor-pointer" 
       onClick={() => navigate("/")}
     >
-      <span className="text-2xl font-bold">
-        <span className="text-primary">Farol</span>
-        <span className="text-gray-800">do Mercado</span>
-      </span>
+      <img 
+        src="/lovable-uploads/18a3a903-1ddc-4916-a178-85f9fad0a63a.png" 
+        alt="Farol do Mercado" 
+        className="h-10 object-contain" 
+      />
     </div>
   );
 };
