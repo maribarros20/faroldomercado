@@ -141,7 +141,7 @@ const DashboardPage = () => {
         <TabsList className="mb-6 w-full md:w-auto flex flex-wrap">
           <TabsTrigger value="dashboard">Carteira</TabsTrigger>
           <TabsTrigger value="market-news">Notícias</TabsTrigger>
-          <TabsTrigger value="finance-spreadsheet">Planilha Financeira</TabsTrigger>
+          <TabsTrigger value="finance-spreadsheet">Mercado</TabsTrigger>
         </TabsList>
         
         <Card>
