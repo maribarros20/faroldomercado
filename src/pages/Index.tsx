@@ -117,31 +117,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row w-full">
-      {/* Left Section - Blue Background */}
-      <div className="bg-trade-blue w-full md:w-1/2 p-8 flex flex-col">
-        <div className="flex space-x-8 mb-12 text-white">
-          <a href="#" className="text-lg font-medium hover:underline">Site</a>
-          <a href="#" className="text-lg font-medium hover:underline">Blog</a>
-          <a href="#" className="text-lg font-medium hover:underline">Falar com Luma</a>
-        </div>
-        
-        <div className="flex-1 flex flex-col justify-center max-w-md">
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-6">
-            Para acessar a plataforma do Farol do Mercado
-          </h1>
-          <p className="text-white mb-8">
-            você deve realizar o cadastro dos seus dados e do mentor. Após o registro, 
-            acompanhe em seu e-mail as etapas para usar todas as funcionalidade e iniciar 
-            uma gestão inteligente em saúde corporativa.
-          </p>
-        </div>
-      </div>
-
-      {/* Right Section - White Background with Login Form */}
-      <div className="w-full md:w-1/2 p-8 flex flex-col items-center justify-center">
+      {/* Left Section - Login Form */}
+      <div className="w-full md:w-1/2 p-8 flex flex-col items-center justify-center bg-white">
         <div className="w-full max-w-md">
-          <div className="mb-8 flex justify-between items-center">
-            <div className="flex-1 text-right">
+          <div className="mb-8 flex items-center justify-between">
+            <Logo />
+            <div>
               <span className="text-gray-600">Já tem conta?</span>{" "}
               <Button variant="link" className="text-trade-blue p-0" onClick={() => navigate("/auth")}>
                 Entrar
@@ -206,118 +187,155 @@ const Index = () => {
         </div>
       </div>
 
+      {/* Right Section - Image */}
+      <div className="w-full md:w-1/2 bg-gradient-to-r from-blue-50 to-blue-100 hidden md:block">
+        <div className="h-full w-full flex items-center justify-center relative">
+          <img 
+            src="/lovable-uploads/42d43b84-f455-4272-a9c7-96160af1bce2.png" 
+            alt="Profissional usando um tablet" 
+            className="object-cover h-full w-full object-center"
+          />
+        </div>
+      </div>
+
       {/* Registration Dialog / Pop-up */}
       <Dialog open={showRegisterDialog} onOpenChange={setShowRegisterDialog}>
-        <DialogContent className="sm:max-w-md md:max-w-lg">
-          <DialogHeader>
-            <div className="flex items-center mb-4">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="mr-2" 
-                onClick={() => setShowRegisterDialog(false)}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-              </Button>
-              <div className="flex-1 text-right">
-                <span className="text-gray-600">Já tem conta?</span>{" "}
-                <Button variant="link" className="text-trade-blue p-0" onClick={() => {
-                  setShowRegisterDialog(false);
-                  navigate("/auth");
-                }}>
-                  Entrar
-                </Button>
+        <DialogContent className="sm:max-w-md md:max-w-5xl p-0 overflow-hidden">
+          <div className="flex flex-col md:flex-row w-full">
+            {/* Left Section in Dialog - Blue Background */}
+            <div className="bg-trade-blue w-full md:w-1/2 p-8 flex flex-col">
+              <div className="flex space-x-8 mb-12 text-white">
+                <a href="#" className="text-lg font-medium hover:underline">Site</a>
+                <a href="#" className="text-lg font-medium hover:underline">Blog</a>
+                <a href="#" className="text-lg font-medium hover:underline">Falar com Luma</a>
+              </div>
+              
+              <div className="flex-1 flex flex-col justify-center max-w-md">
+                <h1 className="text-2xl md:text-3xl font-bold text-white mb-6">
+                  Para acessar a plataforma do Farol do Mercado
+                </h1>
+                <p className="text-white mb-8">
+                  você deve realizar o cadastro dos seus dados e do mentor. Após o registro, 
+                  acompanhe em seu e-mail as etapas para usar todas as funcionalidade e iniciar 
+                  uma gestão inteligente em saúde corporativa.
+                </p>
               </div>
             </div>
-            <DialogTitle className="text-center text-2xl font-bold">
-              Vamos <span className="text-trade-blue">iniciar</span>
-            </DialogTitle>
-          </DialogHeader>
-          
-          <form onSubmit={handleRegister} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Primeiro e último nome</Label>
-              <Input 
-                id="fullName" 
-                name="fullName" 
-                value={registerData.fullName}
-                onChange={handleRegisterChange}
-                required
-              />
+
+            {/* Right Section in Dialog - Registration Form */}
+            <div className="w-full md:w-1/2 bg-white p-8">
+              <div className="flex items-center mb-4">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="mr-2" 
+                  onClick={() => setShowRegisterDialog(false)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </Button>
+                <div className="flex-1 text-right">
+                  <span className="text-gray-600">Já tem conta?</span>{" "}
+                  <Button variant="link" className="text-trade-blue p-0" onClick={() => {
+                    setShowRegisterDialog(false);
+                    navigate("/auth");
+                  }}>
+                    Entrar
+                  </Button>
+                </div>
+              </div>
+
+              <DialogHeader className="pb-4">
+                <DialogTitle className="text-center text-2xl font-bold">
+                  Vamos <span className="text-trade-blue">iniciar</span>
+                </DialogTitle>
+              </DialogHeader>
+              
+              <form onSubmit={handleRegister} className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Primeiro e último nome</Label>
+                  <Input 
+                    id="fullName" 
+                    name="fullName" 
+                    value={registerData.fullName}
+                    onChange={handleRegisterChange}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="registerEmail">E-mail</Label>
+                  <Input 
+                    id="registerEmail" 
+                    name="email" 
+                    type="email" 
+                    value={registerData.email}
+                    onChange={handleRegisterChange}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="registerPassword">Senha</Label>
+                  <Input 
+                    id="registerPassword" 
+                    name="password" 
+                    type="password" 
+                    value={registerData.password}
+                    onChange={handleRegisterChange}
+                    required
+                  />
+                  <p className="text-xs text-gray-500">
+                    A senha deve ter pelo menos 8 caracteres, sendo 1 número, 1 letra maiúscula e 1 caractere especial
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="company">Empresa ou Mentor</Label>
+                  <Input 
+                    id="company" 
+                    name="company" 
+                    value={registerData.company}
+                    onChange={handleRegisterChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="cnpj">CNPJ</Label>
+                  <Input 
+                    id="cnpj" 
+                    name="cnpj" 
+                    value={registerData.cnpj}
+                    onChange={handleRegisterChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Celular</Label>
+                  <Input 
+                    id="phone" 
+                    name="phone" 
+                    value={registerData.phone}
+                    onChange={handleRegisterChange}
+                  />
+                </div>
+                
+                <div className="flex items-center space-x-2 mt-6">
+                  <Checkbox 
+                    id="terms" 
+                    checked={registerData.acceptTerms}
+                    onCheckedChange={handleRegisterCheckboxChange}
+                  />
+                  <label htmlFor="terms" className="text-sm text-gray-700">
+                    Eu aceito os <Button variant="link" className="h-auto p-0 text-trade-blue">Termos e Condições</Button>
+                  </label>
+                </div>
+                
+                <Button type="submit" className="w-full bg-trade-blue hover:bg-trade-dark-blue text-white mt-4">
+                  Cadastrar acesso
+                </Button>
+              </form>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="registerEmail">E-mail</Label>
-              <Input 
-                id="registerEmail" 
-                name="email" 
-                type="email" 
-                value={registerData.email}
-                onChange={handleRegisterChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="registerPassword">Senha</Label>
-              <Input 
-                id="registerPassword" 
-                name="password" 
-                type="password" 
-                value={registerData.password}
-                onChange={handleRegisterChange}
-                required
-              />
-              <p className="text-xs text-gray-500">
-                A senha deve ter pelo menos 8 caracteres, sendo 1 número, 1 letra maiúscula e 1 caractere especial
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="company">Empresa ou Mentor</Label>
-              <Input 
-                id="company" 
-                name="company" 
-                value={registerData.company}
-                onChange={handleRegisterChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ</Label>
-              <Input 
-                id="cnpj" 
-                name="cnpj" 
-                value={registerData.cnpj}
-                onChange={handleRegisterChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="phone">Celular</Label>
-              <Input 
-                id="phone" 
-                name="phone" 
-                value={registerData.phone}
-                onChange={handleRegisterChange}
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2 mt-6">
-              <Checkbox 
-                id="terms" 
-                checked={registerData.acceptTerms}
-                onCheckedChange={handleRegisterCheckboxChange}
-              />
-              <label htmlFor="terms" className="text-sm text-gray-700">
-                Eu aceito os <Button variant="link" className="h-auto p-0 text-trade-blue">Termos e Condições</Button>
-              </label>
-            </div>
-            
-            <Button type="submit" className="w-full bg-trade-blue hover:bg-trade-dark-blue text-white mt-4">
-              Cadastrar acesso
-            </Button>
-          </form>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
