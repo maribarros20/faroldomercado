@@ -11,11 +11,12 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
-// Tipo para planos do usuário
+// Type for user plans
 type UserPlan = {
   id: string;
   name: string;
   features: string[];
+  spreadsheet_url?: string;
 };
 
 const DashboardPage = () => {
@@ -25,34 +26,76 @@ const DashboardPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Simular verificação de plano do usuário
-  // Em um ambiente real, isso viria da autenticação e da API
+  // Check user plan
   useEffect(() => {
     const checkUserPlan = async () => {
       setIsLoading(true);
       try {
-        // Exemplo: verificar se o usuário está autenticado e seu plano
+        // Check if user is authenticated and get their plan
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session) {
-          // Simulação - em produção, isso viria do banco de dados
-          setUserPlan({
-            id: "1",
-            name: "Premium",
-            features: ["dashboard", "market-news", "finance-spreadsheet"] 
-          });
+          // Get the user's subscription
+          const { data: subscriptionData, error: subscriptionError } = await supabase
+            .from('subscriptions')
+            .select(`
+              id,
+              plan_id,
+              plans (
+                id,
+                name,
+                description
+              )
+            `)
+            .eq('user_id', session.user.id)
+            .eq('is_active', true)
+            .single();
+          
+          if (subscriptionData) {
+            // Get plan features
+            const { data: featureData, error: featureError } = await supabase
+              .from('plan_features')
+              .select('*')
+              .eq('plan_id', subscriptionData.plan_id);
+            
+            const features = featureData
+              ?.filter(feature => feature.is_included)
+              .map(feature => feature.text.toLowerCase()) || [];
+              
+            setUserPlan({
+              id: subscriptionData.plan_id,
+              name: subscriptionData.plans.name,
+              features: features,
+              spreadsheet_url: features.includes("planilha financeira avançada") 
+                ? "https://docs.google.com/spreadsheets/d/e/2PACX-1vS6m3cCvBxXqCkVjpWyg73Q426GFTHnmVq7tEZ-G4X4XBe6rg-5_eU8Z-574HOEo1qqyhS0dwWJVVIR/pubhtml?gid=2095335592&amp;single=true&amp;widget=true&amp;headers=false"
+                : "https://docs.google.com/spreadsheets/d/e/2PACX-1vS6m3cCvBxXqCkVjpWyg73Q426GFTHnmVq7tEZ-G4X4XBe6rg-5_eU8Z-574HOEo1qqyhS0dwWJVVIR/pubhtml?gid=0&amp;single=true&amp;widget=true&amp;headers=false"
+            });
+          } else {
+            // User without subscription or basic plan
+            setUserPlan({
+              id: "free",
+              name: "Gratuito",
+              features: ["dashboard"] 
+            });
+            
+            // Show informative toast
+            toast({
+              title: "Acesso limitado",
+              description: "Algumas funcionalidades estão disponíveis apenas para assinantes. Faça upgrade do seu plano.",
+              variant: "default",
+            });
+          }
         } else {
-          // Usuário sem autenticação ou plano básico
+          // User not logged in
           setUserPlan({
-            id: "2",
-            name: "Básico",
+            id: "guest",
+            name: "Visitante",
             features: ["dashboard"] 
           });
           
-          // Mostrar toast informativo
           toast({
             title: "Acesso limitado",
-            description: "Algumas funcionalidades estão disponíveis apenas para assinantes. Faça upgrade do seu plano.",
+            description: "Faça login para acessar mais funcionalidades ou assine um plano premium.",
             variant: "default",
           });
         }
@@ -71,13 +114,24 @@ const DashboardPage = () => {
     checkUserPlan();
   }, [toast]);
 
-  // Verificar acesso a uma aba específica
+  // Check access to a specific tab
   const hasAccessToTab = (tabId: string) => {
     if (!userPlan) return false;
-    return userPlan.features.includes(tabId);
+    
+    // Convert tab id to feature name format that would be in plan_features
+    const featureMap: {[key: string]: string} = {
+      "dashboard": "dashboard",
+      "market-news": "notícias do mercado",
+      "finance-spreadsheet": "planilha financeira"
+    };
+    
+    const featureName = featureMap[tabId];
+    return userPlan.features.some(feature => 
+      feature.toLowerCase().includes(featureName.toLowerCase())
+    );
   };
 
-  // Manipulador de mudança de aba
+  // Handle tab change
   const handleTabChange = (value: string) => {
     if (!hasAccessToTab(value)) {
       toast({
@@ -127,7 +181,7 @@ const DashboardPage = () => {
             </TabsContent>
             
             <TabsContent value="finance-spreadsheet" className="mt-0">
-              <FinanceSpreadsheet />
+              <FinanceSpreadsheet spreadsheetUrl={userPlan?.spreadsheet_url} />
             </TabsContent>
           </CardContent>
         </Card>

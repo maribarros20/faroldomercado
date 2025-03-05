@@ -3,10 +3,10 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { RefreshCw, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
-// Interface para as notícias
+// Interface for news items
 interface NewsItem {
   title: string;
   description: string;
@@ -16,25 +16,36 @@ interface NewsItem {
   imageUrl?: string;
 }
 
+// Financial market RSS feeds
+const RSS_FEEDS = [
+  "https://www.infomoney.com.br/feed/",
+  "https://valorinveste.globo.com/rss/valor-investe/",
+  "https://www.investnews.com.br/feed/",
+  "https://br.investing.com/rss/news.rss",
+  "https://www.seudinheiro.com/feed/"
+];
+
 const MarketNews = () => {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
 
-  // Função para buscar as notícias (simulada)
+  // Function to fetch news from RSS feeds (simulated for now)
   const fetchNews = async () => {
     setIsLoading(true);
     
     try {
-      // Simulação de chamada de API
+      // In a real app, we would use a backend function to fetch and parse RSS feeds
+      // For now, we'll use simulated data
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Dados simulados de notícias
+      // Simulated news data (in a real implementation, this would come from the RSS feeds)
       const mockNews: NewsItem[] = [
         {
           title: "Ibovespa fecha em alta de 1,2% com impulso das commodities",
           description: "Índice atingiu 130.156 pontos, maior patamar em três meses, impulsionado por ações de mineradoras e petroleiras",
-          url: "#",
+          url: "https://www.infomoney.com.br/mercados/ibovespa-hoje-31-05-2024/",
           source: "InfoMoney",
           publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
           imageUrl: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=2070&auto=format&fit=crop"
@@ -42,30 +53,30 @@ const MarketNews = () => {
         {
           title: "Banco Central mantém taxa Selic em 10,5% ao ano",
           description: "Decisão unânime do Copom surpreendeu analistas que esperavam corte de 0,25 ponto percentual",
-          url: "#",
-          source: "Valor Econômico",
+          url: "https://valorinveste.globo.com/mercados/renda-variavel/noticia/2024/05/30/copom-decide-manter-taxa-selic-em-105percent.ghtml",
+          source: "Valor Investe",
           publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
         },
         {
           title: "Dólar cai para R$ 5,10 após dados de inflação nos EUA",
           description: "Moeda americana recuou 0,8% com sinais de desaceleração da inflação americana e possível corte de juros pelo Fed",
-          url: "#",
-          source: "Reuters Brasil",
+          url: "https://www.investnews.com.br/economia/dolar-hoje-31-05-cai-apos-divulgacao-de-pce-nos-eua/",
+          source: "InvestNews",
           publishedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
           imageUrl: "https://images.unsplash.com/photo-1591033594798-33227a05780d?q=80&w=2069&auto=format&fit=crop"
         },
         {
           title: "Petrobras anuncia novo plano de investimentos de R$ 380 bilhões",
           description: "Estatal pretende ampliar produção no pré-sal e investir em energia renovável nos próximos cinco anos",
-          url: "#",
-          source: "Agência Brasil",
+          url: "https://www.seudinheiro.com/2024/empresas/petrobras-anuncia-novo-plano-de-investimentos/",
+          source: "Seu Dinheiro",
           publishedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
         },
         {
           title: "PIB brasileiro cresce 0,7% no segundo trimestre, acima das expectativas",
           description: "Resultado supera previsão de 0,5% e foi impulsionado pelo setor de serviços e consumo das famílias",
-          url: "#",
-          source: "G1 Economia",
+          url: "https://br.investing.com/news/economy/pib-do-brasil-cresce-07-no-2-tri-acima-do-esperado-mostra-ibge-1071354",
+          source: "Investing.com",
           publishedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
           imageUrl: "https://images.unsplash.com/photo-1616803140344-7862904e6f2b?q=80&w=2070&auto=format&fit=crop"
         },
@@ -88,11 +99,11 @@ const MarketNews = () => {
     }
   };
 
-  // Carregar notícias ao montar o componente
+  // Load news when component mounts
   useEffect(() => {
     fetchNews();
     
-    // Configurar atualização automática a cada 15 minutos
+    // Set up automatic refresh every 15 minutes
     const interval = setInterval(() => {
       fetchNews();
     }, 15 * 60 * 1000);
@@ -100,13 +111,13 @@ const MarketNews = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Filtrar notícias baseado no termo de busca
+  // Filter news based on search term
   const filteredNews = news.filter(item => 
     item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
     item.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Formatar data relativa
+  // Format relative time
   const getRelativeTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -139,8 +150,17 @@ const MarketNews = () => {
           disabled={isLoading}
           className="flex items-center gap-2 sm:self-start"
         >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          {isLoading ? 'Atualizando...' : 'Atualizar Notícias'}
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Atualizando...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4" />
+              Atualizar Notícias
+            </>
+          )}
         </Button>
       </div>
       
@@ -191,7 +211,7 @@ const MarketNews = () => {
           ))
         ) : isLoading ? (
           <div className="text-center py-10">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
             <p className="mt-4 text-muted-foreground">Carregando notícias...</p>
           </div>
         ) : (

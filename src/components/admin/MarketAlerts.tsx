@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, AlertTriangle, Bell, TrendingUp } from "lucide-react";
 
-// Definição dos tipos de alerta
+// Alert type definitions
 type AlertType = "warning" | "price" | "dividend" | "technical";
 
 type MarketAlert = {
@@ -14,7 +14,7 @@ type MarketAlert = {
   time: string;
 };
 
-// Função para obter o ícone adequado para cada tipo de alerta
+// Function to get appropriate icon for each alert type
 const getAlertIcon = (type: AlertType) => {
   switch (type) {
     case "warning":
@@ -30,7 +30,7 @@ const getAlertIcon = (type: AlertType) => {
   }
 };
 
-// Cor de fundo para cada tipo de alerta
+// Background color for each alert type
 const getAlertBgColor = (type: AlertType) => {
   switch (type) {
     case "warning":
@@ -46,7 +46,7 @@ const getAlertBgColor = (type: AlertType) => {
   }
 };
 
-// Dados simulados de alertas
+// Simulated alert data
 const mockAlerts: MarketAlert[] = [
   {
     id: "1",

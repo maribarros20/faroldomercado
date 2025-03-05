@@ -3,19 +3,19 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-// Tipo para dados do gráfico
+// Type for chart data points
 type ChartDataPoint = {
   time: string;
   IBOV: number;
   SP500: number;
 };
 
-// Função para gerar dados simulados para o gráfico
+// Function to generate chart data (simulated, would be replaced by real API data)
 const generateChartData = (): ChartDataPoint[] => {
   const data: ChartDataPoint[] = [];
   const now = new Date();
   
-  // Começar das 10:00 até hora atual
+  // Start from 10:00 to current hour
   for (let i = 0; i < 7; i++) {
     const hour = 10 + i;
     const ibovBase = 120000 + Math.random() * 10000;
@@ -24,7 +24,7 @@ const generateChartData = (): ChartDataPoint[] => {
     data.push({
       time: `${hour}:00`,
       IBOV: Math.round(ibovBase),
-      SP500: Math.round(sp500Base * 10) // Multiplicando para ficar em escala similar
+      SP500: Math.round(sp500Base * 10) // Multiplying to get similar scale
     });
   }
   
@@ -37,7 +37,7 @@ const MarketOverview = () => {
   useEffect(() => {
     setChartData(generateChartData());
     
-    // Atualizar dados a cada 5 minutos
+    // Update data every 5 minutes
     const interval = setInterval(() => {
       setChartData(generateChartData());
     }, 5 * 60 * 1000);

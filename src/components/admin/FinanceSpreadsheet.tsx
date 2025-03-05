@@ -3,21 +3,28 @@ import React, { useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
-const FinanceSpreadsheet = () => {
+type FinanceSpreadsheetProps = {
+  spreadsheetUrl?: string;
+};
+
+const FinanceSpreadsheet = ({ spreadsheetUrl }: FinanceSpreadsheetProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const refreshIntervalRef = useRef<number | null>(null);
+  const { toast } = useToast();
 
-  // Função para atualizar o iframe
+  const defaultUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS6m3cCvBxXqCkVjpWyg73Q426GFTHnmVq7tEZ-G4X4XBe6rg-5_eU8Z-574HOEo1qqyhS0dwWJVVIR/pubhtml?gid=2095335592&amp;single=true&amp;widget=true&amp;headers=false";
+
+  // Function to refresh the iframe
   const refreshIframe = () => {
     if (iframeRef.current) {
-      // Adicionar timestamp para evitar cache
+      // Add timestamp to avoid caching
       const timestamp = new Date().getTime();
       const currentSrc = iframeRef.current.src;
       const baseUrl = currentSrc.split('?')[0];
       
-      // Atualizar o src do iframe
+      // Update iframe src
       iframeRef.current.src = `${baseUrl}?timestamp=${timestamp}`;
       
       toast({
@@ -27,17 +34,17 @@ const FinanceSpreadsheet = () => {
     }
   };
 
-  // Configurar a atualização automática a cada 5 minutos
+  // Set up automatic refresh every 5 minutes
   useEffect(() => {
-    // Atualizar imediatamente ao montar o componente
+    // Refresh immediately when component mounts
     refreshIframe();
     
-    // Configurar intervalo para atualização a cada 5 minutos
+    // Set up interval for refreshing every 5 minutes
     refreshIntervalRef.current = window.setInterval(() => {
       refreshIframe();
-    }, 5 * 60 * 1000); // 5 minutos em milissegundos
+    }, 5 * 60 * 1000); // 5 minutes in milliseconds
     
-    // Limpar o intervalo quando o componente for desmontado
+    // Clear interval when component unmounts
     return () => {
       if (refreshIntervalRef.current !== null) {
         clearInterval(refreshIntervalRef.current);
@@ -69,7 +76,7 @@ const FinanceSpreadsheet = () => {
           <div className="w-full overflow-auto">
             <iframe 
               ref={iframeRef}
-              src="https://docs.google.com/spreadsheets/d/e/2PACX-1vS6m3cCvBxXqCkVjpWyg73Q426GFTHnmVq7tEZ-G4X4XBe6rg-5_eU8Z-574HOEo1qqyhS0dwWJVVIR/pubhtml?gid=2095335592&amp;single=true&amp;widget=true&amp;headers=false"
+              src={spreadsheetUrl || defaultUrl}
               width="100%" 
               height="1300"
               frameBorder="0"

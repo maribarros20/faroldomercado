@@ -27,7 +27,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-// Plan type
 type PlanFeature = {
   id: string;
   text: string;
@@ -69,11 +68,9 @@ const AdminPlans = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch plans from Supabase
   const { data: plans = [], isLoading, error } = useQuery({
     queryKey: ['plans'],
     queryFn: async () => {
-      // Fetch plans
       const { data: plansData, error: plansError } = await supabase
         .from('plans')
         .select('*')
@@ -84,7 +81,6 @@ const AdminPlans = () => {
         throw plansError;
       }
 
-      // Fetch features for each plan
       const plansWithFeatures = await Promise.all(plansData.map(async (plan) => {
         const { data: featuresData, error: featuresError } = await supabase
           .from('plan_features')
@@ -96,7 +92,6 @@ const AdminPlans = () => {
           return { ...plan, features: [] };
         }
 
-        // Get subscriber count
         const { count, error: countError } = await supabase
           .from('subscriptions')
           .select('*', { count: 'exact', head: true })
@@ -114,10 +109,8 @@ const AdminPlans = () => {
     }
   });
 
-  // Add plan mutation
   const addPlanMutation = useMutation({
     mutationFn: async () => {
-      // Insert plan
       const { data: planData, error: planError } = await supabase
         .from('plans')
         .insert({
@@ -133,7 +126,6 @@ const AdminPlans = () => {
       
       if (planError) throw planError;
       
-      // Insert features
       const featuresWithPlanId = newFeatures.map(feature => ({
         plan_id: planData.id,
         text: feature.text,
@@ -169,12 +161,10 @@ const AdminPlans = () => {
     }
   });
 
-  // Edit plan mutation
   const editPlanMutation = useMutation({
     mutationFn: async () => {
       if (!editingPlanId) throw new Error("No plan ID for editing");
       
-      // Update plan
       const { error: planError } = await supabase
         .from('plans')
         .update({
@@ -190,7 +180,6 @@ const AdminPlans = () => {
       
       if (planError) throw planError;
       
-      // Delete existing features and add new ones
       const { error: deleteError } = await supabase
         .from('plan_features')
         .delete()
@@ -232,7 +221,6 @@ const AdminPlans = () => {
     }
   });
 
-  // Delete plan mutation
   const deletePlanMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -261,7 +249,6 @@ const AdminPlans = () => {
     }
   });
 
-  // Toggle active status mutation
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       const { error } = await supabase
@@ -290,17 +277,14 @@ const AdminPlans = () => {
     }
   });
 
-  // Toggle popular status mutation
   const togglePopularMutation = useMutation({
     mutationFn: async (id: string) => {
-      // First, set all plans to not popular
       const { error: resetError } = await supabase
         .from('plans')
         .update({ is_popular: false, updated_at: new Date().toISOString() });
       
       if (resetError) throw resetError;
       
-      // Then set this plan to popular
       const { error } = await supabase
         .from('plans')
         .update({ is_popular: true, updated_at: new Date().toISOString() })
@@ -502,6 +486,15 @@ const AdminPlans = () => {
               </div>
             </div>
           ))}
+        </div>
+        <div className="text-sm text-muted-foreground mt-2">
+          <p>Recursos especiais: </p>
+          <ul className="ml-5 list-disc">
+            <li>Para habilitar acesso às notícias do mercado, use o texto "Notícias do Mercado"</li>
+            <li>Para habilitar acesso à planilha financeira, use o texto "Planilha Financeira"</li>
+            <li>Para usar a planilha financeira avançada, use o texto "Planilha Financeira Avançada"</li>
+            <li>Para URL personalizada da planilha, adicione nas configurações do plano</li>
+          </ul>
         </div>
       </div>
       <div className="flex items-center space-x-2">
@@ -745,7 +738,6 @@ const AdminPlans = () => {
                     </TableCell>
                   ))}
                 </TableRow>
-                {/* Get all unique feature texts across all plans */}
                 {Array.from(new Set(plans.flatMap(plan => plan.features.map(f => f.text)))).map((featureText) => (
                   <TableRow key={featureText}>
                     <TableCell className="font-medium">{featureText}</TableCell>
