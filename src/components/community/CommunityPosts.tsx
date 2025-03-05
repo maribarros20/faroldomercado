@@ -1,474 +1,930 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Loader2, ThumbsUp, MessageSquare, Share2, MoreHorizontal } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { HeartIcon, MessageCircle, MoreVertical, Send, Trash2, Edit } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
+import { pt } from "date-fns/locale";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/use-toast";
+import { ptBR } from "date-fns/locale";
 
-interface CommunityPostsProps {
-  channelId: string;
-  onCreatePost: () => void;
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  likes_count: number;
+  comments_count: number;
+  user_id: string;
+  channel_id: string;
+  user: {
+    first_name: string;
+    last_name: string;
+    avatar_url?: string;
+  };
+  is_liked?: boolean;
 }
 
-const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId, onCreatePost }) => {
-  const queryClient = useQueryClient();
-  const [newComment, setNewComment] = useState<Record<string, string>>({});
-  const [showComments, setShowComments] = useState<Record<string, boolean>>({});
+interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  post_id: string;
+  likes_count: number;
+  user: {
+    first_name: string;
+    last_name: string;
+    avatar_url?: string;
+  };
+  is_liked?: boolean;
+}
 
-  // Fetch channel info
-  const { data: channelInfo } = useQuery({
-    queryKey: ['channel-info', channelId],
+interface CommunityPostsProps {
+  channelId: string | null;
+}
+
+const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId }) => {
+  const [newPostContent, setNewPostContent] = useState("");
+  const [postTitle, setPostTitle] = useState("");
+  const [openedPostId, setOpenedPostId] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState("");
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [editingComment, setEditingComment] = useState<Comment | null>(null);
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    // Reset states when channel changes
+    setOpenedPostId(null);
+    setNewPostContent("");
+    setPostTitle("");
+    setEditingPost(null);
+    setEditingComment(null);
+  }, [channelId]);
+
+  // Get current user
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
     queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+      
       const { data, error } = await supabase
-        .from('community_channels')
+        .from('users')
         .select('*')
-        .eq('id', channelId)
+        .eq('id', session.user.id)
         .single();
       
-      if (error) {
-        console.error("Error fetching channel info:", error);
-        throw error;
-      }
-      
+      if (error) throw error;
       return data;
     }
   });
 
-  // Fetch posts for the channel
-  const { data: posts, isLoading } = useQuery({
+  // Fetch posts for the selected channel
+  const { 
+    data: posts, 
+    isLoading: postsLoading,
+    refetch: refetchPosts
+  } = useQuery({
     queryKey: ['channel-posts', channelId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!channelId) return [];
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return [];
+      
+      // Fetch posts with user info
+      const { data: postsData, error } = await supabase
         .from('community_posts')
         .select(`
           *,
-          profiles:user_id (
+          user:user_id (
             first_name,
             last_name,
-            company
+            avatar_url
           )
         `)
         .eq('channel_id', channelId)
         .order('created_at', { ascending: false });
       
-      if (error) {
-        console.error("Error fetching posts:", error);
-        throw error;
-      }
-      
-      return data;
-    }
-  });
-
-  // Fetch current user
-  const { data: currentUser } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error("User not authenticated");
-      }
-      
-      return session.user;
-    }
-  });
-
-  // Like post mutation
-  const likeMutation = useMutation({
-    mutationFn: async ({ postId }: { postId: string }) => {
-      // First check if user already liked this post
-      const { data: existingLike, error: checkError } = await supabase
-        .from('user_likes')
-        .select('id')
-        .eq('user_id', currentUser?.id)
-        .eq('post_id', postId)
-        .maybeSingle();
-        
-      if (checkError) {
-        throw checkError;
-      }
-      
-      if (existingLike) {
-        // User already liked, so unlike
-        const { error } = await supabase
-          .from('user_likes')
-          .delete()
-          .eq('id', existingLike.id);
-          
-        if (error) throw error;
-        return { action: 'unliked' };
-      } else {
-        // User hasn't liked, so add like
-        const { error } = await supabase
-          .from('user_likes')
-          .insert({
-            user_id: currentUser?.id,
-            post_id: postId
-          });
-          
-        if (error) throw error;
-        return { action: 'liked' };
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channel-posts', channelId] });
-    },
-    onError: (error) => {
-      console.error("Error with like action:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível curtir a postagem.",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Add comment mutation
-  const commentMutation = useMutation({
-    mutationFn: async ({ postId, content }: { postId: string, content: string }) => {
-      if (!content.trim()) {
-        throw new Error("O comentário não pode estar vazio.");
-      }
-      
-      const { error } = await supabase
-        .from('post_comments')
-        .insert({
-          user_id: currentUser?.id,
-          post_id: postId,
-          content
-        });
-        
       if (error) throw error;
       
-      // Also log this as an activity
-      await supabase.from('user_activities').insert({
-        user_id: currentUser?.id,
-        activity_type: 'comment',
-        content_id: postId,
-        metadata: { channel_id: channelId }
-      });
+      // For each post, check if the current user has liked it
+      const postsWithLikeStatus = await Promise.all(
+        postsData.map(async (post) => {
+          const { data: likeData, error: likeError } = await supabase
+            .from('user_likes')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .eq('post_id', post.id)
+            .maybeSingle();
+          
+          if (likeError) console.error("Error checking like status", likeError);
+          
+          return {
+            ...post,
+            is_liked: !!likeData
+          };
+        })
+      );
+      
+      return postsWithLikeStatus as Post[];
     },
-    onSuccess: (_, variables) => {
-      setNewComment({ ...newComment, [variables.postId]: '' });
-      queryClient.invalidateQueries({ queryKey: ['channel-posts', channelId] });
-      queryClient.invalidateQueries({ queryKey: ['post-comments', variables.postId] });
-      toast({
-        title: "Comentário adicionado",
-        description: "Seu comentário foi publicado com sucesso."
-      });
-    },
-    onError: (error) => {
-      console.error("Error adding comment:", error);
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Não foi possível adicionar o comentário.",
-        variant: "destructive"
-      });
-    }
+    enabled: !!channelId
   });
 
-  // Fetch comments for a post
-  const fetchComments = async (postId: string) => {
-    const { data, error } = await supabase
-      .from('post_comments')
-      .select(`
-        *,
-        profiles:user_id (
-          first_name,
-          last_name
-        )
-      `)
-      .eq('post_id', postId)
-      .order('created_at', { ascending: true });
-    
-    if (error) {
-      console.error("Error fetching comments:", error);
-      throw error;
-    }
-    
-    return data;
-  };
-
-  // Toggle comments visibility
-  const toggleComments = async (postId: string) => {
-    // If not already showing, fetch comments
-    if (!showComments[postId]) {
-      try {
-        await queryClient.fetchQuery({
-          queryKey: ['post-comments', postId],
-          queryFn: () => fetchComments(postId)
-        });
-      } catch (error) {
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar os comentários.",
-          variant: "destructive"
-        });
-        return;
-      }
-    }
-    
-    setShowComments(prev => ({
-      ...prev,
-      [postId]: !prev[postId]
-    }));
-  };
-
-  // Format initials for avatar
-  const getInitials = (firstName?: string, lastName?: string) => {
-    if (!firstName) return 'U';
-    return `${firstName.charAt(0)}${lastName ? lastName.charAt(0) : ''}`;
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-trade-blue" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-4xl mx-auto p-4 md:p-6">
-      {/* Channel header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{channelInfo?.name}</h1>
-          {channelInfo?.description && (
-            <p className="text-gray-500 mt-1">{channelInfo.description}</p>
-          )}
-        </div>
-        <Button onClick={onCreatePost}>Novo Post</Button>
-      </div>
-
-      {/* Posts list */}
-      {posts && posts.length > 0 ? (
-        <div className="space-y-6">
-          {posts.map((post) => (
-            <div key={post.id} className="bg-white rounded-lg border shadow-sm overflow-hidden">
-              {/* Post header */}
-              <div className="p-4 border-b flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarFallback className="bg-trade-blue text-white">
-                      {getInitials(post.profiles?.first_name, post.profiles?.last_name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      {post.profiles?.first_name} {post.profiles?.last_name}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {format(new Date(post.created_at), "d 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-                    </div>
-                  </div>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => {
-                      navigator.clipboard.writeText(window.location.href);
-                      toast({ description: "Link copiado para área de transferência" });
-                    }}>
-                      Copiar link
-                    </DropdownMenuItem>
-                    {post.user_id === currentUser?.id && (
-                      <DropdownMenuItem className="text-red-600">
-                        Excluir post
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              
-              {/* Post content */}
-              <div className="p-4">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">{post.title}</h3>
-                <p className="text-gray-600 whitespace-pre-line">{post.content}</p>
-              </div>
-              
-              {/* Post actions */}
-              <div className="px-4 py-3 border-t flex items-center gap-6">
-                <button 
-                  className="flex items-center gap-1.5 text-gray-500 hover:text-trade-blue transition-colors"
-                  onClick={() => likeMutation.mutate({ postId: post.id })}
-                >
-                  <ThumbsUp className="h-4 w-4" />
-                  <span>{post.likes_count} Curtidas</span>
-                </button>
-                
-                <button 
-                  className="flex items-center gap-1.5 text-gray-500 hover:text-trade-blue transition-colors"
-                  onClick={() => toggleComments(post.id)}
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  <span>{post.comments_count} Comentários</span>
-                </button>
-                
-                <button 
-                  className="flex items-center gap-1.5 text-gray-500 hover:text-trade-blue transition-colors"
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    toast({ description: "Link copiado para área de transferência" });
-                  }}
-                >
-                  <Share2 className="h-4 w-4" />
-                  <span>Compartilhar</span>
-                </button>
-              </div>
-              
-              {/* Comments section */}
-              {showComments[post.id] && (
-                <div className="border-t bg-gray-50">
-                  {/* Comments list */}
-                  <div className="p-4 space-y-4">
-                    <h4 className="font-medium text-gray-900">Comentários</h4>
-                    
-                    {/* Fetch and render comments */}
-                    <CommentsSection postId={post.id} />
-                    
-                    {/* Add comment form */}
-                    <div className="mt-4 flex gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-trade-blue text-white text-xs">
-                          {currentUser && getInitials(currentUser.user_metadata?.first_name, currentUser.user_metadata?.last_name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <Textarea
-                          placeholder="Escreva um comentário..."
-                          value={newComment[post.id] || ''}
-                          onChange={(e) => setNewComment({ ...newComment, [post.id]: e.target.value })}
-                          className="min-h-[80px] bg-white"
-                        />
-                        <div className="mt-2 flex justify-end">
-                          <Button 
-                            onClick={() => commentMutation.mutate({ 
-                              postId: post.id, 
-                              content: newComment[post.id] || '' 
-                            })}
-                            disabled={!newComment[post.id]?.trim() || commentMutation.isPending}
-                            size="sm"
-                          >
-                            {commentMutation.isPending && (
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            )}
-                            Comentar
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-10 bg-white rounded-lg border shadow-sm">
-          <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhum post ainda</h3>
-          <p className="text-gray-500 max-w-md mx-auto mb-6">
-            Seja o primeiro a iniciar uma conversa neste canal.
-          </p>
-          <Button onClick={onCreatePost}>Criar Primeiro Post</Button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Comments section component
-const CommentsSection: React.FC<{ postId: string }> = ({ postId }) => {
-  const { data: comments, isLoading } = useQuery({
-    queryKey: ['post-comments', postId],
+  // Fetch comments for an opened post
+  const {
+    data: comments,
+    isLoading: commentsLoading,
+    refetch: refetchComments
+  } = useQuery({
+    queryKey: ['post-comments', openedPostId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!openedPostId) return [];
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return [];
+      
+      // Fetch comments with user info
+      const { data: commentsData, error } = await supabase
         .from('post_comments')
         .select(`
           *,
-          profiles:user_id (
+          user:user_id (
             first_name,
-            last_name
+            last_name,
+            avatar_url
           )
         `)
-        .eq('post_id', postId)
+        .eq('post_id', openedPostId)
         .order('created_at', { ascending: true });
       
-      if (error) {
-        console.error("Error fetching comments:", error);
-        throw error;
-      }
+      if (error) throw error;
       
-      return data;
+      // For each comment, check if the current user has liked it
+      const commentsWithLikeStatus = await Promise.all(
+        commentsData.map(async (comment) => {
+          const { data: likeData, error: likeError } = await supabase
+            .from('user_likes')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .eq('comment_id', comment.id)
+            .maybeSingle();
+          
+          if (likeError) console.error("Error checking comment like status", likeError);
+          
+          return {
+            ...comment,
+            is_liked: !!likeData
+          };
+        })
+      );
+      
+      return commentsWithLikeStatus as Comment[];
+    },
+    enabled: !!openedPostId
+  });
+
+  // Create post mutation
+  const createPostMutation = useMutation({
+    mutationFn: async ({ title, content }: { title: string; content: string }) => {
+      if (!channelId) throw new Error("No channel selected");
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("User not authenticated");
+      
+      const { data, error } = await supabase
+        .from('community_posts')
+        .insert({
+          title,
+          content,
+          channel_id: channelId,
+          user_id: session.user.id
+        })
+        .select();
+      
+      if (error) throw error;
+      return data[0];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['channel-posts', channelId] });
+      setNewPostContent("");
+      setPostTitle("");
+      toast({
+        title: "Post criado",
+        description: "Seu post foi publicado com sucesso!"
+      });
+      
+      // Log the activity
+      logUserActivity('comment', { channel_id: channelId });
+    },
+    onError: (error: any) => {
+      console.error("Error creating post:", error);
+      toast({
+        title: "Erro ao criar post",
+        description: error.message || "Não foi possível criar seu post. Tente novamente.",
+        variant: "destructive"
+      });
     }
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-4">
-        <Loader2 className="h-6 w-6 animate-spin text-trade-blue" />
-      </div>
-    );
-  }
+  // Update post mutation
+  const updatePostMutation = useMutation({
+    mutationFn: async ({ id, title, content }: { id: string; title: string; content: string }) => {
+      const { data, error } = await supabase
+        .from('community_posts')
+        .update({ title, content, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select();
+      
+      if (error) throw error;
+      return data[0];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['channel-posts', channelId] });
+      setEditingPost(null);
+      toast({
+        title: "Post atualizado",
+        description: "Seu post foi atualizado com sucesso!"
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error updating post:", error);
+      toast({
+        title: "Erro ao atualizar post",
+        description: error.message || "Não foi possível atualizar seu post. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  });
 
-  if (!comments || comments.length === 0) {
+  // Delete post mutation
+  const deletePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      const { error } = await supabase
+        .from('community_posts')
+        .delete()
+        .eq('id', postId);
+      
+      if (error) throw error;
+      return postId;
+    },
+    onSuccess: (postId) => {
+      queryClient.invalidateQueries({ queryKey: ['channel-posts', channelId] });
+      if (openedPostId === postId) {
+        setOpenedPostId(null);
+      }
+      toast({
+        title: "Post removido",
+        description: "Seu post foi removido com sucesso."
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error deleting post:", error);
+      toast({
+        title: "Erro ao remover post",
+        description: error.message || "Não foi possível remover seu post. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Create comment mutation
+  const createCommentMutation = useMutation({
+    mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("User not authenticated");
+      
+      const { data, error } = await supabase
+        .from('post_comments')
+        .insert({
+          post_id: postId,
+          content,
+          user_id: session.user.id
+        })
+        .select();
+      
+      if (error) throw error;
+      return data[0];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['post-comments', openedPostId] });
+      queryClient.invalidateQueries({ queryKey: ['channel-posts', channelId] });
+      setNewComment("");
+      toast({
+        title: "Comentário adicionado",
+        description: "Seu comentário foi publicado com sucesso!"
+      });
+      
+      // Log the activity
+      logUserActivity('comment', { post_id: openedPostId });
+    },
+    onError: (error: any) => {
+      console.error("Error creating comment:", error);
+      toast({
+        title: "Erro ao adicionar comentário",
+        description: error.message || "Não foi possível adicionar seu comentário. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Update comment mutation
+  const updateCommentMutation = useMutation({
+    mutationFn: async ({ id, content }: { id: string; content: string }) => {
+      const { data, error } = await supabase
+        .from('post_comments')
+        .update({ content, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select();
+      
+      if (error) throw error;
+      return data[0];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['post-comments', openedPostId] });
+      setEditingComment(null);
+      toast({
+        title: "Comentário atualizado",
+        description: "Seu comentário foi atualizado com sucesso!"
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error updating comment:", error);
+      toast({
+        title: "Erro ao atualizar comentário",
+        description: error.message || "Não foi possível atualizar seu comentário. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete comment mutation
+  const deleteCommentMutation = useMutation({
+    mutationFn: async (commentId: string) => {
+      const { error } = await supabase
+        .from('post_comments')
+        .delete()
+        .eq('id', commentId);
+      
+      if (error) throw error;
+      return commentId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['post-comments', openedPostId] });
+      queryClient.invalidateQueries({ queryKey: ['channel-posts', channelId] });
+      toast({
+        title: "Comentário removido",
+        description: "Seu comentário foi removido com sucesso."
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error deleting comment:", error);
+      toast({
+        title: "Erro ao remover comentário",
+        description: error.message || "Não foi possível remover seu comentário. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Toggle post like mutation
+  const togglePostLikeMutation = useMutation({
+    mutationFn: async ({ postId, isLiked }: { postId: string; isLiked: boolean }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("User not authenticated");
+      
+      if (isLiked) {
+        // Remove like
+        const { error } = await supabase
+          .from('user_likes')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('post_id', postId);
+        
+        if (error) throw error;
+      } else {
+        // Add like
+        const { error } = await supabase
+          .from('user_likes')
+          .insert({
+            user_id: session.user.id,
+            post_id: postId
+          });
+        
+        if (error) throw error;
+      }
+      
+      return { postId, liked: !isLiked };
+    },
+    onSuccess: ({ postId, liked }) => {
+      // Optimistically update the UI
+      queryClient.setQueryData(['channel-posts', channelId], (oldData: any) => {
+        return oldData.map((post: Post) => {
+          if (post.id === postId) {
+            return {
+              ...post,
+              likes_count: liked ? post.likes_count + 1 : post.likes_count - 1,
+              is_liked: liked
+            };
+          }
+          return post;
+        });
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error toggling post like:", error);
+      refetchPosts();
+    }
+  });
+
+  // Toggle comment like mutation
+  const toggleCommentLikeMutation = useMutation({
+    mutationFn: async ({ commentId, isLiked }: { commentId: string; isLiked: boolean }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("User not authenticated");
+      
+      if (isLiked) {
+        // Remove like
+        const { error } = await supabase
+          .from('user_likes')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('comment_id', commentId);
+        
+        if (error) throw error;
+      } else {
+        // Add like
+        const { error } = await supabase
+          .from('user_likes')
+          .insert({
+            user_id: session.user.id,
+            comment_id: commentId
+          });
+        
+        if (error) throw error;
+      }
+      
+      return { commentId, liked: !isLiked };
+    },
+    onSuccess: ({ commentId, liked }) => {
+      // Optimistically update the UI
+      queryClient.setQueryData(['post-comments', openedPostId], (oldData: any) => {
+        return oldData.map((comment: Comment) => {
+          if (comment.id === commentId) {
+            return {
+              ...comment,
+              likes_count: liked ? comment.likes_count + 1 : comment.likes_count - 1,
+              is_liked: liked
+            };
+          }
+          return comment;
+        });
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error toggling comment like:", error);
+      refetchComments();
+    }
+  });
+
+  // Function to log user activity
+  const logUserActivity = async (activityType: string, metadata: any = {}) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      await supabase.from('user_activities').insert({
+        user_id: session.user.id,
+        activity_type: activityType,
+        metadata
+      });
+    } catch (error) {
+      console.error("Error logging user activity:", error);
+    }
+  };
+
+  // Handle post creation
+  const handleCreatePost = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPostContent.trim() || !postTitle.trim()) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Título e conteúdo são obrigatórios para criar um post.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    createPostMutation.mutate({ 
+      title: postTitle.trim(), 
+      content: newPostContent.trim() 
+    });
+  };
+
+  // Handle post update
+  const handleUpdatePost = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPost) return;
+    
+    if (!editingPost.content.trim() || !editingPost.title.trim()) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Título e conteúdo são obrigatórios para atualizar um post.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    updatePostMutation.mutate({
+      id: editingPost.id,
+      title: editingPost.title.trim(),
+      content: editingPost.content.trim()
+    });
+  };
+
+  // Handle comment creation
+  const handleCreateComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!openedPostId) return;
+    
+    if (!newComment.trim()) {
+      toast({
+        title: "Campo obrigatório",
+        description: "O comentário não pode estar vazio.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    createCommentMutation.mutate({
+      postId: openedPostId,
+      content: newComment.trim()
+    });
+  };
+
+  // Handle comment update
+  const handleUpdateComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingComment) return;
+    
+    if (!editingComment.content.trim()) {
+      toast({
+        title: "Campo obrigatório",
+        description: "O comentário não pode estar vazio.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    updateCommentMutation.mutate({
+      id: editingComment.id,
+      content: editingComment.content.trim()
+    });
+  };
+
+  // Handle opening a post to see comments
+  const handleOpenPost = (postId: string) => {
+    // If clicking on the same post, close it
+    if (openedPostId === postId) {
+      setOpenedPostId(null);
+    } else {
+      setOpenedPostId(postId);
+      // Focus on comment input after a small delay to allow the comment section to render
+      setTimeout(() => {
+        if (commentInputRef.current) {
+          commentInputRef.current.focus();
+        }
+      }, 100);
+    }
+  };
+
+  // Generate initials for avatar fallback
+  const getInitials = (firstName: string = "", lastName: string = "") => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
+  };
+
+  // Check if the user is the owner of a post/comment
+  const isOwner = (userId: string) => {
+    return currentUser && currentUser.id === userId;
+  };
+
+  // If no channel is selected
+  if (!channelId) {
     return (
-      <div className="text-center py-4 text-gray-500">
-        Nenhum comentário. Seja o primeiro a comentar!
+      <div className="flex flex-col items-center justify-center h-96 text-center p-8">
+        <h3 className="text-xl font-semibold mb-2">Selecione um canal</h3>
+        <p className="text-gray-500">Escolha um canal para ver as discussões</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {comments.map((comment) => (
-        <div key={comment.id} className="flex gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-trade-blue text-white text-xs">
-              {comment.profiles?.first_name?.[0] || ''}
-              {comment.profiles?.last_name?.[0] || ''}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <div className="bg-white p-3 rounded-lg shadow-sm">
-              <div className="flex justify-between items-start mb-1">
-                <span className="font-medium text-gray-900">
-                  {comment.profiles?.first_name} {comment.profiles?.last_name}
-                </span>
-                <span className="text-xs text-gray-500">
-                  {format(new Date(comment.created_at), "d MMM HH:mm", { locale: ptBR })}
-                </span>
-              </div>
-              <p className="text-gray-700">{comment.content}</p>
-            </div>
-            <div className="flex gap-3 mt-1 ml-2">
-              <button className="text-xs text-gray-500 hover:text-trade-blue">
-                Curtir ({comment.likes_count})
-              </button>
-              <button className="text-xs text-gray-500 hover:text-trade-blue">
-                Responder
-              </button>
-            </div>
+    <div className="space-y-6">
+      {/* New post form */}
+      <div className="bg-white rounded-lg border p-4 shadow-sm">
+        <h3 className="font-medium mb-3">Criar nova publicação</h3>
+        <form onSubmit={editingPost ? handleUpdatePost : handleCreatePost} className="space-y-3">
+          <input
+            type="text"
+            value={editingPost ? editingPost.title : postTitle}
+            onChange={e => editingPost 
+              ? setEditingPost({...editingPost, title: e.target.value}) 
+              : setPostTitle(e.target.value)
+            }
+            placeholder="Título da publicação"
+            className="w-full p-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <Textarea
+            value={editingPost ? editingPost.content : newPostContent}
+            onChange={e => editingPost 
+              ? setEditingPost({...editingPost, content: e.target.value}) 
+              : setNewPostContent(e.target.value)
+            }
+            placeholder="Em que você está pensando?"
+            className="min-h-[100px]"
+          />
+          <div className="flex justify-end gap-2">
+            {editingPost && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setEditingPost(null)}
+              >
+                Cancelar
+              </Button>
+            )}
+            <Button 
+              type="submit" 
+              disabled={
+                editingPost 
+                  ? !editingPost.content.trim() || !editingPost.title.trim() 
+                  : !newPostContent.trim() || !postTitle.trim()
+              }
+            >
+              {editingPost ? "Atualizar" : "Publicar"}
+            </Button>
           </div>
-        </div>
-      ))}
+        </form>
+      </div>
+
+      {/* Posts list */}
+      <div className="space-y-4">
+        {postsLoading ? (
+          // Loading skeletons
+          [...Array(3)].map((_, index) => (
+            <div key={index} className="bg-white rounded-lg border p-4 shadow-sm space-y-3">
+              <div className="flex items-center space-x-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ))
+        ) : posts && posts.length > 0 ? (
+          posts.map(post => (
+            <div key={post.id} className="bg-white rounded-lg border shadow-sm">
+              {/* Post header */}
+              <div className="p-4">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center space-x-3">
+                    <Avatar>
+                      <AvatarImage src={post.user?.avatar_url || undefined} />
+                      <AvatarFallback>{getInitials(post.user?.first_name, post.user?.last_name)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium">{post.user?.first_name} {post.user?.last_name}</div>
+                      <div className="text-xs text-gray-500">{formatDate(post.created_at)}</div>
+                    </div>
+                  </div>
+                  
+                  {isOwner(post.user_id) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem 
+                          className="cursor-pointer"
+                          onClick={() => setEditingPost(post)}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="cursor-pointer text-red-600"
+                          onClick={() => deletePostMutation.mutate(post.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+                
+                <h3 className="text-lg font-medium mt-3">{post.title}</h3>
+                <p className="mt-2 text-gray-700 whitespace-pre-line">{post.content}</p>
+
+                {/* Post actions */}
+                <div className="flex items-center mt-4 pt-3 space-x-4 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`flex items-center gap-1 ${post.is_liked ? 'text-red-500' : ''}`}
+                    onClick={() => togglePostLikeMutation.mutate({ postId: post.id, isLiked: !!post.is_liked })}
+                  >
+                    <HeartIcon className={`h-4 w-4 ${post.is_liked ? 'fill-red-500' : ''}`} />
+                    <span>{post.likes_count}</span>
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={() => handleOpenPost(post.id)}
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    <span>{post.comments_count}</span>
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Comments section */}
+              {openedPostId === post.id && (
+                <div className="border-t bg-gray-50 p-4 space-y-4">
+                  {/* Comments list */}
+                  {commentsLoading ? (
+                    <div className="space-y-3">
+                      {[...Array(2)].map((_, index) => (
+                        <div key={index} className="flex space-x-3">
+                          <Skeleton className="h-8 w-8 rounded-full" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-full" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : comments && comments.length > 0 ? (
+                    <div className="space-y-4">
+                      {comments.map(comment => (
+                        <div key={comment.id} className="flex gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={comment.user?.avatar_url || undefined} />
+                            <AvatarFallback>{getInitials(comment.user?.first_name, comment.user?.last_name)}</AvatarFallback>
+                          </Avatar>
+                          
+                          <div className="flex-1">
+                            <div className="bg-white rounded-lg p-3 shadow-sm">
+                              <div className="flex justify-between items-start gap-2">
+                                <span className="font-medium text-sm">{comment.user?.first_name} {comment.user?.last_name}</span>
+                                
+                                {isOwner(comment.user_id) && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6 -mt-1 -mr-1">
+                                        <MoreVertical className="h-3 w-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem 
+                                        className="cursor-pointer text-xs"
+                                        onClick={() => setEditingComment(comment)}
+                                      >
+                                        <Edit className="mr-2 h-3 w-3" />
+                                        Editar
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem 
+                                        className="cursor-pointer text-red-600 text-xs"
+                                        onClick={() => deleteCommentMutation.mutate(comment.id)}
+                                      >
+                                        <Trash2 className="mr-2 h-3 w-3" />
+                                        Excluir
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </div>
+                              
+                              {editingComment && editingComment.id === comment.id ? (
+                                <form onSubmit={handleUpdateComment} className="mt-2">
+                                  <Textarea
+                                    value={editingComment.content}
+                                    onChange={e => setEditingComment({...editingComment, content: e.target.value})}
+                                    className="min-h-[60px] text-sm"
+                                  />
+                                  <div className="flex justify-end gap-2 mt-2">
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => setEditingComment(null)}
+                                    >
+                                      Cancelar
+                                    </Button>
+                                    <Button 
+                                      type="submit" 
+                                      size="sm"
+                                      disabled={!editingComment.content.trim()}
+                                    >
+                                      Salvar
+                                    </Button>
+                                  </div>
+                                </form>
+                              ) : (
+                                <p className="text-sm mt-1">{comment.content}</p>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center mt-1 ml-1 space-x-4">
+                              <button
+                                className={`text-xs flex items-center gap-1 ${comment.is_liked ? 'text-red-500' : 'text-gray-500'}`}
+                                onClick={() => toggleCommentLikeMutation.mutate({ 
+                                  commentId: comment.id, 
+                                  isLiked: !!comment.is_liked 
+                                })}
+                              >
+                                <HeartIcon className={`h-3 w-3 ${comment.is_liked ? 'fill-red-500' : ''}`} />
+                                <span>{comment.likes_count > 0 ? comment.likes_count : ''}</span>
+                              </button>
+                              <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-2">
+                      <p className="text-sm text-gray-500">Nenhum comentário ainda. Seja o primeiro a comentar!</p>
+                    </div>
+                  )}
+                  
+                  {/* New comment form */}
+                  <Separator className="my-4" />
+                  <form onSubmit={handleCreateComment} className="flex gap-3 items-start">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={currentUser?.avatar_url || undefined} />
+                      <AvatarFallback>
+                        {getInitials(currentUser?.first_name, currentUser?.last_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 flex items-end gap-2">
+                      <Textarea
+                        ref={commentInputRef}
+                        value={newComment}
+                        onChange={e => setNewComment(e.target.value)}
+                        placeholder="Escreva um comentário..."
+                        className="min-h-[60px] flex-1"
+                      />
+                      <Button 
+                        type="submit" 
+                        size="icon" 
+                        disabled={!newComment.trim()}
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="bg-white rounded-lg border p-8 text-center">
+            <h3 className="font-medium mb-2">Nenhuma publicação ainda</h3>
+            <p className="text-gray-500 mb-4">Seja o primeiro a compartilhar algo neste canal!</p>
+            <Badge variant="outline" className="mx-auto">Dica: Escreva uma publicação acima</Badge>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
