@@ -149,7 +149,7 @@ const DashboardPage = () => {
             <TabsContent value="dashboard" className="mt-0">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-bold">Painel Principal</h2>
+                  <h2 className="text-2xl font-bold">Acompanhamento da Carteira</h2>
                   <p className="text-muted-foreground">
                     Acompanhe os principais índices e ativos do mercado
                   </p>
