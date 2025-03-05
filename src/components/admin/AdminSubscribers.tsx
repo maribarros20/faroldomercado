@@ -55,6 +55,17 @@ type UserData = {
   error?: Error;
 };
 
+// Extended response type for getUserById
+interface AdminUserResponse {
+  data: {
+    user: {
+      id: string;
+      email?: string;
+    } | null;
+  } | null;
+  error: Error | null;
+}
+
 const AdminSubscribers = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -130,8 +141,8 @@ const AdminSubscribers = () => {
         let userEmail = 'Email não disponível';
         try {
           // Try to get the user's email
-          const { data }: { data: UserData | null } = await supabase.auth.admin.getUserById(sub.user_id);
-          userEmail = data?.user?.email || 'Email não disponível';
+          const response: AdminUserResponse = await supabase.auth.admin.getUserById(sub.user_id);
+          userEmail = response.data?.user?.email || 'Email não disponível';
         } catch (e) {
           console.error(`Error fetching user email for ${sub.user_id}:`, e);
         }
