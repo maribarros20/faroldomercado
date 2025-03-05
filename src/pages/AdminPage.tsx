@@ -26,7 +26,7 @@ const AdminPage = () => {
       }
       
       const { data, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select('role')
         .eq('id', session.user.id)
         .single();

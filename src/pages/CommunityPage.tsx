@@ -194,7 +194,6 @@ const CommunityPage = () => {
               >
                 <CommunityPosts
                   channelId={activeChannel}
-                  onCreatePost={() => setIsCreatePostOpen(true)}
                 />
               </motion.div>
             ) : (

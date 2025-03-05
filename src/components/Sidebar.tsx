@@ -116,6 +116,12 @@ const Sidebar = () => {
     return false;
   };
 
+  // Handle logout
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
+  };
+
   // Hamburger button for mobile
   const MobileMenuButton = () => (
     <Button
@@ -207,7 +213,7 @@ const Sidebar = () => {
             <li>
               <Button
                 variant="ghost"
-                onClick={() => navigate("/")}
+                onClick={handleLogout}
                 className={cn(
                   "w-full justify-start sidebar-item",
                   !isOpen && "md:justify-center"

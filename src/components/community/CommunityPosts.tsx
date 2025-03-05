@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,8 +11,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { HeartIcon, MessageCircle, MoreVertical, Send, Trash2, Edit } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
-import { pt } from "date-fns/locale";
+import { formatDistanceToNow } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -84,7 +82,7 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId }) => {
       if (!session) return null;
       
       const { data, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select('*')
         .eq('id', session.user.id)
         .single();
@@ -107,25 +105,35 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return [];
       
-      // Fetch posts with user info
+      // Get posts from community_posts
       const { data: postsData, error } = await supabase
         .from('community_posts')
-        .select(`
-          *,
-          user:user_id (
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('channel_id', channelId)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       
-      // For each post, check if the current user has liked it
-      const postsWithLikeStatus = await Promise.all(
+      // For each post, get user information and check if liked
+      const postsWithUserInfo = await Promise.all(
         postsData.map(async (post) => {
+          // Get user info
+          const { data: userData, error: userError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', post.user_id)
+            .single();
+          
+          if (userError) {
+            console.error("Error fetching user data:", userError);
+            return {
+              ...post,
+              user: { first_name: 'Usuário', last_name: '', avatar_url: '' },
+              is_liked: false
+            };
+          }
+          
+          // Check if liked
           const { data: likeData, error: likeError } = await supabase
             .from('user_likes')
             .select('id')
@@ -137,12 +145,13 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId }) => {
           
           return {
             ...post,
+            user: { ...userData, avatar_url: '' },
             is_liked: !!likeData
-          };
+          } as Post;
         })
       );
       
-      return postsWithLikeStatus as Post[];
+      return postsWithUserInfo;
     },
     enabled: !!channelId
   });
@@ -160,25 +169,35 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return [];
       
-      // Fetch comments with user info
+      // Get comments
       const { data: commentsData, error } = await supabase
         .from('post_comments')
-        .select(`
-          *,
-          user:user_id (
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('post_id', openedPostId)
         .order('created_at', { ascending: true });
       
       if (error) throw error;
       
-      // For each comment, check if the current user has liked it
-      const commentsWithLikeStatus = await Promise.all(
+      // For each comment, get user information and check if liked
+      const commentsWithUserInfo = await Promise.all(
         commentsData.map(async (comment) => {
+          // Get user info
+          const { data: userData, error: userError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', comment.user_id)
+            .single();
+          
+          if (userError) {
+            console.error("Error fetching comment user data:", userError);
+            return {
+              ...comment,
+              user: { first_name: 'Usuário', last_name: '', avatar_url: '' },
+              is_liked: false
+            };
+          }
+          
+          // Check if liked
           const { data: likeData, error: likeError } = await supabase
             .from('user_likes')
             .select('id')
@@ -190,12 +209,13 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId }) => {
           
           return {
             ...comment,
+            user: { ...userData, avatar_url: '' },
             is_liked: !!likeData
-          };
+          } as Comment;
         })
       );
       
-      return commentsWithLikeStatus as Comment[];
+      return commentsWithUserInfo;
     },
     enabled: !!openedPostId
   });
