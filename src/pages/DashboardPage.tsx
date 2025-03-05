@@ -150,9 +150,7 @@ const DashboardPage = () => {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-bold">Acompanhamento da Carteira</h2>
-                  <p className="text-muted-foreground">
-                    Acompanhe os principais índices e ativos do mercado
-                  </p>
+                  <p className="text-muted-foreground">Acompanhe os ativos que compõe sua carteira de investimentos e principais índices de mercado que afetam suas aplicações.</p>
                 </div>
                 
                 <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
