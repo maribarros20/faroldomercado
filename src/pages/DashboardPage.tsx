@@ -140,7 +140,7 @@ const DashboardPage = () => {
       <Tabs defaultValue="dashboard" value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="mb-6 w-full md:w-auto flex flex-wrap">
           <TabsTrigger value="dashboard">Carteira</TabsTrigger>
-          <TabsTrigger value="market-news">Notícias do Mercado</TabsTrigger>
+          <TabsTrigger value="market-news">Notícias</TabsTrigger>
           <TabsTrigger value="finance-spreadsheet">Planilha Financeira</TabsTrigger>
         </TabsList>
         
