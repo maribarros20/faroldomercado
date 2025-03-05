@@ -46,6 +46,12 @@ type Subscriber = {
   total_spent: number;
 };
 
+type UserData = {
+  user?: {
+    email?: string;
+  };
+};
+
 const AdminSubscribers = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -116,12 +122,17 @@ const AdminSubscribers = () => {
           return null;
         }
 
-        // Get user email from auth.users
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(sub.user_id);
-        
-        if (userError || !userData) {
-          console.error(`Error fetching user data for ${sub.user_id}:`, userError);
-          return null;
+        // Get user email from auth.users - this needs a different approach
+        // Since we can't directly access auth.users with the JS client
+        // We'll use a workaround or admin API
+        let userEmail = 'Email não disponível';
+        try {
+          // Try to get the user's email - this is a placeholder approach
+          // In a real implementation, you might need a serverless function or back-channel API
+          const { data: userData } = await supabase.auth.admin.getUserById(sub.user_id);
+          userEmail = userData?.user?.email || 'Email não disponível';
+        } catch (e) {
+          console.error(`Error fetching user email for ${sub.user_id}:`, e);
         }
 
         // Calculate total spent based on subscriptions - this is a placeholder
@@ -132,7 +143,7 @@ const AdminSubscribers = () => {
           id: sub.id,
           user_id: sub.user_id,
           name: `${profiles.first_name || ''} ${profiles.last_name || ''}`.trim() || 'Usuário sem nome',
-          email: userData.user?.email || 'Email não disponível',
+          email: userEmail,
           plan_name: sub.plans?.name || 'Plano desconhecido',
           plan_id: sub.plan_id,
           subscription_status: sub.is_active ? 'active' : (sub.expires_at && new Date(sub.expires_at) < new Date() ? 'expired' : 'canceled'),

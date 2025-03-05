@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,7 +77,7 @@ const AdminPlans = () => {
       const { data: plansData, error: plansError } = await supabase
         .from('plans')
         .select('*')
-        .order('monthly_price', { ascending: true, nullsLast: true });
+        .order('monthly_price', { ascending: true });
       
       if (plansError) {
         console.error("Error fetching plans:", plansError);
@@ -637,7 +636,7 @@ const AdminPlans = () => {
                   <Package className="h-5 w-5 text-trade-blue mr-2" />
                   <CardTitle>{plan.name}</CardTitle>
                 </div>
-                <span className="text-sm text-gray-500">{plan.subscribers} assinantes</span>
+                <span className="text-sm text-gray-500">{plan.subscribers || 0} assinantes</span>
               </div>
               <p className="text-sm text-gray-500 mt-2">{plan.description}</p>
             </CardHeader>

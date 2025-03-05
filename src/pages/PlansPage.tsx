@@ -69,7 +69,7 @@ const PlansPage = () => {
         .from('plans')
         .select('*')
         .eq('is_active', true)
-        .order('monthly_price', { ascending: true, nullsLast: true });
+        .order('monthly_price', { ascending: true });
       
       if (plansError) {
         console.error("Error fetching plans:", plansError);
