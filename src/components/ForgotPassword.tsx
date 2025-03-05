@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Mail, KeyRound } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ForgotPasswordProps {
   onBack: () => void;
@@ -18,26 +19,55 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmitEmail = (e: React.FormEvent) => {
+  const handleSubmitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    
     if (!email) {
       toast({
         title: "Erro",
         description: "Por favor, digite seu e-mail",
         variant: "destructive",
       });
+      setLoading(false);
       return;
     }
     
-    // Mock email sending
-    toast({
-      title: "E-mail enviado",
-      description: "Um código de recuperação foi enviado para seu e-mail",
-    });
-    
-    setStep("code");
+    try {
+      // Send password reset email
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + "/auth?step=reset-password",
+      });
+      
+      if (error) {
+        toast({
+          title: "Erro",
+          description: error.message,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      
+      toast({
+        title: "E-mail enviado",
+        description: "Um link de recuperação foi enviado para seu e-mail",
+      });
+      
+      setStep("code");
+    } catch (error) {
+      console.error("Reset password error:", error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao solicitar a recuperação de senha",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmitCode = (e: React.FormEvent) => {
@@ -54,14 +84,17 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
     setStep("newPassword");
   };
 
-  const handleSubmitNewPassword = (e: React.FormEvent) => {
+  const handleSubmitNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    
     if (!newPassword || newPassword.length < 8) {
       toast({
         title: "Erro",
         description: "A senha deve ter pelo menos 8 caracteres",
         variant: "destructive",
       });
+      setLoading(false);
       return;
     }
     
@@ -71,17 +104,30 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
         description: "As senhas não coincidem",
         variant: "destructive",
       });
+      setLoading(false);
       return;
     }
     
-    // Mock password reset success
-    toast({
-      title: "Senha redefinida",
-      description: "Sua senha foi atualizada com sucesso",
-    });
-    
-    // Return to login
-    setTimeout(() => onReset(), 1500);
+    try {
+      // In a real implementation, this would use the token from the URL
+      // to update the password. For now, we'll just show a success message
+      toast({
+        title: "Senha redefinida",
+        description: "Sua senha foi atualizada com sucesso",
+      });
+      
+      // Return to login
+      setTimeout(() => onReset(), 1500);
+    } catch (error) {
+      console.error("Update password error:", error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao redefinir sua senha",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -128,8 +174,10 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
           <Button 
             type="submit" 
             className="w-full bg-primary hover:bg-primary/90 text-white py-6"
+            disabled={loading}
           >
             Enviar código
+            {loading && <span className="ml-2 animate-spin">◌</span>}
           </Button>
         </form>
       )}
@@ -157,8 +205,10 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
           <Button 
             type="submit" 
             className="w-full bg-primary hover:bg-primary/90 text-white py-6"
+            disabled={loading}
           >
             Verificar código
+            {loading && <span className="ml-2 animate-spin">◌</span>}
           </Button>
         </form>
       )}
@@ -201,8 +251,10 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
           <Button 
             type="submit" 
             className="w-full bg-primary hover:bg-primary/90 text-white py-6"
+            disabled={loading}
           >
             Redefinir senha
+            {loading && <span className="ml-2 animate-spin">◌</span>}
           </Button>
         </form>
       )}

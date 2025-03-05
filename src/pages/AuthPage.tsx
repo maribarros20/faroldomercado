@@ -1,13 +1,14 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, ChevronRight, CheckCircle, Mail, KeyRound, User, Building, Phone } from "lucide-react";
+import { ArrowLeft, ChevronRight, CheckCircle, Mail, KeyRound, User, Building, Phone, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import ForgotPassword from "@/components/ForgotPassword";
+import { supabase } from "@/integrations/supabase/client";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,66 +18,135 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [company, setCompany] = useState("");
   const [cnpj, setCnpj] = useState("");
+  const [cpf, setCpf] = useState("");
   const [phone, setPhone] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate("/dashboard");
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
 
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
     setShowForgotPassword(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     
-    // Validate form before submission
-    if (isLogin) {
-      if (!email || !password) {
-        toast({
-          title: "Campos obrigatórios",
-          description: "Por favor, preencha todos os campos",
-          variant: "destructive",
+    try {
+      // Validate form before submission
+      if (isLogin) {
+        if (!email || !password) {
+          toast({
+            title: "Campos obrigatórios",
+            description: "Por favor, preencha todos os campos",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        // Login with Supabase
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
         });
-        return;
+        
+        if (error) {
+          toast({
+            title: "Erro ao fazer login",
+            description: error.message,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        toast({
+          title: "Login realizado com sucesso!",
+          description: "Você será redirecionado para o dashboard.",
+        });
+        
+        // Navigate to dashboard after login
+        navigate("/dashboard");
+      } else {
+        // Registration validation
+        if (!name || !email || !password || !phone || !cpf || !acceptTerms) {
+          toast({
+            title: "Campos obrigatórios",
+            description: "Por favor, preencha todos os campos obrigatórios",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        if (password.length < 8) {
+          toast({
+            title: "Senha fraca",
+            description: "A senha deve ter pelo menos 8 caracteres",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        // Register with Supabase
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              first_name: name.split(" ")[0] || "",
+              last_name: name.split(" ").slice(1).join(" ") || "",
+              company,
+              cnpj,
+              phone,
+              cpf
+            }
+          }
+        });
+        
+        if (error) {
+          toast({
+            title: "Erro ao criar conta",
+            description: error.message,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        toast({
+          title: "Cadastro realizado com sucesso!",
+          description: "Verifique seu e-mail para confirmar o cadastro.",
+        });
+        
+        // Go to login after registration
+        setIsLogin(true);
       }
-      
-      // Mock login for demonstration
+    } catch (error) {
+      console.error("Authentication error:", error);
       toast({
-        title: "Login realizado com sucesso!",
-        description: "Você será redirecionado para o dashboard.",
+        title: "Erro no processo de autenticação",
+        description: "Ocorreu um erro ao processar sua solicitação. Tente novamente.",
+        variant: "destructive",
       });
-      
-      // Navigate to dashboard after "login"
-      setTimeout(() => navigate("/dashboard"), 1500);
-    } else {
-      // Registration validation
-      if (!name || !email || !password || !phone || !acceptTerms) {
-        toast({
-          title: "Campos obrigatórios",
-          description: "Por favor, preencha todos os campos obrigatórios",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (password.length < 8) {
-        toast({
-          title: "Senha fraca",
-          description: "A senha deve ter pelo menos 8 caracteres",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Mock registration for demonstration
-      toast({
-        title: "Cadastro realizado com sucesso!",
-        description: "Verifique seu e-mail para confirmar o cadastro.",
-      });
-      
-      // Go to login after "registration"
-      setTimeout(() => setIsLogin(true), 1500);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -235,6 +305,20 @@ const AuthPage = () => {
             {!isLogin && (
               <>
                 <div className="space-y-2">
+                  <Label htmlFor="cpf">CPF</Label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input 
+                      id="cpf" 
+                      value={cpf}
+                      onChange={(e) => setCpf(e.target.value)}
+                      placeholder="Digite seu CPF"
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="company">Empresa ou Mentor</Label>
                   <div className="relative">
                     <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -306,8 +390,10 @@ const AuthPage = () => {
             <Button 
               type="submit" 
               className="w-full bg-primary hover:bg-primary/90 text-white py-6"
+              disabled={loading}
             >
               {isLogin ? "Entrar" : "Cadastrar acesso"}
+              {loading && <span className="ml-2 animate-spin">◌</span>}
             </Button>
           </form>
         </motion.div>

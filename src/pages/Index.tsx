@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +9,14 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import Logo from "@/components/Logo";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { CreditCard } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [loginData, setLoginData] = useState({
     email: "",
     password: ""
@@ -25,8 +28,34 @@ const Index = () => {
     company: "",
     cnpj: "",
     phone: "",
+    cpf: "",
     acceptTerms: false
   });
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate("/dashboard");
+      }
+    };
+    
+    checkSession();
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session) {
+          navigate("/dashboard");
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -51,68 +80,133 @@ const Index = () => {
     });
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would validate and authenticate the user
-    if (loginData.email && loginData.password) {
-      navigate("/dashboard");
+    setLoading(true);
+
+    try {
+      // Validate form
+      if (!loginData.email || !loginData.password) {
+        toast({
+          title: "Erro no login",
+          description: "Por favor, preencha todos os campos.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Sign in with Supabase
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginData.email,
+        password: loginData.password
+      });
+
+      if (error) {
+        toast({
+          title: "Erro no login",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
       toast({
         title: "Login realizado com sucesso",
         description: "Bem-vindo de volta!"
       });
-    } else {
+
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Login error:", error);
       toast({
         title: "Erro no login",
-        description: "Por favor, preencha todos os campos.",
+        description: "Ocorreu um erro ao processar sua solicitação. Tente novamente.",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     
-    // Validate required fields
-    if (!registerData.fullName || !registerData.email || !registerData.password) {
+    try {
+      // Validate required fields
+      if (!registerData.fullName || !registerData.email || !registerData.password || !registerData.cpf) {
+        toast({
+          title: "Campos obrigatórios",
+          description: "Por favor, preencha todos os campos obrigatórios.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Validate password
+      if (registerData.password.length < 8 || 
+          !/[A-Z]/.test(registerData.password) || 
+          !/[0-9]/.test(registerData.password) || 
+          !/[^A-Za-z0-9]/.test(registerData.password)) {
+        toast({
+          title: "Senha inválida",
+          description: "A senha deve ter pelo menos 8 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Validate terms acceptance
+      if (!registerData.acceptTerms) {
+        toast({
+          title: "Termos e Condições",
+          description: "Você precisa aceitar os termos e condições para se cadastrar.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Register with Supabase
+      const { error } = await supabase.auth.signUp({
+        email: registerData.email,
+        password: registerData.password,
+        options: {
+          data: {
+            first_name: registerData.fullName.split(" ")[0] || "",
+            last_name: registerData.fullName.split(" ").slice(1).join(" ") || "",
+            company: registerData.company,
+            cnpj: registerData.cnpj,
+            phone: registerData.phone,
+            cpf: registerData.cpf
+          }
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: "Erro no cadastro",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
       toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        title: "Cadastro realizado com sucesso",
+        description: "Verifique seu e-mail para confirmar o cadastro."
+      });
+      
+      setShowRegisterDialog(false);
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast({
+        title: "Erro no cadastro",
+        description: "Ocorreu um erro ao processar sua solicitação. Tente novamente.",
         variant: "destructive"
       });
-      return;
+    } finally {
+      setLoading(false);
     }
-    
-    // Validate password
-    if (registerData.password.length < 8 || 
-        !/[A-Z]/.test(registerData.password) || 
-        !/[0-9]/.test(registerData.password) || 
-        !/[^A-Za-z0-9]/.test(registerData.password)) {
-      toast({
-        title: "Senha inválida",
-        description: "A senha deve ter pelo menos 8 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Validate terms acceptance
-    if (!registerData.acceptTerms) {
-      toast({
-        title: "Termos e Condições",
-        description: "Você precisa aceitar os termos e condições para se cadastrar.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // In a real app, this would register the user and authenticate them
-    toast({
-      title: "Cadastro realizado com sucesso",
-      description: "Verifique seu e-mail para confirmar o cadastro."
-    });
-    
-    setShowRegisterDialog(false);
-    navigate("/dashboard");
   };
 
   return (
@@ -174,13 +268,22 @@ const Index = () => {
               </div>
               
               <div className="flex justify-between items-center">
-                <Button variant="link" className="text-gray-600 p-0 text-sm">
+                <Button 
+                  variant="link" 
+                  className="text-gray-600 p-0 text-sm"
+                  onClick={() => navigate("/auth?forgot=true")}
+                >
                   Esqueceu a senha?
                 </Button>
               </div>
               
-              <Button type="submit" className="w-full bg-trade-blue hover:bg-trade-dark-blue text-white">
+              <Button 
+                type="submit" 
+                className="w-full bg-trade-blue hover:bg-trade-dark-blue text-white"
+                disabled={loading}
+              >
                 Entrar
+                {loading && <span className="ml-2 animate-spin">◌</span>}
               </Button>
             </form>
           </motion.div>
@@ -289,6 +392,22 @@ const Index = () => {
                     A senha deve ter pelo menos 8 caracteres, sendo 1 número, 1 letra maiúscula e 1 caractere especial
                   </p>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cpf">CPF</Label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input 
+                      id="cpf" 
+                      name="cpf" 
+                      value={registerData.cpf}
+                      onChange={handleRegisterChange}
+                      className="pl-10"
+                      placeholder="Digite seu CPF"
+                      required
+                    />
+                  </div>
+                </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="company">Empresa ou Mentor</Label>
@@ -331,8 +450,13 @@ const Index = () => {
                   </label>
                 </div>
                 
-                <Button type="submit" className="w-full bg-trade-blue hover:bg-trade-dark-blue text-white mt-4">
+                <Button 
+                  type="submit" 
+                  className="w-full bg-trade-blue hover:bg-trade-dark-blue text-white mt-4"
+                  disabled={loading}
+                >
                   Cadastrar acesso
+                  {loading && <span className="ml-2 animate-spin">◌</span>}
                 </Button>
               </form>
             </div>
