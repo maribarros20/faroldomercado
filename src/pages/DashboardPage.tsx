@@ -12,7 +12,7 @@ const DashboardPage = () => {
     <div className="animate-fade-in container mx-auto px-4 py-6">
       <h1 className="text-3xl font-bold mb-6">Painel do Mercado</h1>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs defaultValue="market-news" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6 w-full md:w-auto flex flex-wrap">
           <TabsTrigger value="market-news">Notícias do Mercado</TabsTrigger>
           <TabsTrigger value="finance-spreadsheet">Planilha Financeira</TabsTrigger>

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Refresh } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 
@@ -59,7 +59,7 @@ const FinanceSpreadsheet = () => {
           variant="outline" 
           className="flex items-center gap-2"
         >
-          <Refresh className="h-4 w-4" />
+          <RefreshCw className="h-4 w-4" />
           Atualizar Agora
         </Button>
       </div>
