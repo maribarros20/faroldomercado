@@ -10,7 +10,9 @@ import {
   Menu, 
   X, 
   LogOut, 
-  User 
+  User,
+  BarChart2,
+  MessageSquare 
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Logo from "./Logo";
@@ -79,6 +81,16 @@ const Sidebar = () => {
       name: "Vídeos", 
       icon: <Video size={20} />, 
       path: "/videos",
+    },
+    { 
+      name: "Progresso", 
+      icon: <BarChart2 size={20} />, 
+      path: "/progress",
+    },
+    { 
+      name: "Comunidade", 
+      icon: <MessageSquare size={20} />, 
+      path: "/community",
     },
   ];
   

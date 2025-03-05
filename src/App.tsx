@@ -14,6 +14,8 @@ import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
 import ProfileSettingsPage from "./pages/ProfileSettingsPage";
 import PlansPage from "./pages/PlansPage";
+import ProgressPage from "./pages/ProgressPage";
+import CommunityPage from "./pages/CommunityPage";
 import AppLayout from "./components/AppLayout";
 import { supabase } from "./integrations/supabase/client";
 
@@ -100,6 +102,16 @@ const App = () => {
               <Route path="/plans" element={
                 <ProtectedRoute>
                   <PlansPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/progress" element={
+                <ProtectedRoute>
+                  <ProgressPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/community" element={
+                <ProtectedRoute>
+                  <CommunityPage />
                 </ProtectedRoute>
               } />
               
