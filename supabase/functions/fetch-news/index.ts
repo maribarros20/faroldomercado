@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -98,16 +99,220 @@ async function fetchRSS(source: { url: string, source: string, defaultCategory: 
     }
     
     const xml = await response.text();
-    // Parsing manual simplificado para RSS
-    const news = parseRSS(xml, {
-      source: source.source,
-      defaultCategory: source.defaultCategory
-    });
+    
+    // Tentativa mais robusta de parsing de XML com tratamento específico por fonte
+    let news: NewsItem[] = [];
+    
+    if (source.source === 'Bloomberg' || source.source === 'Bloomberg Línea' || source.source === 'CNN Money') {
+      // Tratamento específico para fontes que podem ter formatos especiais
+      news = parseBloombegAndCNNRSS(xml, source);
+    } else if (source.source === 'Thomson Reuters') {
+      // Tratamento específico para Thomson Reuters
+      news = parseThomsonReutersRSS(xml, source);
+    } else {
+      // Parsing genérico para as demais fontes
+      news = parseRSS(xml, {
+        source: source.source,
+        defaultCategory: source.defaultCategory
+      });
+    }
     
     console.log(`Obtidas ${news.length} notícias de ${source.source}`);
     return news;
   } catch (error) {
     console.error(`Erro ao processar RSS de ${source.source}:`, error);
+    return [];
+  }
+}
+
+// Função para tratar especificadamente feeds da Bloomberg e CNN
+function parseBloombegAndCNNRSS(xml: string, options: { url: string, source: string, defaultCategory: string }): NewsItem[] {
+  try {
+    const items: NewsItem[] = [];
+    const isBloomberg = options.source.includes('Bloomberg');
+    const isCNN = options.source.includes('CNN');
+    
+    // Regex adaptados para capturar formatos específicos
+    const itemRegex = isBloomberg || isCNN 
+      ? /<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/g
+      : /<entry(?:\s[^>]*)?>([\s\S]*?)<\/entry>/g;
+    
+    const titleRegex = /<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/;
+    const linkRegex = isBloomberg || isCNN
+      ? /<link(?:\s[^>]*)?>([\s\S]*?)<\/link>/
+      : /<link(?:\s[^>]*)?href="([^"]+)"/;
+    
+    const descRegex = /<description(?:\s[^>]*)?>([\s\S]*?)<\/description>/;
+    const contentRegex = /<content:encoded(?:\s[^>]*)?>([\s\S]*?)<\/content:encoded>/;
+    const pubDateRegex = /<pubDate(?:\s[^>]*)?>([\s\S]*?)<\/pubDate>/;
+    const dateRegex = /<dc:date(?:\s[^>]*)?>([\s\S]*?)<\/dc:date>/;
+    const updatedRegex = /<updated(?:\s[^>]*)?>([\s\S]*?)<\/updated>/;
+    const authorRegex = /<dc:creator(?:\s[^>]*)?>([\s\S]*?)<\/dc:creator>/;
+    const authorNameRegex = /<author(?:\s[^>]*)?><name(?:\s[^>]*)?>([\s\S]*?)<\/name>/;
+    const categoryRegex = /<category(?:\s[^>]*)?>([\s\S]*?)<\/category>/;
+    const mediaContentRegex = /<media:content(?:\s[^>]*)?url="([^"]+)"/;
+    
+    let match;
+    while ((match = itemRegex.exec(xml)) !== null) {
+      const itemContent = match[1];
+      
+      // Extrair informações com tratamento específico para cada fonte
+      let title = (itemContent.match(titleRegex) || [])[1] || 'Sem título';
+      
+      // Capturar o link correto baseado na fonte
+      let link;
+      if (isBloomberg || isCNN) {
+        link = (itemContent.match(linkRegex) || [])[1] || '';
+      } else {
+        const linkMatch = itemContent.match(linkRegex);
+        link = linkMatch && linkMatch[1] ? linkMatch[1] : '';
+      }
+      
+      // Capturar descrição ou conteúdo
+      let description = (itemContent.match(descRegex) || [])[1] || '';
+      let content = (itemContent.match(contentRegex) || [])[1] || description;
+      
+      // Capturar data de publicação com múltiplas tentativas
+      let pubDateStr = '';
+      if (itemContent.match(pubDateRegex)) {
+        pubDateStr = (itemContent.match(pubDateRegex) || [])[1] || '';
+      } else if (itemContent.match(dateRegex)) {
+        pubDateStr = (itemContent.match(dateRegex) || [])[1] || '';
+      } else if (itemContent.match(updatedRegex)) {
+        pubDateStr = (itemContent.match(updatedRegex) || [])[1] || '';
+      }
+      
+      // Capturar autor com múltiplas tentativas
+      let creator = '';
+      if (itemContent.match(authorRegex)) {
+        creator = (itemContent.match(authorRegex) || [])[1] || '';
+      } else if (itemContent.match(authorNameRegex)) {
+        creator = (itemContent.match(authorNameRegex) || [])[1] || '';
+      }
+      creator = creator || options.source;
+      
+      // Capturar categoria
+      let category = (itemContent.match(categoryRegex) || [])[1] || options.defaultCategory;
+      
+      // Tratar data de publicação
+      let pubDate;
+      try {
+        pubDate = pubDateStr ? new Date(pubDateStr).toISOString() : new Date().toISOString();
+      } catch (e) {
+        pubDate = new Date().toISOString();
+      }
+      
+      // Extração de imagem com múltiplas estratégias
+      let imageUrl = null;
+      
+      // Tentar media:content tag
+      const mediaMatch = itemContent.match(mediaContentRegex);
+      if (mediaMatch && mediaMatch[1]) {
+        imageUrl = mediaMatch[1];
+      }
+      
+      // Se ainda não tem imagem, tentar encontrar no conteúdo ou descrição
+      if (!imageUrl) {
+        imageUrl = extractImageFromContent(content) || extractImageFromContent(description);
+      }
+      
+      // Imagem de fallback baseada na fonte
+      if (!imageUrl) {
+        if (isBloomberg) {
+          imageUrl = 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
+        } else if (isCNN) {
+          imageUrl = 'https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png';
+        } else {
+          imageUrl = 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop';
+        }
+      }
+      
+      // Limpar conteúdo de tags CDATA e HTML
+      title = cleanContent(title);
+      link = cleanContent(link);
+      description = cleanContent(description);
+      content = cleanContent(content || description);
+      creator = cleanContent(creator);
+      category = cleanContent(category);
+      
+      // Verificar se é notícia financeira
+      const isFinancialNews = checkIfFinancialMarketNews(title, content, category);
+      
+      if (isFinancialNews) {
+        items.push({
+          title: title,
+          subtitle: description.substring(0, 120) + (description.length > 120 ? '...' : ''),
+          content: content || description,
+          publication_date: pubDate,
+          author: creator,
+          category: category,
+          image_url: imageUrl,
+          source: options.source,
+          source_url: link
+        });
+      }
+    }
+    
+    return items;
+  } catch (error) {
+    console.error('Erro ao parsear RSS específico:', error);
+    return [];
+  }
+}
+
+// Função específica para Thomson Reuters
+function parseThomsonReutersRSS(xml: string, options: { url: string, source: string, defaultCategory: string }): NewsItem[] {
+  try {
+    const items: NewsItem[] = [];
+    const itemRegex = /<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/g;
+    const titleRegex = /<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/;
+    const linkRegex = /<link(?:\s[^>]*)?>([\s\S]*?)<\/link>/;
+    const descRegex = /<description(?:\s[^>]*)?>([\s\S]*?)<\/description>/;
+    const pubDateRegex = /<pubDate(?:\s[^>]*)?>([\s\S]*?)<\/pubDate>/;
+    
+    let match;
+    while ((match = itemRegex.exec(xml)) !== null) {
+      const itemContent = match[1];
+      
+      let title = (itemContent.match(titleRegex) || [])[1] || 'Thomson Reuters News';
+      let link = (itemContent.match(linkRegex) || [])[1] || '';
+      let description = (itemContent.match(descRegex) || [])[1] || '';
+      let pubDateStr = (itemContent.match(pubDateRegex) || [])[1] || '';
+      
+      // Tratar data de publicação
+      let pubDate;
+      try {
+        pubDate = pubDateStr ? new Date(pubDateStr).toISOString() : new Date().toISOString();
+      } catch (e) {
+        pubDate = new Date().toISOString();
+      }
+      
+      // Limpeza de conteúdo
+      title = cleanContent(title);
+      link = cleanContent(link);
+      description = cleanContent(description);
+      
+      // Verificar se é notícia financeira
+      const isFinancialNews = checkIfFinancialMarketNews(title, description, options.defaultCategory);
+      
+      if (isFinancialNews) {
+        items.push({
+          title: title,
+          subtitle: description.substring(0, 120) + (description.length > 120 ? '...' : ''),
+          content: description,
+          publication_date: pubDate,
+          author: 'Thomson Reuters',
+          category: options.defaultCategory,
+          image_url: 'https://s3.ap-southeast-1.amazonaws.com/thomson-media-resources/images/logos/tr-new.svg',
+          source: options.source,
+          source_url: link
+        });
+      }
+    }
+    
+    return items;
+  } catch (error) {
+    console.error('Erro ao parsear RSS Thomson Reuters:', error);
     return [];
   }
 }

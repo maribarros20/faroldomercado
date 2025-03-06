@@ -11,10 +11,11 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Search, RefreshCw, Filter 
+  Search, RefreshCw, Filter, Newspaper
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { NewsCard } from "./news/NewsCard";
+import { Badge } from "@/components/ui/badge";
 
 // Categorias financeiras para filtro
 const FINANCE_CATEGORIES = [
@@ -32,6 +33,7 @@ const MarketNews = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showOnlyFinancialNews, setShowOnlyFinancialNews] = useState(true);
+  const [selectedSource, setSelectedSource] = useState<string>("all");
   const { toast } = useToast();
 
   // Buscar notícias usando React Query
@@ -41,13 +43,21 @@ const MarketNews = () => {
     isError,
     refetch
   } = useQuery({
-    queryKey: ['market-news', selectedCategory, searchTerm, showOnlyFinancialNews],
+    queryKey: ['market-news', selectedCategory, searchTerm, showOnlyFinancialNews, selectedSource],
     queryFn: async () => {
       const allNews = await fetchAllNews(selectedCategory || undefined, searchTerm || undefined);
       
+      // Aplicar filtros
+      let filteredNews = [...allNews];
+      
+      // Filtrar por fonte se selecionada
+      if (selectedSource !== "all") {
+        filteredNews = filteredNews.filter(item => item.source === selectedSource);
+      }
+      
       // Se o filtro de notícias financeiras estiver ativo, filtrar apenas notícias financeiras
       if (showOnlyFinancialNews) {
-        return allNews.filter(newsItem => 
+        filteredNews = filteredNews.filter(newsItem => 
           // Verificar se a categoria é relacionada a finanças
           FINANCE_CATEGORIES.includes(newsItem.category || "") || 
           // Ou se a fonte é uma fonte financeira conhecida
@@ -55,11 +65,24 @@ const MarketNews = () => {
         );
       }
       
-      return allNews;
+      // Ordenar por data de publicação (mais recentes primeiro)
+      return filteredNews.sort((a, b) => {
+        const dateA = new Date(a.publication_date || a.created_at || "").getTime();
+        const dateB = new Date(b.publication_date || b.created_at || "").getTime();
+        return dateB - dateA;
+      });
     },
     staleTime: 15 * 60 * 1000, // 15 minutos
     refetchInterval: 15 * 60 * 1000, // Atualizar a cada 15 minutos
   });
+
+  // Extrair fontes únicas das notícias para o filtro
+  const getUniqueSources = () => {
+    if (!news) return [];
+    
+    const sources = new Set(news.map(item => item.source));
+    return Array.from(sources);
+  };
 
   const handleRefresh = () => {
     refetch();
@@ -141,6 +164,25 @@ const MarketNews = () => {
           </Select>
         </div>
 
+        <div className="w-full md:w-[200px]">
+          <Select
+            value={selectedSource}
+            onValueChange={setSelectedSource}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Filtrar por fonte" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as fontes</SelectItem>
+              {getUniqueSources().map((source) => (
+                <SelectItem key={source} value={source}>
+                  {source}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <Button 
           variant={showOnlyFinancialNews ? "default" : "outline"}
           onClick={toggleFinancialNewsFilter}
@@ -150,6 +192,25 @@ const MarketNews = () => {
           {showOnlyFinancialNews ? "Apenas Mercado Financeiro" : "Todas as Notícias"}
         </Button>
       </div>
+
+      {/* Estatísticas de fontes */}
+      {news && news.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {getUniqueSources().map(source => {
+            const count = news.filter(item => item.source === source).length;
+            return (
+              <Badge 
+                key={source} 
+                variant={selectedSource === source ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={() => setSelectedSource(source === selectedSource ? "all" : source)}
+              >
+                <Newspaper className="h-3 w-3 mr-1" /> {source}: {count}
+              </Badge>
+            );
+          })}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

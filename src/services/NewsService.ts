@@ -75,8 +75,24 @@ export const getValidImageUrl = (url?: string): string => {
   }
 };
 
-// Função para obter uma imagem padrão relacionada a finanças
-export const getDefaultNewsImage = (): string => {
+// Função para obter uma imagem padrão relacionada a finanças com base na fonte
+export const getDefaultNewsImage = (source?: string): string => {
+  if (source) {
+    switch (source) {
+      case 'InfoMoney':
+        return 'https://www.infomoney.com.br/wp-content/themes/infomoney/assets/img/logo-infomoney.png';
+      case 'Valor Econômico':
+        return 'https://www.valor.com.br/sites/all/themes/valor_2016/logo.png';
+      case 'CNN Money':
+        return 'https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png';
+      case 'Bloomberg':
+      case 'Bloomberg Línea':
+        return 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
+      case 'Thomson Reuters':
+        return 'https://s3.ap-southeast-1.amazonaws.com/thomson-media-resources/images/logos/tr-new.svg';
+    }
+  }
+  
   const defaultImages = [
     "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=2070&auto=format&fit=crop",
@@ -180,9 +196,17 @@ export const fetchAllNews = async (
         news.title.toLowerCase().includes(searchLower) || 
         news.content.toLowerCase().includes(searchLower) || 
         news.subtitle?.toLowerCase().includes(searchLower) || 
-        news.author?.toLowerCase().includes(searchLower)
+        news.author?.toLowerCase().includes(searchLower) ||
+        news.source?.toLowerCase().includes(searchLower)
       );
     }
+    
+    // Ordenar por data (mais recentes primeiro)
+    allNews.sort((a, b) => {
+      const dateA = new Date(a.publication_date || a.created_at || "").getTime();
+      const dateB = new Date(b.publication_date || b.created_at || "").getTime();
+      return dateB - dateA;
+    });
     
     return allNews;
   } catch (error) {
