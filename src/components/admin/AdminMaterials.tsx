@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
 
+// Type definitions
 type Material = {
   id: string;
   title: string;
@@ -44,10 +46,9 @@ type Material = {
   downloads: number;
   date_added: string;
   created_by: string | null;
-  mentor_id: string | null;
-  plan_id: string | null;
 };
 
+// Categories with icons
 const categories = [
   { id: "1", name: "Análise Técnica", icon: <BarChart2 size={16} /> },
   { id: "2", name: "Análise Fundamental", icon: <Search size={16} /> },
@@ -64,16 +65,13 @@ const AdminMaterials = () => {
     title: "",
     description: "",
     category: "",
-    type: "pdf",
-    mentor_id: "",
-    plan_id: ""
+    type: "pdf"
   });
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
-  const [mentors, setMentors] = useState<Array<{ id: string; name: string }>>([]);
-  const [plans, setPlans] = useState<Array<{ id: string; name: string }>>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch materials from Supabase
   const { data: materials, isLoading, isError } = useQuery({
     queryKey: ['materials'],
     queryFn: async () => {
@@ -90,8 +88,10 @@ const AdminMaterials = () => {
     }
   });
 
+  // Mutation for adding a material
   const addMaterialMutation = useMutation({
     mutationFn: async (materialData: any) => {
+      // First insert the material record
       const { data, error } = await supabase
         .from('materials')
         .insert([materialData])
@@ -100,6 +100,7 @@ const AdminMaterials = () => {
       
       if (error) throw new Error(error.message);
       
+      // If there's a file to upload
       if (fileToUpload && data) {
         const fileExt = fileToUpload.name.split('.').pop();
         const filePath = `${data.id}/${Date.now()}.${fileExt}`;
@@ -111,11 +112,13 @@ const AdminMaterials = () => {
           
         if (uploadError) throw new Error(uploadError.message);
         
+        // Get the public URL
         const { data: publicUrlData } = supabase
           .storage
           .from('materials')
           .getPublicUrl(filePath);
           
+        // Update the material with the file URL
         const { error: updateError } = await supabase
           .from('materials')
           .update({ file_url: publicUrlData.publicUrl })
@@ -123,6 +126,7 @@ const AdminMaterials = () => {
           
         if (updateError) throw new Error(updateError.message);
         
+        // Log the action
         await logAdminAction('create', 'material', data.id, {
           title: data.title,
           file_type: fileExt
@@ -132,6 +136,7 @@ const AdminMaterials = () => {
       return data;
     },
     onSuccess: () => {
+      // Reset form and refetch data
       setNewMaterial({ title: "", description: "", category: "", type: "pdf" });
       setFileToUpload(null);
       setIsAddDialogOpen(false);
@@ -151,10 +156,12 @@ const AdminMaterials = () => {
     }
   });
 
+  // Mutation for updating a material
   const updateMaterialMutation = useMutation({
     mutationFn: async (materialData: any) => {
       const { id, ...updateData } = materialData;
       
+      // Update the material
       const { data, error } = await supabase
         .from('materials')
         .update(updateData)
@@ -164,6 +171,7 @@ const AdminMaterials = () => {
       
       if (error) throw new Error(error.message);
       
+      // If there's a file to upload
       if (fileToUpload && data) {
         const fileExt = fileToUpload.name.split('.').pop();
         const filePath = `${data.id}/${Date.now()}.${fileExt}`;
@@ -175,11 +183,13 @@ const AdminMaterials = () => {
           
         if (uploadError) throw new Error(uploadError.message);
         
+        // Get the public URL
         const { data: publicUrlData } = supabase
           .storage
           .from('materials')
           .getPublicUrl(filePath);
           
+        // Update the material with the file URL
         const { error: updateError } = await supabase
           .from('materials')
           .update({ file_url: publicUrlData.publicUrl })
@@ -188,6 +198,7 @@ const AdminMaterials = () => {
         if (updateError) throw new Error(updateError.message);
       }
       
+      // Log the action
       await logAdminAction('update', 'material', id, {
         title: data.title
       });
@@ -214,14 +225,17 @@ const AdminMaterials = () => {
     }
   });
 
+  // Mutation for deleting a material
   const deleteMaterialMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Get the material to log its data before deletion
       const { data: materialToDelete } = await supabase
         .from('materials')
         .select('*')
         .eq('id', id)
         .single();
       
+      // Delete the material
       const { error } = await supabase
         .from('materials')
         .delete()
@@ -229,7 +243,9 @@ const AdminMaterials = () => {
       
       if (error) throw new Error(error.message);
       
+      // If there's a file, delete it from storage
       if (materialToDelete?.file_url) {
+        // Extract the path from the URL
         const urlParts = materialToDelete.file_url.split('/');
         const filePath = urlParts.slice(urlParts.indexOf('materials') + 1).join('/');
         
@@ -243,6 +259,7 @@ const AdminMaterials = () => {
         }
       }
       
+      // Log the action
       await logAdminAction('delete', 'material', id, {
         title: materialToDelete?.title
       });
@@ -266,6 +283,7 @@ const AdminMaterials = () => {
     }
   });
 
+  // Function to log admin actions
   const logAdminAction = async (action: string, entityType: string, entityId: string, details: any) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -286,12 +304,14 @@ const AdminMaterials = () => {
     }
   };
 
+  // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setFileToUpload(e.target.files[0]);
     }
   };
 
+  // Handle add material submission
   const handleAddMaterial = () => {
     if (!newMaterial.title || !newMaterial.category || !newMaterial.type) {
       toast({
@@ -307,16 +327,16 @@ const AdminMaterials = () => {
       description: newMaterial.description,
       category: newMaterial.category,
       type: newMaterial.type,
-      mentor_id: newMaterial.mentor_id || null,
-      plan_id: newMaterial.plan_id || null,
     });
   };
 
+  // Handle edit material
   const handleEditMaterial = (material: Material) => {
     setSelectedMaterial(material);
     setIsEditDialogOpen(true);
   };
 
+  // Handle update material submission
   const handleUpdateMaterial = () => {
     if (!selectedMaterial) return;
     
@@ -329,10 +349,12 @@ const AdminMaterials = () => {
     });
   };
 
+  // Handle delete material
   const handleDeleteMaterial = (id: string) => {
     deleteMaterialMutation.mutate(id);
   };
 
+  // Increment download count
   const incrementDownloadCount = async (id: string) => {
     try {
       const { data, error } = await supabase
@@ -348,12 +370,14 @@ const AdminMaterials = () => {
     }
   };
 
+  // Filter materials based on search query
   const filteredMaterials = materials?.filter(material => 
     material.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     material.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     material.category.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
+  // Helper function to get type icon
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "pdf":
@@ -365,44 +389,11 @@ const AdminMaterials = () => {
     }
   };
 
+  // Format date helper
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
   };
-
-  useEffect(() => {
-    const fetchMentorsAndPlans = async () => {
-      try {
-        const { data: mentorsData, error: mentorsError } = await supabase
-          .from('mentors')
-          .select('id, name')
-          .order('name');
-          
-        if (mentorsError) {
-          console.error("Erro ao buscar mentores:", mentorsError);
-          return;
-        }
-        
-        setMentors(mentorsData || []);
-        
-        const { data: plansData, error: plansError } = await supabase
-          .from('plans')
-          .select('id, name')
-          .order('name');
-          
-        if (plansError) {
-          console.error("Erro ao buscar planos:", plansError);
-          return;
-        }
-        
-        setPlans(plansData || []);
-      } catch (error) {
-        console.error("Erro ao buscar mentores e planos:", error);
-      }
-    };
-    
-    fetchMentorsAndPlans();
-  }, []);
 
   if (isLoading) {
     return (
@@ -445,10 +436,6 @@ const AdminMaterials = () => {
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Adicionar Novo Material</DialogTitle>
-              <DialogDescription>
-                Preencha os campos para adicionar um novo material educacional.
-                Associe opcionalmente a um mentor e plano específico.
-              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
@@ -504,43 +491,6 @@ const AdminMaterials = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="mentor">Mentor (opcional)</Label>
-                <Select 
-                  value={newMaterial.mentor_id} 
-                  onValueChange={(value) => setNewMaterial({...newMaterial, mentor_id: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Associar a um mentor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Nenhum mentor específico</SelectItem>
-                    {mentors.map((mentor) => (
-                      <SelectItem key={mentor.id} value={mentor.id}>{mentor.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="plan">Plano (opcional)</Label>
-                <Select 
-                  value={newMaterial.plan_id} 
-                  onValueChange={(value) => setNewMaterial({...newMaterial, plan_id: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Associar a um plano" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Disponível para todos os planos</SelectItem>
-                    {plans.map((plan) => (
-                      <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
               <div className="grid gap-2">
                 <Label htmlFor="file">Arquivo</Label>
                 <div className="flex items-center justify-center w-full">
@@ -694,14 +644,12 @@ const AdminMaterials = () => {
         </CardContent>
       </Card>
 
+      {/* Edit Material Dialog */}
       {selectedMaterial && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Editar Material</DialogTitle>
-              <DialogDescription>
-                Atualize os detalhes do material e associações.
-              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
@@ -757,43 +705,6 @@ const AdminMaterials = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="edit-mentor">Mentor (opcional)</Label>
-                <Select 
-                  value={selectedMaterial.mentor_id || ""}
-                  onValueChange={(value) => setSelectedMaterial({...selectedMaterial, mentor_id: value || null})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Associar a um mentor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Nenhum mentor específico</SelectItem>
-                    {mentors.map((mentor) => (
-                      <SelectItem key={mentor.id} value={mentor.id}>{mentor.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="edit-plan">Plano (opcional)</Label>
-                <Select 
-                  value={selectedMaterial.plan_id || ""}
-                  onValueChange={(value) => setSelectedMaterial({...selectedMaterial, plan_id: value || null})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Associar a um plano" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Disponível para todos os planos</SelectItem>
-                    {plans.map((plan) => (
-                      <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
               <div className="grid gap-2">
                 <Label htmlFor="edit-file">Arquivo</Label>
                 {selectedMaterial.file_url && (
