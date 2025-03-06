@@ -10,12 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import ForgotPassword from "@/components/ForgotPassword";
 import { supabase } from "@/integrations/supabase/client";
 
-interface AuthPageProps {
-  register?: boolean;
-}
-
-const AuthPage = ({ register = false }: AuthPageProps) => {
-  const [isLogin, setIsLogin] = useState(!register);
+const AuthPage = () => {
+  const [isLogin, setIsLogin] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");

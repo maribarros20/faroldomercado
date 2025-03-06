@@ -119,22 +119,22 @@ const ProfileSettingsPage = () => {
     firstName: profileData.first_name || "",
     lastName: profileData.last_name || "",
     email: profileData.email || "",
+    cnpj: profileData.cnpj || "",
     phone: profileData.phone || "",
     cpf: profileData.cpf || "",
     currentPassword: "",
     newPassword: "",
-    confirmPassword: "",
-    dateOfBirth: profileData.date_of_birth ? new Date(profileData.date_of_birth) : undefined
+    confirmPassword: ""
   } : {
     firstName: "",
     lastName: "",
     email: "",
+    cnpj: "",
     phone: "",
     cpf: "",
     currentPassword: "",
     newPassword: "",
-    confirmPassword: "",
-    dateOfBirth: undefined
+    confirmPassword: ""
   };
 
   return (

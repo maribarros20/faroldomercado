@@ -17,23 +17,18 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ProfilePictureUploader from "./ProfilePictureUploader";
-import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface ProfileFormProps {
   initialValues: {
     firstName: string;
     lastName: string;
     email: string;
+    cnpj: string;
     phone: string;
     cpf: string;
     currentPassword: string;
     newPassword: string;
     confirmPassword: string;
-    dateOfBirth?: Date;
   };
   userId?: string;
 }
@@ -43,12 +38,12 @@ const profileSchema = z.object({
   firstName: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   lastName: z.string().min(2, "Sobrenome deve ter pelo menos 2 caracteres"),
   email: z.string().email("Email inválido"),
+  cnpj: z.string().optional(),
   phone: z.string().optional(),
   cpf: z.string().optional(),
   currentPassword: z.string().optional(),
   newPassword: z.string().optional(),
   confirmPassword: z.string().optional(),
-  dateOfBirth: z.date().optional(),
 }).refine(data => {
   // Validate that the passwords match if newPassword is provided
   if (data.newPassword && data.newPassword !== data.confirmPassword) {
@@ -93,8 +88,8 @@ const ProfileForm = ({ initialValues, userId }: ProfileFormProps) => {
           last_name: data.lastName,
           email: data.email,
           phone: data.phone || null,
+          cnpj: data.cnpj || null,
           cpf: data.cpf || null,
-          date_of_birth: data.dateOfBirth ? data.dateOfBirth.toISOString().split('T')[0] : null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", userId);
@@ -147,18 +142,12 @@ const ProfileForm = ({ initialValues, userId }: ProfileFormProps) => {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("photo, date_of_birth")
+          .select("photo")
           .eq("id", userId)
           .single();
           
-        if (!error) {
-          if (data?.photo) {
-            setUserPhoto(data.photo);
-          }
-          
-          if (data?.date_of_birth) {
-            form.setValue("dateOfBirth", new Date(data.date_of_birth));
-          }
+        if (!error && data?.photo) {
+          setUserPhoto(data.photo);
         }
       } catch (error) {
         console.error("Error fetching user photo:", error);
@@ -166,7 +155,7 @@ const ProfileForm = ({ initialValues, userId }: ProfileFormProps) => {
     };
     
     fetchUserPhoto();
-  }, [userId, form]);
+  }, [userId]);
 
   return (
     <Card>
@@ -261,42 +250,13 @@ const ProfileForm = ({ initialValues, userId }: ProfileFormProps) => {
 
                 <FormField
                   control={form.control}
-                  name="dateOfBirth"
+                  name="cnpj"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Data de Nascimento</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "dd/MM/yyyy")
-                              ) : (
-                                <span>Selecione uma data</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                            className={cn("p-3 pointer-events-auto")}
-                          />
-                        </PopoverContent>
-                      </Popover>
+                    <FormItem>
+                      <FormLabel>CNPJ (opcional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="XX.XXX.XXX/XXXX-XX" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

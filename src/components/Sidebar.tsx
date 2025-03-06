@@ -7,9 +7,6 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarTrigger,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -97,7 +94,6 @@ const Sidebar = () => {
     }
   };
 
-  // Main menu items (excluding profile and settings)
   const menuItems = [
     {
       title: "Dashboard",
@@ -124,19 +120,6 @@ const Sidebar = () => {
       icon: <BarChart className="h-5 w-5" />,
       href: "/progress",
     },
-  ];
-
-  // Add admin menu item if user is admin
-  if (isAdmin) {
-    menuItems.push({
-      title: "Administração",
-      icon: <ShieldCheck className="h-5 w-5" />,
-      href: "/admin",
-    });
-  }
-
-  // Footer menu items (profile and settings)
-  const footerMenuItems = [
     {
       title: "Meu Perfil",
       icon: <UserCircle className="h-5 w-5" />,
@@ -149,53 +132,48 @@ const Sidebar = () => {
     },
   ];
 
+  // Add admin menu item if user is admin
+  if (isAdmin) {
+    menuItems.push({
+      title: "Administração",
+      icon: <ShieldCheck className="h-5 w-5" />,
+      href: "/admin",
+    });
+  }
+
   return (
     <SidebarContainer>
       <SidebarHeader className="border-b border-border p-4">
-        <div className="flex items-center">
+        <div className="flex gap-2 items-center">
           <Logo className="h-6 w-6" />
+          <span className="font-bold text-xl">Farol do Mercado</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <ScrollArea className="h-[calc(100vh-8rem)]">
           <div className="px-3 py-2">
-            <SidebarMenu>
+            <nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2">
               {menuItems.map((item, index) => (
-                <SidebarMenuItem key={index}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === item.href}
-                  >
-                    <Link to={item.href}>
-                      {item.icon}
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <Link
+                  key={index}
+                  to={item.href}
+                  className={`sidebar-item ${
+                    location.pathname === item.href ? "active" : ""
+                  }`}
+                >
+                  {item.icon}
+                  <span className="text-sm">{item.title}</span>
+                </Link>
               ))}
-            </SidebarMenu>
+            </nav>
           </div>
         </ScrollArea>
       </SidebarContent>
-      <SidebarFooter className="border-t border-border p-4 flex flex-col gap-2">
-        {footerMenuItems.map((item, index) => (
-          <Button
-            key={index}
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start"
-            asChild
-          >
-            <Link to={item.href}>
-              {item.icon}
-              <span className="ml-2">{item.title}</span>
-            </Link>
-          </Button>
-        ))}
+      <SidebarFooter className="border-t border-border p-4">
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start"
+          className="w-full justify-start mb-4"
           onClick={handleSignOut}
         >
           <LogOut className="h-5 w-5 mr-2" />
