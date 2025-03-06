@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { fetchAllNews, NEWS_CATEGORIES, NewsItem } from "@/services/NewsService";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -96,7 +96,7 @@ const MarketNews = () => {
               <SelectValue placeholder="Filtrar por categoria" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas as categorias</SelectItem>
+              <SelectItem value="_todas">Todas as categorias</SelectItem>
               {NEWS_CATEGORIES.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
@@ -125,8 +125,8 @@ const MarketNews = () => {
         </div>
       ) : news && news.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {news.map((item) => (
-            <NewsCard key={item.id} newsItem={item} />
+          {news.map((item, index) => (
+            <NewsCard key={item.id || `news-${index}`} newsItem={item} />
           ))}
         </div>
       ) : (
@@ -146,7 +146,12 @@ const MarketNews = () => {
 const NewsCard = ({ newsItem }: { newsItem: NewsItem }) => {
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
-    return format(new Date(dateString), "dd 'de' MMMM, yyyy", { locale: ptBR });
+    try {
+      return format(new Date(dateString), "dd 'de' MMMM, yyyy", { locale: ptBR });
+    } catch (e) {
+      console.error("Erro ao formatar data:", e);
+      return "";
+    }
   };
 
   return (
@@ -157,6 +162,10 @@ const NewsCard = ({ newsItem }: { newsItem: NewsItem }) => {
             src={newsItem.image_url}
             alt={newsItem.title}
             className="w-full h-full object-cover transition-transform hover:scale-105"
+            onError={(e) => {
+              // Substituir por imagem padrão em caso de erro
+              e.currentTarget.src = "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop";
+            }}
           />
         </div>
       )}
@@ -174,7 +183,7 @@ const NewsCard = ({ newsItem }: { newsItem: NewsItem }) => {
           <p className="text-muted-foreground text-sm mb-2">{newsItem.subtitle}</p>
         )}
         <p className="line-clamp-3 text-sm mb-4">
-          {newsItem.content.replace(/<[^>]*>?/gm, '')}
+          {newsItem.content?.replace(/<[^>]*>?/gm, '') || ""}
         </p>
         <div className="mt-auto flex flex-col gap-1 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">

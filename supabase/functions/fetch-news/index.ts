@@ -1,7 +1,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { corsHeaders } from '../_shared/cors.ts'
-import { Parser } from 'https://deno.land/x/rss@0.5.8/mod.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -40,24 +39,13 @@ async function fetchInfoMoneyRSS(): Promise<NewsItem[]> {
     }
     
     const xml = await response.text();
-    const parser = new Parser();
-    const feed = await parser.parse(xml);
-    
-    return feed.entries.map((entry) => {
-      const imageUrl = extractImageFromContent(entry.description || '');
-      
-      return {
-        title: entry.title?.value || 'Sem título',
-        subtitle: entry.title?.value,
-        content: entry.description || entry.content || 'Sem conteúdo',
-        publication_date: entry.published || new Date().toISOString(),
-        author: entry.author?.name || 'InfoMoney',
-        category: entry.categories?.[0]?.term || 'Mercado de Ações',
-        image_url: imageUrl,
-        source: 'InfoMoney',
-        source_url: entry.links?.[0]?.href,
-      };
+    // Parsing manual simplificado para RSS
+    const news = parseRSS(xml, {
+      source: 'InfoMoney',
+      defaultCategory: 'Mercado de Ações'
     });
+    
+    return news;
   } catch (error) {
     console.error('Erro ao processar RSS da InfoMoney:', error);
     return [];
@@ -75,24 +63,62 @@ async function fetchValorEconomicoRSS(): Promise<NewsItem[]> {
     }
     
     const xml = await response.text();
-    const parser = new Parser();
-    const feed = await parser.parse(xml);
-    
-    return feed.entries.map((entry) => {
-      return {
-        title: entry.title?.value || 'Sem título',
-        subtitle: entry.title?.value,
-        content: entry.description || entry.content || 'Sem conteúdo',
-        publication_date: entry.published || new Date().toISOString(),
-        author: entry.author?.name || 'Valor Econômico',
-        category: 'Economia',
-        image_url: extractImageFromContent(entry.description || ''),
-        source: 'Valor Econômico',
-        source_url: entry.links?.[0]?.href,
-      };
+    // Parsing manual simplificado para RSS
+    const news = parseRSS(xml, {
+      source: 'Valor Econômico',
+      defaultCategory: 'Economia'
     });
+    
+    return news;
   } catch (error) {
     console.error('Erro ao processar RSS do Valor Econômico:', error);
+    return [];
+  }
+}
+
+// Função simplificada para parse de RSS
+function parseRSS(xml: string, options: { source: string, defaultCategory: string }): NewsItem[] {
+  try {
+    const items: NewsItem[] = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    const titleRegex = /<title>(.*?)<\/title>/;
+    const linkRegex = /<link>(.*?)<\/link>/;
+    const descriptionRegex = /<description>([\s\S]*?)<\/description>/;
+    const pubDateRegex = /<pubDate>(.*?)<\/pubDate>/;
+    const creatorRegex = /<dc:creator>(.*?)<\/dc:creator>/;
+    const categoryRegex = /<category>(.*?)<\/category>/;
+    
+    let match;
+    while ((match = itemRegex.exec(xml)) !== null) {
+      const itemContent = match[1];
+      
+      // Extrair informações
+      const title = (itemContent.match(titleRegex) || [])[1]?.replace(/(<!\[CDATA\[|\]\]>)/g, '') || 'Sem título';
+      const link = (itemContent.match(linkRegex) || [])[1] || '';
+      const description = (itemContent.match(descriptionRegex) || [])[1]?.replace(/(<!\[CDATA\[|\]\]>)/g, '') || 'Sem conteúdo';
+      const pubDate = (itemContent.match(pubDateRegex) || [])[1] || new Date().toISOString();
+      const creator = (itemContent.match(creatorRegex) || [])[1] || options.source;
+      const category = (itemContent.match(categoryRegex) || [])[1] || options.defaultCategory;
+      
+      // Extrair imagem do conteúdo
+      const imageUrl = extractImageFromContent(description);
+      
+      items.push({
+        title: title,
+        subtitle: title,
+        content: description.replace(/<[^>]*>?/gm, ''),
+        publication_date: new Date(pubDate).toISOString(),
+        author: creator,
+        category: category,
+        image_url: imageUrl,
+        source: options.source,
+        source_url: link
+      });
+    }
+    
+    return items;
+  } catch (error) {
+    console.error('Erro ao parsear RSS:', error);
     return [];
   }
 }
@@ -278,10 +304,10 @@ Deno.serve(async (req) => {
     }
 
     // Formatar notícias manuais para ter o mesmo formato das externas
-    const formattedManualNews = manualNews.map(item => ({
+    const formattedManualNews = manualNews ? manualNews.map(item => ({
       ...item,
       source: 'manual'
-    }));
+    })) : [];
 
     // Combinar e ordenar por data de publicação (mais recentes primeiro)
     const allNews = [...formattedManualNews, ...externalNews].sort((a, b) => {

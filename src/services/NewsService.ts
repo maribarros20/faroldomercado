@@ -39,16 +39,16 @@ export const fetchManualNews = async (): Promise<NewsItem[]> => {
     
     if (error) {
       console.error("Erro ao buscar notícias manuais:", error);
-      throw error;
+      return [];
     }
     
-    return data.map(item => ({
+    return data ? data.map(item => ({
       ...item,
       source: 'manual'
-    }));
+    })) : [];
   } catch (error) {
     console.error("Erro ao buscar notícias manuais:", error);
-    throw error;
+    return [];
   }
 };
 
@@ -65,7 +65,7 @@ export const fetchExternalNews = async (category?: string): Promise<NewsItem[]> 
       return [];
     }
     
-    return data;
+    return data || [];
   } catch (error) {
     console.error("Erro ao buscar notícias externas:", error);
     return [];
