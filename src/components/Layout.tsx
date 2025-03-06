@@ -1,6 +1,6 @@
 
 import { ReactNode } from "react";
-import Sidebar from "./Sidebar"; // Changed from { Sidebar } to Sidebar
+import Sidebar from "@/components/sidebar"; // Updated import path
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocation } from "react-router-dom";
 
