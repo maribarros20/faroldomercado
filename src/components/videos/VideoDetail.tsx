@@ -1,17 +1,16 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ThumbsUp, MessageSquare, Share2, Bookmark, Clock, Calendar } from "lucide-react";
-import { Video, getRelatedVideos, incrementVideoViews } from "@/services/VideosService";
+import { getVideoById, getRelatedVideos, incrementVideoViews } from "@/services/VideosService";
+import { Spinner } from "@/components/ui/spinner";
+import { useToast } from "@/hooks/use-toast";
 
 const VideoPlayer = ({ url, source }: { url: string; source: string }) => {
   const renderPlayer = () => {
-    // YouTube embed
     if (source === 'youtube') {
       const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
       if (videoId) {
@@ -29,7 +28,6 @@ const VideoPlayer = ({ url, source }: { url: string; source: string }) => {
       }
     }
     
-    // Vimeo embed
     if (source === 'vimeo') {
       const videoId = url.match(/vimeo\.com\/([0-9]+)/)?.[1];
       if (videoId) {
@@ -47,7 +45,6 @@ const VideoPlayer = ({ url, source }: { url: string; source: string }) => {
       }
     }
     
-    // Simple HTML5 video player for storage videos
     return (
       <video
         controls
@@ -71,11 +68,13 @@ const VideoPlayer = ({ url, source }: { url: string; source: string }) => {
 const VideoDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [video, setVideo] = useState<Video | null>(null);
-  const [relatedVideos, setRelatedVideos] = useState<Video[]>([]);
+  const [video, setVideo] = useState<any>(null);
+  const [relatedVideos, setRelatedVideos] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("sobre");
+  const { toast } = useToast();
+  const [viewIncremented, setViewIncremented] = useState(false);
 
   useEffect(() => {
     const fetchVideo = async () => {
@@ -83,42 +82,39 @@ const VideoDetail = () => {
       
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('videos')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
-          
-        if (error) {
-          throw error;
-        }
+        const videoData = await getVideoById(id);
         
-        if (!data) {
+        if (!videoData) {
           throw new Error("Vídeo não encontrado");
         }
         
-        // Type assertion to handle the type mismatch
-        setVideo(data as unknown as Video);
+        setVideo(videoData);
         
-        // Increment views
-        await incrementVideoViews(id);
+        const related = await getRelatedVideos(id, videoData.category);
+        setRelatedVideos(related);
         
-        // Fetch related videos
-        if ((data as any).category) {
-          const related = await getRelatedVideos(id, (data as any).category);
-          setRelatedVideos(related);
+        if (!viewIncremented) {
+          const success = await incrementVideoViews(id);
+          if (!success) {
+            console.warn("Failed to increment video views");
+          }
+          setViewIncremented(true);
         }
-        
       } catch (err) {
         console.error("Error fetching video:", err);
         setError(err instanceof Error ? err.message : "Erro ao carregar o vídeo");
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar os detalhes do vídeo.",
+          variant: "destructive"
+        });
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchVideo();
-  }, [id]);
+  }, [id, toast, viewIncremented]);
 
   const handleBackClick = () => {
     navigate('/videos');
@@ -128,7 +124,8 @@ const VideoDetail = () => {
     return (
       <div className="container mx-auto py-8 px-4">
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          <Spinner size="lg" />
+          <span className="ml-3">Carregando vídeo...</span>
         </div>
       </div>
     );
@@ -257,8 +254,14 @@ const VideoDetail = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {relatedVideos.map(relatedVideo => (
-                <Card key={relatedVideo.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+              {relatedVideos.map((relatedVideo) => (
+                <Card 
+                  key={relatedVideo.id} 
+                  className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => {
+                    navigate(`/videos/${relatedVideo.id}`);
+                  }}
+                >
                   <div className="flex">
                     <img
                       src={relatedVideo.thumbnail || "https://via.placeholder.com/300x200"}

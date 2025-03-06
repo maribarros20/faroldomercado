@@ -1,497 +1,614 @@
 
-import React, { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
-import { Trash2, Edit, Plus } from "lucide-react";
+import { Pen, Trash2, Plus } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-interface Channel {
+type Channel = {
   id: string;
   name: string;
-  description: string | null;
-  is_company_specific: boolean;
-  company_id: string | null;
+  description: string;
   created_at: string;
-  updated_at: string;
-}
+  is_company_specific: boolean;
+  post_count?: number;
+};
 
-interface Post {
+type Post = {
   id: string;
   title: string;
   content: string;
   channel_id: string;
+  channel_name?: string;
   user_id: string;
   created_at: string;
-  updated_at: string;
-  likes_count: number;
   comments_count: number;
-}
+  likes_count: number;
+};
 
 const AdminCommunity = () => {
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoadingChannels, setIsLoadingChannels] = useState(true);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
+  const [channelName, setChannelName] = useState("");
+  const [channelDescription, setChannelDescription] = useState("");
+  const [isCompanySpecific, setIsCompanySpecific] = useState(false);
   const [activeTab, setActiveTab] = useState("channels");
-  const [newChannel, setNewChannel] = useState({ name: "", description: "" });
-  const [editingChannel, setEditingChannel] = useState<Channel | null>(null);
-  const [isChannelDialogOpen, setIsChannelDialogOpen] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  // Fetch channels
-  const { data: channels, isLoading: isLoadingChannels } = useQuery({
-    queryKey: ['admin-channels'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('community_channels')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      return data as Channel[];
-    },
-    meta: {
-      onError: (error: Error) => {
+  // Load channels
+  useEffect(() => {
+    const fetchChannels = async () => {
+      try {
+        setIsLoadingChannels(true);
+        const { data, error } = await supabase.from("community_channels").select("*").order("name");
+
+        if (error) {
+          throw error;
+        }
+
+        // Get post counts for each channel
+        const channelsWithCounts = await Promise.all(
+          (data || []).map(async (channel) => {
+            const { count, error: countError } = await supabase
+              .from("community_posts")
+              .select("*", { count: "exact", head: true })
+              .eq("channel_id", channel.id);
+
+            return {
+              ...channel,
+              post_count: countError ? 0 : count || 0,
+            };
+          })
+        );
+
+        setChannels(channelsWithCounts);
+      } catch (error) {
+        console.error("Error fetching channels:", error);
         toast({
-          title: "Erro ao carregar canais",
-          description: error.message,
-          variant: "destructive"
+          title: "Erro",
+          description: "Não foi possível carregar os canais.",
+          variant: "destructive",
         });
+      } finally {
+        setIsLoadingChannels(false);
       }
-    }
-  });
+    };
 
-  // Fetch posts
-  const { data: posts, isLoading: isLoadingPosts } = useQuery({
-    queryKey: ['admin-posts'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('community_posts')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      return data as Post[];
-    },
-    meta: {
-      onError: (error: Error) => {
-        toast({
-          title: "Erro ao carregar posts",
-          description: error.message,
-          variant: "destructive"
-        });
-      }
-    }
-  });
+    fetchChannels();
+  }, [toast]);
 
-  // Create channel mutation
-  const createChannelMutation = useMutation({
-    mutationFn: async (channelData: { name: string; description: string }) => {
-      const { data, error } = await supabase
-        .from('community_channels')
-        .insert([
-          { 
-            name: channelData.name, 
-            description: channelData.description,
+  // Load posts when tab changes to posts
+  useEffect(() => {
+    if (activeTab === "posts") {
+      const fetchPosts = async () => {
+        try {
+          setIsLoadingPosts(true);
+          const { data, error } = await supabase
+            .from("community_posts")
+            .select("*")
+            .order("created_at", { ascending: false });
+
+          if (error) {
+            throw error;
           }
-        ])
-        .select()
-        .single();
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-channels'] });
-      setNewChannel({ name: "", description: "" });
-      setIsChannelDialogOpen(false);
-      toast({
-        title: "Canal criado",
-        description: "O canal foi criado com sucesso",
-      });
-    },
-    meta: {
-      onError: (error: Error) => {
-        toast({
-          title: "Erro ao criar canal",
-          description: error.message,
-          variant: "destructive"
-        });
-      }
-    }
-  });
 
-  // Update channel mutation
-  const updateChannelMutation = useMutation({
-    mutationFn: async (channelData: { id: string; name: string; description: string }) => {
-      const { data, error } = await supabase
-        .from('community_channels')
-        .update({ 
-          name: channelData.name, 
-          description: channelData.description,
-          updated_at: new Date().toISOString()
+          // Get channel names for each post
+          const postsWithChannels = await Promise.all(
+            (data || []).map(async (post) => {
+              const { data: channelData, error: channelError } = await supabase
+                .from("community_channels")
+                .select("name")
+                .eq("id", post.channel_id)
+                .single();
+
+              return {
+                ...post,
+                channel_name: channelError ? "Canal desconhecido" : channelData?.name,
+              };
+            })
+          );
+
+          setPosts(postsWithChannels);
+        } catch (error) {
+          console.error("Error fetching posts:", error);
+          toast({
+            title: "Erro",
+            description: "Não foi possível carregar as postagens.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsLoadingPosts(false);
+        }
+      };
+
+      fetchPosts();
+    }
+  }, [activeTab, toast]);
+
+  const handleCreateChannel = async () => {
+    try {
+      if (!channelName.trim()) {
+        toast({
+          title: "Erro",
+          description: "O nome do canal é obrigatório.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.from("community_channels").insert({
+        name: channelName,
+        description: channelDescription,
+        is_company_specific: isCompanySpecific,
+      }).select();
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Canal criado com sucesso.",
+      });
+
+      // Refresh channels list
+      setChannels([...channels, { ...data[0], post_count: 0 }]);
+      setChannelName("");
+      setChannelDescription("");
+      setIsCompanySpecific(false);
+    } catch (error) {
+      console.error("Error creating channel:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar o canal.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateChannel = async () => {
+    try {
+      if (!activeChannel || !channelName.trim()) {
+        toast({
+          title: "Erro",
+          description: "O nome do canal é obrigatório.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from("community_channels")
+        .update({
+          name: channelName,
+          description: channelDescription,
+          is_company_specific: isCompanySpecific,
         })
-        .eq('id', channelData.id)
-        .select()
-        .single();
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-channels'] });
-      setEditingChannel(null);
-      setIsChannelDialogOpen(false);
-      toast({
-        title: "Canal atualizado",
-        description: "O canal foi atualizado com sucesso",
-      });
-    },
-    meta: {
-      onError: (error: Error) => {
-        toast({
-          title: "Erro ao atualizar canal",
-          description: error.message,
-          variant: "destructive"
-        });
-      }
-    }
-  });
+        .eq("id", activeChannel.id);
 
-  // Delete channel mutation
-  const deleteChannelMutation = useMutation({
-    mutationFn: async (channelId: string) => {
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Canal atualizado com sucesso.",
+      });
+
+      // Update local state
+      setChannels(
+        channels.map((c) =>
+          c.id === activeChannel.id
+            ? {
+                ...c,
+                name: channelName,
+                description: channelDescription,
+                is_company_specific: isCompanySpecific,
+              }
+            : c
+        )
+      );
+      
+      setActiveChannel(null);
+      setChannelName("");
+      setChannelDescription("");
+      setIsCompanySpecific(false);
+    } catch (error) {
+      console.error("Error updating channel:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o canal.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteChannel = async (channelId: string) => {
+    try {
+      // Check if channel has posts
+      const { count, error: countError } = await supabase
+        .from("community_posts")
+        .select("*", { count: "exact", head: true })
+        .eq("channel_id", channelId);
+
+      if (countError) {
+        throw countError;
+      }
+
+      if (count && count > 0) {
+        toast({
+          title: "Erro",
+          description: "Este canal possui postagens. Remova as postagens primeiro.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
-        .from('community_channels')
+        .from("community_channels")
         .delete()
-        .eq('id', channelId);
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      return channelId;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-channels'] });
-      toast({
-        title: "Canal excluído",
-        description: "O canal foi excluído com sucesso",
-      });
-    },
-    meta: {
-      onError: (error: Error) => {
-        toast({
-          title: "Erro ao excluir canal",
-          description: error.message,
-          variant: "destructive"
-        });
-      }
-    }
-  });
+        .eq("id", channelId);
 
-  // Delete post mutation
-  const deletePostMutation = useMutation({
-    mutationFn: async (postId: string) => {
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Canal removido com sucesso.",
+      });
+
+      // Update local state
+      setChannels(channels.filter((c) => c.id !== channelId));
+    } catch (error) {
+      console.error("Error deleting channel:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover o canal.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    try {
+      // First delete all comments associated with this post
+      const { error: commentsError } = await supabase
+        .from("post_comments")
+        .delete()
+        .eq("post_id", postId);
+
+      if (commentsError) {
+        throw commentsError;
+      }
+
+      // Then delete all likes associated with this post
+      const { error: likesError } = await supabase
+        .from("user_likes")
+        .delete()
+        .eq("post_id", postId);
+
+      if (likesError) {
+        throw likesError;
+      }
+
+      // Finally delete the post
       const { error } = await supabase
-        .from('community_posts')
+        .from("community_posts")
         .delete()
-        .eq('id', postId);
-      
+        .eq("id", postId);
+
       if (error) {
-        throw new Error(error.message);
+        throw error;
       }
-      
-      return postId;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-posts'] });
+
       toast({
-        title: "Post excluído",
-        description: "O post foi excluído com sucesso",
+        title: "Sucesso",
+        description: "Postagem removida com sucesso.",
       });
-    },
-    meta: {
-      onError: (error: Error) => {
-        toast({
-          title: "Erro ao excluir post",
-          description: error.message,
-          variant: "destructive"
-        });
-      }
-    }
-  });
 
-  const handleCreateChannel = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newChannel.name) {
+      // Update local state
+      setPosts(posts.filter((p) => p.id !== postId));
+    } catch (error) {
+      console.error("Error deleting post:", error);
       toast({
-        title: "Campo obrigatório",
-        description: "O nome do canal é obrigatório",
-        variant: "destructive"
+        title: "Erro",
+        description: "Não foi possível remover a postagem.",
+        variant: "destructive",
       });
-      return;
-    }
-    createChannelMutation.mutate(newChannel);
-  };
-
-  const handleUpdateChannel = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingChannel || !editingChannel.name) {
-      toast({
-        title: "Campo obrigatório",
-        description: "O nome do canal é obrigatório",
-        variant: "destructive"
-      });
-      return;
-    }
-    updateChannelMutation.mutate({
-      id: editingChannel.id,
-      name: editingChannel.name,
-      description: editingChannel.description || ""
-    });
-  };
-
-  const handleDeleteChannel = (channelId: string) => {
-    if (window.confirm("Tem certeza que deseja excluir este canal? Esta ação não pode ser desfeita.")) {
-      deleteChannelMutation.mutate(channelId);
     }
   };
 
-  const handleDeletePost = (postId: string) => {
-    if (window.confirm("Tem certeza que deseja excluir este post? Esta ação não pode ser desfeita.")) {
-      deletePostMutation.mutate(postId);
-    }
-  };
-
-  const handleEditChannel = (channel: Channel) => {
-    setEditingChannel(channel);
-    setIsChannelDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setEditingChannel(null);
-    setIsChannelDialogOpen(false);
-    setNewChannel({ name: "", description: "" });
+  const editChannel = (channel: Channel) => {
+    setActiveChannel(channel);
+    setChannelName(channel.name);
+    setChannelDescription(channel.description || "");
+    setIsCompanySpecific(channel.is_company_specific);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Gerenciamento da Comunidade</h2>
-        <Button onClick={() => {
-          setEditingChannel(null);
-          setIsChannelDialogOpen(true);
-        }}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Canal
-        </Button>
-      </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Gerenciamento da Comunidade</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="channels">Canais</TabsTrigger>
+            <TabsTrigger value="posts">Postagens</TabsTrigger>
+          </TabsList>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="channels">Canais</TabsTrigger>
-          <TabsTrigger value="posts">Posts</TabsTrigger>
-        </TabsList>
+          {/* Channels Management */}
+          <TabsContent value="channels">
+            <div className="mb-6">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Novo Canal
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Criar Novo Canal</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium mb-1">
+                        Nome do Canal*
+                      </label>
+                      <Input
+                        id="name"
+                        value={channelName}
+                        onChange={(e) => setChannelName(e.target.value)}
+                        placeholder="Nome do canal"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="description" className="block text-sm font-medium mb-1">
+                        Descrição
+                      </label>
+                      <Textarea
+                        id="description"
+                        value={channelDescription}
+                        onChange={(e) => setChannelDescription(e.target.value)}
+                        placeholder="Descrição do canal"
+                        rows={3}
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="is_company_specific"
+                        checked={isCompanySpecific}
+                        onChange={(e) => setIsCompanySpecific(e.target.checked)}
+                        className="rounded border-gray-300"
+                      />
+                      <label htmlFor="is_company_specific" className="text-sm">
+                        Canal específico para empresa
+                      </label>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancelar</Button>
+                    </DialogClose>
+                    <DialogClose asChild>
+                      <Button onClick={handleCreateChannel}>Criar Canal</Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
 
-        <TabsContent value="channels" className="space-y-4 mt-4">
-          {isLoadingChannels ? (
-            <div className="flex justify-center items-center h-40">
-              <Spinner />
-            </div>
-          ) : !channels || channels.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <p>Nenhum canal encontrado. Crie um novo canal para começar.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {channels.map(channel => (
-                <Card key={channel.id}>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg truncate" title={channel.name}>
-                        {channel.name}
-                      </CardTitle>
-                      <div className="flex space-x-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleEditChannel(channel)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-red-500 hover:text-red-700"
-                          onClick={() => handleDeleteChannel(channel.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+              {activeChannel && (
+                <Dialog open={!!activeChannel} onOpenChange={(open) => !open && setActiveChannel(null)}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Editar Canal</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div>
+                        <label htmlFor="edit-name" className="block text-sm font-medium mb-1">
+                          Nome do Canal*
+                        </label>
+                        <Input
+                          id="edit-name"
+                          value={channelName}
+                          onChange={(e) => setChannelName(e.target.value)}
+                          placeholder="Nome do canal"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="edit-description" className="block text-sm font-medium mb-1">
+                          Descrição
+                        </label>
+                        <Textarea
+                          id="edit-description"
+                          value={channelDescription}
+                          onChange={(e) => setChannelDescription(e.target.value)}
+                          placeholder="Descrição do canal"
+                          rows={3}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="edit-is_company_specific"
+                          checked={isCompanySpecific}
+                          onChange={(e) => setIsCompanySpecific(e.target.checked)}
+                          className="rounded border-gray-300"
+                        />
+                        <label htmlFor="edit-is_company_specific" className="text-sm">
+                          Canal específico para empresa
+                        </label>
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-gray-500 line-clamp-2" title={channel.description || ''}>
-                      {channel.description || 'Sem descrição'}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-2">
-                      Criado em {new Date(channel.created_at).toLocaleDateString()}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setActiveChannel(null)}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleUpdateChannel}>Atualizar Canal</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
-          )}
-        </TabsContent>
 
-        <TabsContent value="posts" className="space-y-4 mt-4">
-          {isLoadingPosts ? (
-            <div className="flex justify-center items-center h-40">
-              <Spinner />
-            </div>
-          ) : !posts || posts.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <p>Nenhum post encontrado.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {posts.map(post => {
-                const channel = channels?.find(c => c.id === post.channel_id);
-                return (
-                  <Card key={post.id}>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-lg truncate" title={post.title}>
-                            {post.title}
-                          </CardTitle>
-                          <p className="text-sm text-gray-500">
-                            Canal: {channel?.name || 'Desconhecido'}
-                          </p>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-red-500 hover:text-red-700"
-                          onClick={() => handleDeletePost(post.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm line-clamp-3" title={post.content}>
-                        {post.content}
-                      </p>
-                      <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
-                        <span>
-                          Publicado em {new Date(post.created_at).toLocaleDateString()}
-                        </span>
-                        <div className="flex space-x-4">
-                          <span>{post.likes_count} curtidas</span>
-                          <span>{post.comments_count} comentários</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+            {isLoadingChannels ? (
+              <div className="flex justify-center items-center h-40">
+                <Spinner size="lg" />
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Postagens</TableHead>
+                      <TableHead>Específico para Empresa</TableHead>
+                      <TableHead>Data de Criação</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {channels.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                          Nenhum canal encontrado
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      channels.map((channel) => (
+                        <TableRow key={channel.id}>
+                          <TableCell className="font-medium">{channel.name}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{channel.description || "-"}</TableCell>
+                          <TableCell>{channel.post_count || 0}</TableCell>
+                          <TableCell>{channel.is_company_specific ? "Sim" : "Não"}</TableCell>
+                          <TableCell>{new Date(channel.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button variant="outline" size="sm" onClick={() => editChannel(channel)}>
+                                <Pen className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteChannel(channel.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </TabsContent>
 
-      {/* Channel Dialog (Create/Edit) */}
-      <Dialog open={isChannelDialogOpen} onOpenChange={setIsChannelDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingChannel ? "Editar Canal" : "Criar Novo Canal"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingChannel 
-                ? "Atualize as informações do canal abaixo." 
-                : "Preencha as informações para criar um novo canal."}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={editingChannel ? handleUpdateChannel : handleCreateChannel}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <label htmlFor="channel-name" className="text-sm font-medium">
-                  Nome do Canal*
-                </label>
-                <Input
-                  id="channel-name"
-                  value={editingChannel ? editingChannel.name : newChannel.name}
-                  onChange={(e) => {
-                    if (editingChannel) {
-                      setEditingChannel({...editingChannel, name: e.target.value});
-                    } else {
-                      setNewChannel({...newChannel, name: e.target.value});
-                    }
-                  }}
-                  placeholder="Digite o nome do canal"
-                  required
-                />
+          {/* Posts Management */}
+          <TabsContent value="posts">
+            {isLoadingPosts ? (
+              <div className="flex justify-center items-center h-40">
+                <Spinner size="lg" />
               </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="channel-description" className="text-sm font-medium">
-                  Descrição
-                </label>
-                <Textarea
-                  id="channel-description"
-                  value={editingChannel ? editingChannel.description || "" : newChannel.description}
-                  onChange={(e) => {
-                    if (editingChannel) {
-                      setEditingChannel({...editingChannel, description: e.target.value});
-                    } else {
-                      setNewChannel({...newChannel, description: e.target.value});
-                    }
-                  }}
-                  placeholder="Digite uma descrição para o canal"
-                  rows={4}
-                />
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Título</TableHead>
+                      <TableHead>Canal</TableHead>
+                      <TableHead>Comentários</TableHead>
+                      <TableHead>Curtidas</TableHead>
+                      <TableHead>Data de Criação</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {posts.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                          Nenhuma postagem encontrada
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      posts.map((post) => (
+                        <TableRow key={post.id}>
+                          <TableCell className="font-medium max-w-[200px] truncate">{post.title}</TableCell>
+                          <TableCell>{post.channel_name}</TableCell>
+                          <TableCell>{post.comments_count}</TableCell>
+                          <TableCell>{post.likes_count}</TableCell>
+                          <TableCell>{new Date(post.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Pen className="h-4 w-4 mr-1" /> Ver
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-3xl">
+                                <DialogHeader>
+                                  <DialogTitle>{post.title}</DialogTitle>
+                                </DialogHeader>
+                                <div className="py-4">
+                                  <div className="text-sm text-gray-500 mb-4">
+                                    Canal: {post.channel_name} | 
+                                    Criado em: {new Date(post.created_at).toLocaleString()} | 
+                                    Comentários: {post.comments_count} | 
+                                    Curtidas: {post.likes_count}
+                                  </div>
+                                  <div className="border p-4 rounded-md whitespace-pre-wrap">
+                                    {post.content}
+                                  </div>
+                                </div>
+                                <DialogFooter>
+                                  <Button variant="destructive" onClick={() => handleDeletePost(post.id)}>
+                                    <Trash2 className="h-4 w-4 mr-1" /> Remover Postagem
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
               </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" type="button" onClick={handleCloseDialog}>
-                Cancelar
-              </Button>
-              <Button type="submit">
-                {editingChannel ? "Salvar Alterações" : "Criar Canal"}
-                {(createChannelMutation.isPending || updateChannelMutation.isPending) && (
-                  <Spinner className="ml-2" size="sm" />
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };
 

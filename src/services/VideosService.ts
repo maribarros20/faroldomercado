@@ -1,7 +1,6 @@
 
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { Database } from "@/integrations/supabase/types";
 
 export type VideoSource = "youtube" | "vimeo" | "storage";
 
@@ -11,111 +10,112 @@ export interface Video {
   description: string;
   source: VideoSource;
   url: string;
-  thumbnail: string;
+  thumbnail: string | null;
   category: string;
   learning_path: string;
-  duration: string;
+  duration: string | null;
   date_added: string;
   views: number;
+  created_by: string | null;
 }
 
-// Add a type guard to validate video objects
-function isValidVideo(video: any): video is Video {
-  return (
-    video &&
-    typeof video.id === 'string' &&
-    typeof video.title === 'string' &&
-    typeof video.url === 'string'
-  );
-}
+export const useVideos = (category?: string, learningPath?: string) => {
+  const [data, setData] = useState<Video[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-export const useVideos = (categoryFilter?: string, learningPathFilter?: string) => {
-  return useQuery({
-    queryKey: ['videos', categoryFilter, learningPathFilter],
-    queryFn: async () => {
+  useEffect(() => {
+    const fetchVideos = async () => {
       try {
-        let query = supabase
-          .from('videos')
-          .select('*')
-          .order('date_added', { ascending: false });
-        
-        if (categoryFilter) {
-          query = query.eq('category', categoryFilter);
+        setIsLoading(true);
+        setError(null);
+
+        let query = supabase.from("videos").select("*");
+
+        if (category) {
+          query = query.eq("category", category);
         }
-        
-        if (learningPathFilter) {
-          query = query.eq('learning_path', learningPathFilter);
+
+        if (learningPath) {
+          query = query.eq("learning_path", learningPath);
         }
-        
-        const { data, error } = await query;
-        
+
+        const { data, error } = await query.order("date_added", { ascending: false });
+
         if (error) {
-          console.error("Error fetching videos:", error);
           throw new Error(error.message);
         }
-        
-        if (!data) return [];
-        
-        // Validate each video object
-        const validVideos = data.filter(isValidVideo);
-        return validVideos as Video[];
-      } catch (error) {
-        console.error("Error in useVideos query:", error);
-        return [] as Video[];
+
+        setData(data as Video[]);
+      } catch (err) {
+        console.error("Error fetching videos:", err);
+        setError(err instanceof Error ? err : new Error("Failed to fetch videos"));
+      } finally {
+        setIsLoading(false);
       }
-    }
-  });
+    };
+
+    fetchVideos();
+  }, [category, learningPath]);
+
+  return { data, isLoading, error };
 };
 
-export const incrementVideoViews = async (videoId: string) => {
+export const getVideoById = async (id: string): Promise<Video | null> => {
   try {
-    // Specifically type the function name for the RPC call
-    const { data, error } = await supabase.rpc(
-      'increment_video_views', 
-      {
-        video_id: videoId
-      }
-    );
-    
+    const { data, error } = await supabase
+      .from("videos")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
     if (error) {
-      console.error("Error incrementing views:", error);
-      return false;
+      throw new Error(error.message);
     }
-    
-    return true;
+
+    return data as Video;
   } catch (error) {
-    console.error("Failed to increment views:", error);
-    return false;
+    console.error("Error fetching video:", error);
+    return null;
   }
 };
 
-export const getRelatedVideos = async (videoId: string, category: string) => {
+export const getRelatedVideos = async (
+  currentVideoId: string,
+  category: string,
+  limit = 5
+): Promise<Video[]> => {
   try {
-    // Use a defensive approach with explicit error handling
-    if (!videoId || !category) {
-      console.error("Missing required parameters for getRelatedVideos");
-      return [];
-    }
-    
     const { data, error } = await supabase
-      .from('videos')
-      .select('*')
-      .eq('category', category)
-      .neq('id', videoId)
-      .limit(4);
-      
+      .from("videos")
+      .select("*")
+      .eq("category", category)
+      .neq("id", currentVideoId)
+      .limit(limit);
+
     if (error) {
-      console.error("Error fetching related videos:", error);
-      return [];
+      throw new Error(error.message);
+    }
+
+    return data as Video[];
+  } catch (error) {
+    console.error("Error fetching related videos:", error);
+    return [];
+  }
+};
+
+export const incrementVideoViews = async (videoId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.rpc('increment_video_views', { video_id: videoId });
+    
+    if (error) {
+      console.error("Error incrementing video views:", error);
+      return false;
     }
     
-    if (!data) return [];
-    
-    // Validate each video object
-    const validVideos = data.filter(isValidVideo);
-    return validVideos as Video[];
+    return data as boolean;
   } catch (error) {
-    console.error("Failed to get related videos:", error);
-    return [];
+    console.error("Exception incrementing video views:", error);
+    return false;
   }
 };

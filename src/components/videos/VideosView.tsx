@@ -1,12 +1,13 @@
-
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, Youtube, Video, Play, Clock } from "lucide-react";
-import { useVideos, VideoSource, Video as VideoType } from "@/services/VideosService";
+import { useVideos, VideoSource, Video as VideoType, incrementVideoViews } from "@/services/VideosService";
+import { Spinner } from "@/components/ui/spinner";
 
 const learningPaths = [
   { id: "all", name: "Todos" },
@@ -26,6 +27,8 @@ const categories = [
 ];
 
 const VideoCard = ({ video }: { video: VideoType }) => {
+  const navigate = useNavigate();
+  
   const getSourceIcon = (source: VideoSource) => {
     switch (source) {
       case "youtube":
@@ -37,14 +40,13 @@ const VideoCard = ({ video }: { video: VideoType }) => {
     }
   };
 
-  const handleClick = () => {
-    window.open(video.url, "_blank");
-    // Increment views - in a real app we would use the service to increment views
-    // incrementVideoViews(video.id);
+  const handleClick = async () => {
+    await incrementVideoViews(video.id);
+    navigate(`/videos/${video.id}`);
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow border border-gray-200 h-full flex flex-col">
+    <Card className="overflow-hidden hover:shadow-md transition-shadow border border-gray-200 h-full flex flex-col cursor-pointer" onClick={handleClick}>
       <div className="relative">
         <img
           src={video.thumbnail || "https://via.placeholder.com/300x200"}
@@ -87,17 +89,14 @@ const VideosView = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [activeCategory, setActiveCategory] = useState("all");
 
-  // Get learning path for query
   const learningPathFilter = activeTab !== "all" ? 
     learningPaths.find(p => p.id === activeTab)?.name : undefined;
   
-  // Get category for query
   const categoryFilter = activeCategory !== "all" ?
     categories.find(c => c.id === activeCategory)?.name : undefined;
 
   const { data: videos = [], isLoading, error } = useVideos(categoryFilter, learningPathFilter);
 
-  // Filter by search query
   const filteredVideos = videos.filter(video => 
     video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     video.description.toLowerCase().includes(searchQuery.toLowerCase())
@@ -151,7 +150,8 @@ const VideosView = () => {
 
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          <Spinner size="lg" />
+          <span className="ml-3">Carregando vídeos...</span>
         </div>
       ) : error ? (
         <div className="text-center py-8 text-red-500">
