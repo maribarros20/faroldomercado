@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { fetchAllNews, NEWS_CATEGORIES, NewsItem } from "@/services/NewsService";
+import { fetchAllNews, NEWS_CATEGORIES, NewsItem, cleanTextContent } from "@/services/NewsService";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -96,7 +96,7 @@ const MarketNews = () => {
               <SelectValue placeholder="Filtrar por categoria" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="_todas">Todas as categorias</SelectItem>
+              <SelectItem value="">Todas as categorias</SelectItem>
               {NEWS_CATEGORIES.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
@@ -172,18 +172,18 @@ const NewsCard = ({ newsItem }: { newsItem: NewsItem }) => {
       <CardContent className="p-4 flex-grow flex flex-col">
         <div className="mb-2 flex gap-2">
           {newsItem.category && (
-            <Badge variant="secondary">{newsItem.category}</Badge>
+            <Badge variant="secondary">{cleanTextContent(newsItem.category)}</Badge>
           )}
           {newsItem.source && newsItem.source !== "manual" && (
-            <Badge variant="outline">{newsItem.source}</Badge>
+            <Badge variant="outline">{cleanTextContent(newsItem.source)}</Badge>
           )}
         </div>
-        <h3 className="text-lg font-semibold mb-2">{newsItem.title}</h3>
+        <h3 className="text-lg font-semibold mb-2">{cleanTextContent(newsItem.title)}</h3>
         {newsItem.subtitle && (
-          <p className="text-muted-foreground text-sm mb-2">{newsItem.subtitle}</p>
+          <p className="text-muted-foreground text-sm mb-2">{cleanTextContent(newsItem.subtitle)}</p>
         )}
         <p className="line-clamp-3 text-sm mb-4">
-          {newsItem.content?.replace(/<[^>]*>?/gm, '') || ""}
+          {cleanTextContent(newsItem.content)}
         </p>
         <div className="mt-auto flex flex-col gap-1 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
@@ -195,7 +195,7 @@ const NewsCard = ({ newsItem }: { newsItem: NewsItem }) => {
           {newsItem.author && (
             <div className="flex items-center gap-1">
               <User size={12} />
-              <span>{newsItem.author}</span>
+              <span>{cleanTextContent(newsItem.author)}</span>
             </div>
           )}
         </div>

@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -19,6 +18,24 @@ interface NewsItem {
   source_url?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+// Function to clean CDATA tags and HTML entities
+function cleanContent(content: string): string {
+  // Remove CDATA tags
+  const withoutCDATA = content.replace(/<!\[CDATA\[(.*?)\]\]>/gs, '$1');
+  
+  // Remove HTML tags but keep the content
+  const withoutHTML = withoutCDATA.replace(/<[^>]*>?/gm, '');
+  
+  // Decode HTML entities
+  return withoutHTML
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
 }
 
 // Função para extrair imagem do conteúdo HTML
@@ -81,24 +98,31 @@ function parseRSS(xml: string, options: { source: string, defaultCategory: strin
   try {
     const items: NewsItem[] = [];
     const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-    const titleRegex = /<title>(.*?)<\/title>/;
-    const linkRegex = /<link>(.*?)<\/link>/;
+    const titleRegex = /<title>([\s\S]*?)<\/title>/;
+    const linkRegex = /<link>([\s\S]*?)<\/link>/;
     const descriptionRegex = /<description>([\s\S]*?)<\/description>/;
-    const pubDateRegex = /<pubDate>(.*?)<\/pubDate>/;
-    const creatorRegex = /<dc:creator>(.*?)<\/dc:creator>/;
-    const categoryRegex = /<category>(.*?)<\/category>/;
+    const pubDateRegex = /<pubDate>([\s\S]*?)<\/pubDate>/;
+    const creatorRegex = /<dc:creator>([\s\S]*?)<\/dc:creator>/;
+    const categoryRegex = /<category>([\s\S]*?)<\/category>/;
     
     let match;
     while ((match = itemRegex.exec(xml)) !== null) {
       const itemContent = match[1];
       
-      // Extrair informações
-      const title = (itemContent.match(titleRegex) || [])[1]?.replace(/(<!\[CDATA\[|\]\]>)/g, '') || 'Sem título';
-      const link = (itemContent.match(linkRegex) || [])[1] || '';
-      const description = (itemContent.match(descriptionRegex) || [])[1]?.replace(/(<!\[CDATA\[|\]\]>)/g, '') || 'Sem conteúdo';
+      // Extrair informações e limpar CDATA tags
+      let title = (itemContent.match(titleRegex) || [])[1] || 'Sem título';
+      let link = (itemContent.match(linkRegex) || [])[1] || '';
+      let description = (itemContent.match(descriptionRegex) || [])[1] || 'Sem conteúdo';
       const pubDate = (itemContent.match(pubDateRegex) || [])[1] || new Date().toISOString();
-      const creator = (itemContent.match(creatorRegex) || [])[1] || options.source;
-      const category = (itemContent.match(categoryRegex) || [])[1] || options.defaultCategory;
+      let creator = (itemContent.match(creatorRegex) || [])[1] || options.source;
+      let category = (itemContent.match(categoryRegex) || [])[1] || options.defaultCategory;
+      
+      // Clean all content from CDATA and HTML tags
+      title = cleanContent(title);
+      link = cleanContent(link);
+      description = cleanContent(description);
+      creator = cleanContent(creator);
+      category = cleanContent(category);
       
       // Extrair imagem do conteúdo
       const imageUrl = extractImageFromContent(description);
@@ -106,7 +130,7 @@ function parseRSS(xml: string, options: { source: string, defaultCategory: strin
       items.push({
         title: title,
         subtitle: title,
-        content: description.replace(/<[^>]*>?/gm, ''),
+        content: description,
         publication_date: new Date(pubDate).toISOString(),
         author: creator,
         category: category,

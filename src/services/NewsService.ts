@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface NewsItem {
@@ -29,6 +28,26 @@ export const NEWS_CATEGORIES = [
   "Internacional"
 ];
 
+// Função para limpar texto de tags CDATA e HTML
+export const cleanTextContent = (text?: string): string => {
+  if (!text) return '';
+  
+  // Remove CDATA tags
+  const withoutCDATA = text.replace(/(\[CDATA\[|\]\]>)/g, '');
+  
+  // Remove HTML tags but preserve content
+  const withoutHTML = withoutCDATA.replace(/<[^>]*>?/gm, '');
+  
+  // Decode HTML entities
+  return withoutHTML
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+};
+
 // Função para buscar notícias manuais do Supabase
 export const fetchManualNews = async (): Promise<NewsItem[]> => {
   try {
@@ -44,6 +63,11 @@ export const fetchManualNews = async (): Promise<NewsItem[]> => {
     
     return data ? data.map(item => ({
       ...item,
+      title: cleanTextContent(item.title),
+      subtitle: cleanTextContent(item.subtitle),
+      content: cleanTextContent(item.content),
+      author: cleanTextContent(item.author),
+      category: cleanTextContent(item.category),
       source: 'manual'
     })) : [];
   } catch (error) {
@@ -65,7 +89,15 @@ export const fetchExternalNews = async (category?: string): Promise<NewsItem[]> 
       return [];
     }
     
-    return data || [];
+    // Garantir que todo o conteúdo esteja limpo de tags CDATA e HTML
+    return data ? data.map((item: NewsItem) => ({
+      ...item,
+      title: cleanTextContent(item.title),
+      subtitle: cleanTextContent(item.subtitle),
+      content: cleanTextContent(item.content),
+      author: cleanTextContent(item.author),
+      category: cleanTextContent(item.category)
+    })) : [];
   } catch (error) {
     console.error("Erro ao buscar notícias externas:", error);
     return [];
