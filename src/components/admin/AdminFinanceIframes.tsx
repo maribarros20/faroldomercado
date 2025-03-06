@@ -14,6 +14,7 @@ import { useFinanceIframes } from "@/hooks/useFinanceIframes";
 import FinanceIframeForm from "./finance/FinanceIframeForm";
 import FinanceIframeList from "./finance/FinanceIframeList";
 import EmptyState from "./finance/EmptyState";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminFinanceIframes = () => {
   const {
@@ -33,6 +34,8 @@ const AdminFinanceIframes = () => {
     handleCancel,
     handlePreview,
   } = useFinanceIframes();
+
+  const { toast } = useToast();
 
   if (isLoading) {
     return (
@@ -77,12 +80,15 @@ const AdminFinanceIframes = () => {
       )}
 
       {/* Modal de criação/edição */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => {
-        setIsDialogOpen(open);
-        if (!open) {
-          handleCancel();
-        }
-      }}>
+      <Dialog 
+        open={isDialogOpen} 
+        onOpenChange={(open) => {
+          if (!open) {
+            handleCancel();
+          }
+          setIsDialogOpen(open);
+        }}
+      >
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
             <DialogTitle>

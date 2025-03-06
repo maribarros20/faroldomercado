@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,7 +76,15 @@ export const useFinanceIframes = () => {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (data: FinanceIframeInput) => createFinanceIframe(data),
+    mutationFn: (data: FinanceIframeInput) => {
+      // Convert "null" string to undefined for optional fields
+      const processedData = {
+        ...data,
+        plan_id: data.plan_id === "null" ? undefined : data.plan_id,
+        mentor_id: data.mentor_id === "null" ? undefined : data.mentor_id
+      };
+      return createFinanceIframe(processedData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['finance-iframes'] });
       toast({
@@ -95,8 +103,15 @@ export const useFinanceIframes = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<FinanceIframeInput> }) => 
-      updateFinanceIframe(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<FinanceIframeInput> }) => {
+      // Convert "null" string to undefined for optional fields
+      const processedData = {
+        ...data,
+        plan_id: data.plan_id === "null" ? undefined : data.plan_id,
+        mentor_id: data.mentor_id === "null" ? undefined : data.mentor_id
+      };
+      return updateFinanceIframe(id, processedData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['finance-iframes'] });
       toast({
@@ -134,23 +149,23 @@ export const useFinanceIframes = () => {
   });
 
   // Handlers
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     setSelectedIframe(null);
     setIsDialogOpen(true);
-  };
+  }, []);
 
-  const handleEdit = (iframe: FinanceIframe) => {
+  const handleEdit = useCallback((iframe: FinanceIframe) => {
     setSelectedIframe(iframe);
     setIsDialogOpen(true);
-  };
+  }, []);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = useCallback((id: string) => {
     if (window.confirm("Tem certeza que deseja excluir este iframe financeiro?")) {
       deleteMutation.mutate(id);
     }
-  };
+  }, [deleteMutation]);
 
-  const handleSubmit = (values: FinanceIframeInput) => {
+  const handleSubmit = useCallback((values: FinanceIframeInput) => {
     if (selectedIframe) {
       updateMutation.mutate({
         id: selectedIframe.id,
@@ -159,16 +174,16 @@ export const useFinanceIframes = () => {
     } else {
       createMutation.mutate(values);
     }
-  };
+  }, [selectedIframe, updateMutation, createMutation]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setIsDialogOpen(false);
     setSelectedIframe(null);
-  };
+  }, []);
 
-  const handlePreview = (url: string) => {
+  const handlePreview = useCallback((url: string) => {
     window.open(url, "_blank");
-  };
+  }, []);
 
   return {
     iframes,

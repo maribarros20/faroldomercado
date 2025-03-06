@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -60,6 +60,18 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
       is_active: selectedIframe?.is_active !== false
     }
   });
+
+  // Reset form when selectedIframe changes
+  useEffect(() => {
+    form.reset({
+      title: selectedIframe?.title || "",
+      description: selectedIframe?.description || "",
+      iframe_url: selectedIframe?.iframe_url || "",
+      plan_id: selectedIframe?.plan_id || undefined,
+      mentor_id: selectedIframe?.mentor_id || undefined,
+      is_active: selectedIframe?.is_active !== false
+    });
+  }, [selectedIframe, form]);
 
   return (
     <Form {...form}>
@@ -123,7 +135,6 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
                 <Select
                   onValueChange={field.onChange}
                   value={field.value || ""}
-                  defaultValue=""
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -131,7 +142,7 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Todos os planos</SelectItem>
+                    <SelectItem value="null">Todos os planos</SelectItem>
                     {plans.map((plan) => (
                       <SelectItem key={plan.id} value={plan.id}>
                         {plan.name}
@@ -156,7 +167,6 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
                 <Select
                   onValueChange={field.onChange}
                   value={field.value || ""}
-                  defaultValue=""
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -164,7 +174,7 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Todos os mentores</SelectItem>
+                    <SelectItem value="null">Todos os mentores</SelectItem>
                     {mentors.map((mentor) => (
                       <SelectItem key={mentor.id} value={mentor.id}>
                         {mentor.name}
