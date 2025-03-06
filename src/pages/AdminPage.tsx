@@ -12,7 +12,7 @@ import AdminPlans from "@/components/admin/AdminPlans";
 import AdminAuditLogs from "@/components/admin/AdminAuditLogs";
 import { useToast } from "@/hooks/use-toast";
 import MarketNews from "@/components/admin/MarketNews";
-import FinanceSpreadsheet from "@/components/admin/FinanceSpreadsheet";
+import AdminFinanceIframes from "@/components/admin/AdminFinanceIframes";
 import { Shield, AlertCircle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import AdminCommunity from "@/components/admin/AdminCommunity";
@@ -154,7 +154,7 @@ const AdminPage = () => {
           <TabsTrigger value="plans">Planos</TabsTrigger>
           <TabsTrigger value="audit-logs">Logs de Auditoria</TabsTrigger>
           <TabsTrigger value="market-news">Notícias do Mercado</TabsTrigger>
-          <TabsTrigger value="finance-spreadsheet">Planilha Financeira</TabsTrigger>
+          <TabsTrigger value="finance-spreadsheet">Planilhas Financeiras</TabsTrigger>
         </TabsList>
         
         <Card>
@@ -192,7 +192,7 @@ const AdminPage = () => {
             </TabsContent>
 
             <TabsContent value="finance-spreadsheet" className="mt-0">
-              <FinanceSpreadsheet />
+              <AdminFinanceIframes />
             </TabsContent>
           </CardContent>
         </Card>
