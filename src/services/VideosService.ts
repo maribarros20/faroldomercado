@@ -42,7 +42,7 @@ export const useVideos = (categoryFilter?: string, learningPathFilter?: string) 
         throw new Error(error.message);
       }
       
-      return data as Video[];
+      return data as unknown as Video[];
     }
   });
 };
@@ -83,7 +83,7 @@ export const getRelatedVideos = async (videoId: string, category: string) => {
       return [];
     }
     
-    return data as Video[];
+    return data as unknown as Video[];
   } catch (error) {
     console.error("Failed to get related videos:", error);
     return [];

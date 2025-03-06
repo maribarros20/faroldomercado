@@ -30,24 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Video as VideoType, VideoSource } from "@/services/VideosService";
 
-// Video type
-type VideoSource = "youtube" | "vimeo" | "storage";
-
-type Video = {
-  id: string;
-  title: string;
-  description: string;
-  source: VideoSource;
-  url: string;
-  thumbnail: string;
-  category: string;
-  learning_path: string;
-  duration: string;
-  date_added: string;
-  views: number;
-};
-
-// Sample data
+// Sample data for drop-downs
 const learningPaths = [
   { id: "1", name: "Iniciantes" },
   { id: "2", name: "Estratégias Avançadas" },
@@ -67,7 +50,7 @@ const AdminVideos = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [currentVideo, setCurrentVideo] = useState<Video | null>(null);
+  const [currentVideo, setCurrentVideo] = useState<VideoType | null>(null);
   const [newVideo, setNewVideo] = useState({
     title: "",
     description: "",
@@ -97,7 +80,7 @@ const AdminVideos = () => {
       }
       
       console.log("Videos fetched:", data);
-      return data as VideoType[];
+      return data as unknown as VideoType[];
     }
   });
 
@@ -114,7 +97,7 @@ const AdminVideos = () => {
         .select();
       
       if (error) throw new Error(error.message);
-      return data[0] as VideoType;
+      return data[0] as unknown as VideoType;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-videos'] });
@@ -153,7 +136,7 @@ const AdminVideos = () => {
         .select();
       
       if (error) throw new Error(error.message);
-      return data[0] as VideoType;
+      return data[0] as unknown as VideoType;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-videos'] });
@@ -241,7 +224,7 @@ const AdminVideos = () => {
     addVideoMutation.mutate(videoData);
   };
 
-  const handleEditVideo = (video: Video) => {
+  const handleEditVideo = (video: VideoType) => {
     setCurrentVideo(video);
     setIsEditDialogOpen(true);
   };

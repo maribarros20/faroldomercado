@@ -97,7 +97,7 @@ const VideoDetail = () => {
           throw new Error("Vídeo não encontrado");
         }
         
-        // Type assertion to handle the temporary type mismatch
+        // Type assertion to handle the type mismatch
         setVideo(data as unknown as Video);
         
         // Increment views

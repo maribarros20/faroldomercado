@@ -546,6 +546,54 @@ export type Database = {
           },
         ]
       }
+      videos: {
+        Row: {
+          category: string
+          created_by: string | null
+          date_added: string | null
+          description: string | null
+          duration: string | null
+          id: string
+          learning_path: string
+          source: string
+          thumbnail: string | null
+          title: string
+          updated_at: string | null
+          url: string
+          views: number | null
+        }
+        Insert: {
+          category: string
+          created_by?: string | null
+          date_added?: string | null
+          description?: string | null
+          duration?: string | null
+          id?: string
+          learning_path: string
+          source: string
+          thumbnail?: string | null
+          title: string
+          updated_at?: string | null
+          url: string
+          views?: number | null
+        }
+        Update: {
+          category?: string
+          created_by?: string | null
+          date_added?: string | null
+          description?: string | null
+          duration?: string | null
+          id?: string
+          learning_path?: string
+          source?: string
+          thumbnail?: string | null
+          title?: string
+          updated_at?: string | null
+          url?: string
+          views?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       user_activity_stats: {
@@ -570,6 +618,12 @@ export type Database = {
           user_id: string
         }
         Returns: string
+      }
+      increment_video_views: {
+        Args: {
+          video_id: string
+        }
+        Returns: boolean
       }
       is_admin: {
         Args: Record<PropertyKey, never>
