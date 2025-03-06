@@ -1,59 +1,59 @@
 
-import React from 'react';
-import {
-  BrowserRouter as Router,
-  Route,
-  Routes,
-} from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { useEffect } from "react";
+import { Routes, Route, useNavigate } from "react-router-dom";
+import { Toaster } from "@/components/ui/toaster";
+import AppLayout from "@/components/AppLayout";
 import Index from "@/pages/Index";
-import AuthPage from "@/pages/AuthPage";
-import DashboardPage from "@/pages/DashboardPage";
+import NotFound from "@/pages/NotFound";
 import MaterialsPage from "@/pages/MaterialsPage";
 import VideosPage from "@/pages/VideosPage";
-import ProfilePage from "@/pages/Profile";
+import DashboardPage from "@/pages/DashboardPage";
 import CommunityPage from "@/pages/CommunityPage";
 import ProgressPage from "@/pages/ProgressPage";
-import AdminPage from "@/pages/AdminPage";
+import ProfilePage from "@/pages/ProfilePage";
+import AuthPage from "@/pages/AuthPage";
 import PlansPage from "@/pages/PlansPage";
-import NotFound from "@/pages/NotFound";
-import AppLayout from '@/components/AppLayout';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from "@/components/ui/toaster";
-import ProfileSettingsPage from '@/pages/ProfileSettingsPage';
+import ProfileSettingsPage from "@/pages/ProfileSettingsPage";
+import AdminPage from "@/pages/AdminPage";
+import { supabase } from "@/integrations/supabase/client";
 
-const queryClient = new QueryClient();
+function App() {
+  const navigate = useNavigate();
 
-const App = () => {
+  // Check if user is authenticated on initial load
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session && window.location.pathname !== "/") {
+        navigate("/auth");
+      }
+    };
+
+    checkAuth();
+  }, [navigate]);
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <div className="min-h-screen flex flex-col">
-          <Header />
-          <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/register" element={<AuthPage isRegister />} />
-              <Route path="/dashboard" element={<AppLayout><DashboardPage /></AppLayout>} />
-              <Route path="/materials" element={<AppLayout><MaterialsPage /></AppLayout>} />
-              <Route path="/videos" element={<AppLayout><VideosPage /></AppLayout>} />
-              <Route path="/profile" element={<AppLayout><ProfilePage /></AppLayout>} />
-              <Route path="/profile-settings" element={<AppLayout><ProfileSettingsPage /></AppLayout>} />
-              <Route path="/community" element={<AppLayout><CommunityPage /></AppLayout>} />
-              <Route path="/progress" element={<AppLayout><ProgressPage /></AppLayout>} />
-              <Route path="/admin" element={<AppLayout><AdminPage /></AppLayout>} />
-              <Route path="/plans" element={<PlansPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </Router>
+    <>
+      <AppLayout>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/register" element={<AuthPage isRegister />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/materials" element={<MaterialsPage />} />
+          <Route path="/videos" element={<VideosPage />} />
+          <Route path="/community" element={<CommunityPage />} />
+          <Route path="/progress" element={<ProgressPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/plans" element={<PlansPage />} />
+          <Route path="/profile-settings" element={<ProfileSettingsPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AppLayout>
       <Toaster />
-    </QueryClientProvider>
+    </>
   );
-};
+}
 
 export default App;

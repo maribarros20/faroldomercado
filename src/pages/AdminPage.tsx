@@ -9,6 +9,7 @@ import AdminSubscribers from "@/components/admin/AdminSubscribers";
 import AdminMaterials from "@/components/admin/AdminMaterials";
 import AdminVideos from "@/components/admin/AdminVideos";
 import AdminPlans from "@/components/admin/AdminPlans";
+import AdminAuditLogs from "@/components/admin/AdminAuditLogs";
 import { useToast } from "@/hooks/use-toast";
 import MarketNews from "@/components/admin/MarketNews";
 import FinanceSpreadsheet from "@/components/admin/FinanceSpreadsheet";
@@ -145,6 +146,7 @@ const AdminPage = () => {
           <TabsTrigger value="materials">Materiais</TabsTrigger>
           <TabsTrigger value="videos">Vídeos</TabsTrigger>
           <TabsTrigger value="plans">Planos</TabsTrigger>
+          <TabsTrigger value="audit-logs">Logs de Auditoria</TabsTrigger>
           <TabsTrigger value="market-news">Notícias do Mercado</TabsTrigger>
           <TabsTrigger value="finance-spreadsheet">Planilha Financeira</TabsTrigger>
         </TabsList>
@@ -165,6 +167,10 @@ const AdminPage = () => {
             
             <TabsContent value="plans" className="mt-0">
               <AdminPlans />
+            </TabsContent>
+
+            <TabsContent value="audit-logs" className="mt-0">
+              <AdminAuditLogs />
             </TabsContent>
 
             <TabsContent value="market-news" className="mt-0">

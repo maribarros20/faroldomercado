@@ -1,187 +1,238 @@
 
-import React, { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
-  Sidebar as SidebarContainer,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  LayoutDashboard, 
-  Book, 
-  Play, 
-  Users, 
-  BarChart, 
-  Settings, 
-  LogOut, 
-  ShieldCheck,
-  UserCircle 
+  ChevronLeft,
+  LayoutDashboard,
+  BookOpen,
+  Video,
+  Users,
+  CreditCard,
+  Settings,
+  ChevronRight,
+  LogOut,
+  Shield,
+  TrendingUp,
+  BookMarked,
+  LineChart,
+  User,
 } from "lucide-react";
-import Logo from "./Logo";
+import { Sidebar as UISidebar, useSidebar, SidebarProvider, Trigger, Header, Section, Content, Footer } from "@/components/ui/sidebar";
+import Logo from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Sidebar = () => {
-  const location = useLocation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
-  const [user, setUser] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const isMobile = useIsMobile();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const { expanded, setExpanded } = useSidebar();
 
+  // Fetch user details
   useEffect(() => {
-    const fetchUserData = async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      
-      if (sessionData.session) {
-        setUser(sessionData.session.user);
+    const fetchUserProfile = async () => {
+      try {
+        // Get session
+        const { data: { session } } = await supabase.auth.getSession();
         
-        // Check if user is admin
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", sessionData.session.user.id)
-          .single();
-          
-        setIsAdmin(profileData?.role === "admin");
-      }
-    };
-    
-    fetchUserData();
-    
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "SIGNED_IN" && session) {
-          setUser(session.user);
-          
-          // Check if user is admin
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", session.user.id)
+        if (session) {
+          // Get user profile
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
             .single();
-            
-          setIsAdmin(profileData?.role === "admin");
-        } else if (event === "SIGNED_OUT") {
-          setUser(null);
-          setIsAdmin(false);
+          
+          if (error) {
+            console.error("Error fetching user profile:", error);
+            return;
+          }
+          
+          if (profile) {
+            setUserRole(profile.role);
+            setAvatarUrl(profile.photo);
+            setUserName(`${profile.first_name} ${profile.last_name}`);
+          }
         }
+      } catch (error) {
+        console.error("Error in fetchUserProfile:", error);
       }
-    );
-    
-    return () => {
-      authListener.subscription.unsubscribe();
     };
+    
+    fetchUserProfile();
   }, []);
 
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
       toast({
-        title: "Erro",
-        description: "Não foi possível sair da sua conta.",
+        title: "Logout bem-sucedido",
+        description: "Você foi desconectado com sucesso.",
+      });
+      navigate("/auth");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Erro ao fazer logout",
+        description: "Ocorreu um erro ao tentar desconectar.",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Sucesso",
-        description: "Você saiu da sua conta com sucesso.",
-      });
-      navigate("/");
     }
   };
 
-  const menuItems = [
-    {
-      title: "Dashboard",
-      icon: <LayoutDashboard className="h-5 w-5" />,
-      href: "/dashboard",
-    },
-    {
-      title: "Materiais",
-      icon: <Book className="h-5 w-5" />,
-      href: "/materials",
-    },
-    {
-      title: "Vídeos",
-      icon: <Play className="h-5 w-5" />,
-      href: "/videos",
-    },
-    {
-      title: "Comunidade",
-      icon: <Users className="h-5 w-5" />,
-      href: "/community",
-    },
-    {
-      title: "Progresso",
-      icon: <BarChart className="h-5 w-5" />,
-      href: "/progress",
-    },
-    {
-      title: "Meu Perfil",
-      icon: <UserCircle className="h-5 w-5" />,
-      href: "/profile",
-    },
-    {
-      title: "Configurações",
-      icon: <Settings className="h-5 w-5" />,
-      href: "/profile-settings",
-    },
-  ];
+  const isActive = (path: string) => location.pathname === path;
 
-  // Add admin menu item if user is admin
-  if (isAdmin) {
-    menuItems.push({
-      title: "Administração",
-      icon: <ShieldCheck className="h-5 w-5" />,
-      href: "/admin",
-    });
-  }
+  useEffect(() => {
+    // Close sidebar on mobile when path changes
+    if (isMobile) {
+      setExpanded(false);
+    }
+  }, [location.pathname, isMobile, setExpanded]);
 
   return (
-    <SidebarContainer>
-      <SidebarHeader className="border-b border-border p-4">
-        <div className="flex gap-2 items-center">
-          <Logo />
-          <span className="font-bold text-xl">Farol do Mercado</span>
+    <UISidebar className={`border-r min-h-screen transition-all duration-300 bg-background ${
+      expanded ? "w-64" : "w-20"
+    } flex flex-col`}>
+      <Header className="flex items-center justify-between p-4 border-b h-16">
+        <div className="flex items-center">
+          {expanded && <Logo />}
         </div>
-      </SidebarHeader>
-      <SidebarContent>
-        <ScrollArea className="h-[calc(100vh-8rem)]">
-          <div className="px-3 py-2">
-            <nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2">
-              {menuItems.map((item, index) => (
-                <Link
-                  key={index}
-                  to={item.href}
-                  className={`sidebar-item ${
-                    location.pathname === item.href ? "active" : ""
-                  }`}
-                >
-                  {item.icon}
-                  <span className="text-sm">{item.title}</span>
-                </Link>
-              ))}
-            </nav>
+        <Trigger
+          className="p-2 rounded-full hover:bg-gray-100"
+          icon={expanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+        />
+      </Header>
+      
+      <Content className="flex-1 py-4 overflow-y-auto">
+        <Section className="space-y-1 px-3">
+          <NavItem
+            to="/dashboard"
+            icon={<LayoutDashboard size={20} />}
+            text="Dashboard"
+            active={isActive("/dashboard")}
+            expanded={expanded}
+          />
+          
+          <NavItem
+            to="/materials"
+            icon={<BookOpen size={20} />}
+            text="Materiais"
+            active={isActive("/materials")}
+            expanded={expanded}
+          />
+          
+          <NavItem
+            to="/videos"
+            icon={<Video size={20} />}
+            text="Vídeos"
+            active={isActive("/videos")}
+            expanded={expanded}
+          />
+          
+          <NavItem
+            to="/community"
+            icon={<Users size={20} />}
+            text="Comunidade"
+            active={isActive("/community")}
+            expanded={expanded}
+          />
+          
+          <NavItem
+            to="/progress"
+            icon={<TrendingUp size={20} />}
+            text="Progresso"
+            active={isActive("/progress")}
+            expanded={expanded}
+          />
+          
+          <NavItem
+            to="/plans"
+            icon={<CreditCard size={20} />}
+            text="Planos"
+            active={isActive("/plans")}
+            expanded={expanded}
+          />
+          
+          <NavItem
+            to="/profile-settings"
+            icon={<Settings size={20} />}
+            text="Configurações"
+            active={isActive("/profile-settings")}
+            expanded={expanded}
+          />
+          
+          {userRole === "admin" && (
+            <NavItem
+              to="/admin"
+              icon={<Shield size={20} />}
+              text="Admin"
+              active={isActive("/admin")}
+              expanded={expanded}
+            />
+          )}
+        </Section>
+      </Content>
+      
+      <Footer className="border-t p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
+              ) : (
+                <User size={20} className="text-gray-500" />
+              )}
+            </div>
+            {expanded && (
+              <div className="flex flex-col">
+                <span className="text-sm font-medium truncate max-w-32">
+                  {userName || "Usuário"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {userRole === "admin" ? "Administrador" : "Usuário"}
+                </span>
+              </div>
+            )}
           </div>
-        </ScrollArea>
-      </SidebarContent>
-      <SidebarFooter className="border-t border-border p-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start mb-4"
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-5 w-5 mr-2" />
-          <span>Sair</span>
-        </Button>
-        <SidebarTrigger />
-      </SidebarFooter>
-    </SidebarContainer>
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-full hover:bg-gray-100"
+            title="Sair"
+          >
+            <LogOut size={20} className="text-gray-500" />
+          </button>
+        </div>
+      </Footer>
+    </UISidebar>
+  );
+};
+
+interface NavItemProps {
+  to: string;
+  icon: React.ReactNode;
+  text: string;
+  active: boolean;
+  expanded: boolean;
+}
+
+const NavItem = ({ to, icon, text, active, expanded }: NavItemProps) => {
+  return (
+    <Link
+      to={to}
+      className={`flex items-center px-3 py-2 rounded-md transition-colors ${
+        active
+          ? "bg-primary/10 text-primary"
+          : "text-gray-700 hover:bg-gray-100"
+      } ${expanded ? "justify-start" : "justify-center"}`}
+    >
+      <span className={expanded ? "mr-3" : ""}>{icon}</span>
+      {expanded && <span className="font-medium">{text}</span>}
+    </Link>
   );
 };
 
