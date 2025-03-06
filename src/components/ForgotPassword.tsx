@@ -164,6 +164,7 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Digite seu e-mail"
                 className="pl-10"
+                required
               />
             </div>
             <p className="text-sm text-gray-500">
@@ -195,6 +196,7 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
                 placeholder="Digite o código de 6 dígitos"
                 className="pl-10"
                 maxLength={6}
+                required
               />
             </div>
             <p className="text-sm text-gray-500">
@@ -226,6 +228,7 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Digite sua nova senha"
                 className="pl-10"
+                required
               />
             </div>
             <p className="text-xs text-gray-500 mt-1">
@@ -244,6 +247,7 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirme sua nova senha"
                 className="pl-10"
+                required
               />
             </div>
           </div>
