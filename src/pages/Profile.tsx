@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import ProfilePictureUploader from "@/components/ProfilePictureUploader";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Profile } from "@/types/community";
+import type { Profile as ProfileType } from "@/types/community";
 
 export default function Profile() {
   const [user, setUser] = useState<any>(null);
