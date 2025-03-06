@@ -10,7 +10,7 @@ export const ThemeToggle: React.FC = () => {
 
   return (
     <SidebarMenuButton
-      variant="ghost"
+      variant="default"
       className="w-full justify-start"
       onClick={toggleTheme}
       aria-label="Toggle theme"

@@ -34,7 +34,7 @@ export const SidebarFooterMenu: React.FC = () => {
       {footerMenuItems.map((item, index) => (
         <SidebarMenuButton
           key={index}
-          variant="ghost"
+          variant="default"
           className="w-full justify-start"
           asChild
         >
@@ -46,7 +46,7 @@ export const SidebarFooterMenu: React.FC = () => {
       ))}
       <ThemeToggle />
       <SidebarMenuButton
-        variant="ghost"
+        variant="default"
         className="w-full justify-start"
         onClick={handleSignOut}
       >
