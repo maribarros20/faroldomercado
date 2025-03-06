@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -363,7 +364,13 @@ const AdminFinanceIframes = () => {
       )}
 
       {/* Modal de criação/edição */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        setIsDialogOpen(open);
+        if (!open) {
+          form.reset();
+          setSelectedIframe(null);
+        }
+      }}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
             <DialogTitle>
@@ -436,7 +443,8 @@ const AdminFinanceIframes = () => {
                       <FormLabel>Plano (opcional)</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        value={field.value}
+                        value={field.value || ""}
+                        defaultValue=""
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -468,7 +476,8 @@ const AdminFinanceIframes = () => {
                       <FormLabel>Mentor (opcional)</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        value={field.value}
+                        value={field.value || ""}
+                        defaultValue=""
                       >
                         <FormControl>
                           <SelectTrigger>
