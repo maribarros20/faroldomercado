@@ -15,6 +15,8 @@ import MarketNews from "@/components/admin/MarketNews";
 import FinanceSpreadsheet from "@/components/admin/FinanceSpreadsheet";
 import { Shield, AlertCircle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import AdminCommunity from "@/components/admin/AdminCommunity";
+import AdminMentors from "@/components/admin/AdminMentors";
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("subscribers");
@@ -145,6 +147,8 @@ const AdminPage = () => {
           <TabsTrigger value="subscribers">Assinantes</TabsTrigger>
           <TabsTrigger value="materials">Materiais</TabsTrigger>
           <TabsTrigger value="videos">Vídeos</TabsTrigger>
+          <TabsTrigger value="community">Comunidade</TabsTrigger>
+          <TabsTrigger value="mentors">Mentores</TabsTrigger>
           <TabsTrigger value="plans">Planos</TabsTrigger>
           <TabsTrigger value="audit-logs">Logs de Auditoria</TabsTrigger>
           <TabsTrigger value="market-news">Notícias do Mercado</TabsTrigger>
@@ -163,6 +167,14 @@ const AdminPage = () => {
             
             <TabsContent value="videos" className="mt-0">
               <AdminVideos />
+            </TabsContent>
+            
+            <TabsContent value="community" className="mt-0">
+              <AdminCommunity />
+            </TabsContent>
+            
+            <TabsContent value="mentors" className="mt-0">
+              <AdminMentors />
             </TabsContent>
             
             <TabsContent value="plans" className="mt-0">

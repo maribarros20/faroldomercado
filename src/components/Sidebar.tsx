@@ -69,11 +69,24 @@ const Sidebar = () => {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Error signing out:", error);
+        toast({
+          title: "Erro ao fazer logout",
+          description: "Ocorreu um erro ao tentar desconectar.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       toast({
         title: "Logout bem-sucedido",
         description: "Você foi desconectado com sucesso.",
       });
+      
+      // Force navigation to auth page
       navigate("/auth");
     } catch (error) {
       console.error("Error signing out:", error);
@@ -171,7 +184,7 @@ const Sidebar = () => {
               to="/admin"
               icon={<Shield size={20} />}
               text="Admin"
-              active={isActive("/admin")}
+              active={isActive("/admin") || location.pathname.startsWith("/admin/")}
               expanded={expanded}
             />
           )}

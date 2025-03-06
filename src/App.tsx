@@ -1,6 +1,6 @@
 
 import { useEffect } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import AppLayout from "@/components/AppLayout";
 import Index from "@/pages/Index";
@@ -17,21 +17,71 @@ import ProfileSettingsPage from "@/pages/ProfileSettingsPage";
 import AdminPage from "@/pages/AdminPage";
 import { supabase } from "@/integrations/supabase/client";
 import VideoDetail from "@/components/videos/VideoDetail";
+import { useToast } from "@/hooks/use-toast";
 
 function App() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
 
-  // Check if user is authenticated on initial load
+  // Check if user is authenticated on initial load and set up auth listener
   useEffect(() => {
     const checkAuth = async () => {
       const { data } = await supabase.auth.getSession();
-      if (!data.session && window.location.pathname !== "/") {
+      const publicPaths = ['/', '/auth', '/register'];
+      
+      if (!data.session && !publicPaths.includes(location.pathname)) {
+        // Display toast only if not already on a public page
+        if (location.pathname !== '/auth') {
+          toast({
+            title: "Sessão expirada",
+            description: "Por favor, faça login novamente.",
+          });
+        }
         navigate("/auth");
       }
     };
 
     checkAuth();
-  }, [navigate]);
+
+    // Set up auth state listener
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("Auth event:", event);
+        
+        if (event === 'SIGNED_OUT') {
+          // Always redirect to auth page on sign out
+          navigate('/auth');
+        } else if (event === 'SIGNED_IN' && session) {
+          // Redirect to dashboard on sign in if on a public page
+          const publicPaths = ['/', '/auth', '/register'];
+          if (publicPaths.includes(location.pathname)) {
+            navigate('/dashboard');
+          }
+          
+          // Try to get user profile to check if it exists
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('id, role')
+            .eq('id', session.user.id)
+            .single();
+          
+          // Display welcome toast on successful sign in
+          toast({
+            title: "Bem-vindo!",
+            description: "Login realizado com sucesso.",
+          });
+          
+          // Log profile result for debugging
+          console.log("Profile check result:", { profile, error });
+        }
+      }
+    );
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [navigate, location.pathname, toast]);
 
   return (
     <>
