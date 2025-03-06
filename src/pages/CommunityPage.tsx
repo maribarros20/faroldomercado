@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChannelsList from "@/components/community/ChannelsList";
@@ -91,7 +92,8 @@ const CommunityPage = () => {
         const userProfileData: UserProfile = {
           id: profileData.id,
           role: profileData.role,
-          company_id: profileData.company_id || null
+          company_id: profileData.mentor_id || null, // Use mentor_id as company_id
+          cnpj: profileData.cnpj || null
         };
         
         setUserProfile(userProfileData);
@@ -108,8 +110,26 @@ const CommunityPage = () => {
           console.error("Error fetching subscription:", subscriptionError);
         }
         
-        // If subscription has a plan, check for community access
+        // Check if subscription has a plan and is not canceled or expired
         if (subscription && subscription.plan) {
+          // Check if subscription is expired or canceled
+          const now = new Date();
+          const expiryDate = new Date(subscription.expires_at);
+          const isExpired = now > expiryDate;
+          const isCanceled = subscription.is_canceled;
+          
+          if (isExpired || isCanceled) {
+            toast({
+              title: isExpired ? "Assinatura expirada" : "Assinatura cancelada",
+              description: isExpired 
+                ? "Sua assinatura expirou. Renove para acessar a comunidade." 
+                : "Sua assinatura foi cancelada. Reative para acessar a comunidade.",
+              variant: "destructive"
+            });
+            setLoading(false);
+            return;
+          }
+          
           // Get plan features
           const { data: planFeatures } = await supabase
             .from("plan_features")
@@ -132,7 +152,7 @@ const CommunityPage = () => {
           
           // Check if user has access to community
           const hasCommunityAccess = planFeatures?.some((feature: any) => 
-            feature.feature_code === "community" && feature.is_enabled
+            feature.text.toLowerCase().includes("comunidade") && feature.is_included
           );
           
           if (!hasCommunityAccess) {
@@ -141,12 +161,15 @@ const CommunityPage = () => {
               description: "Seu plano atual não inclui acesso à comunidade. Faça upgrade para obter acesso.",
               variant: "destructive"
             });
+            setLoading(false);
             return;
           }
         }
         
         // Fetch channels
-        fetchChannels(userProfileData);
+        if (userProfileData) {
+          fetchChannels(userProfileData);
+        }
         
       } catch (error) {
         console.error("Error checking user access:", error);
@@ -198,11 +221,13 @@ const CommunityPage = () => {
     setSelectedChannel(channelId);
   };
 
-  // If user doesn't have access to community
+  // If user doesn't have an active subscription or doesn't have access to community
   if (userSubscription && 
       userSubscription.plan && 
       userSubscription.plan.features && 
-      !userSubscription.plan.features.some((f: any) => f.feature_code === "community" && f.is_enabled)) {
+      !userSubscription.plan.features.some((f: any) => 
+        f.text.toLowerCase().includes("comunidade") && f.is_included
+      )) {
     return (
       <div className="container mx-auto py-6">
         <h1 className="text-2xl font-bold mb-6">Comunidade</h1>
@@ -231,7 +256,7 @@ const CommunityPage = () => {
           <div className="md:col-span-1">
             <ChannelsList 
               channels={channels} 
-              selectedChannel={selectedChannel} 
+              activeChannel={selectedChannel} 
               onSelectChannel={handleChannelSelect}
             />
           </div>

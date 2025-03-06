@@ -1,461 +1,553 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
-import { ThumbsUp, MessageCircle, SendIcon, MoreVertical } from "lucide-react";
-import { format } from "date-fns";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { ThumbsUp, MessageSquare, Send, AlertCircle, Loader2 } from "lucide-react";
+import CreatePostDialog from "./CreatePostDialog";
+import { Post, Comment, Profile } from "@/types/community";
 
-interface CreatePostDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface CommunityPostsProps {
   channelId: string;
-  onPostCreated?: () => void;
 }
 
-import CreatePostDialog from "./CreatePostDialog";
-
-type Profile = {
-  id: string;
-  first_name?: string;
-  last_name?: string;
-  role?: "user" | "admin";
-  updated_at?: string;
-  photo?: string | null;
-  company_id?: string | null;
-  cpf?: string | null;
-  phone?: string | null;
-};
-
-type Post = {
-  id: string;
-  user_id: string;
-  content: string;
-  title?: string;
-  created_at: string;
-  updated_at: string;
-  channel_id: string;
-  likes_count: number;
-  comments_count: number;
-  user?: Profile;
-  user_has_liked?: boolean;
-};
-
-type Comment = {
-  id: string;
-  post_id: string;
-  user_id: string;
-  content: string;
-  created_at: string;
-  updated_at: string;
-  likes_count: number;
-  user?: Profile;
-  user_has_liked?: boolean;
-};
-
-type CommunityPostsProps = {
-  channelId: string;
-};
-
-const CommunityPosts = ({ channelId }: CommunityPostsProps) => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [comments, setComments] = useState<{ [key: string]: Comment[] }>({});
-  const [newComment, setNewComment] = useState<{ [key: string]: string }>({});
-  const [showComments, setShowComments] = useState<{ [key: string]: boolean }>({});
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId }) => {
+  const [createPostOpen, setCreatePostOpen] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [activePost, setActivePost] = useState<string | null>(null);
+  const [loadingComments, setLoadingComments] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        fetchPosts();
-      }
-    };
-
-    getSession();
-  }, [channelId]);
-
-  const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      
-      const { data: postsData, error: postsError } = await supabase
-        .from("community_posts")
-        .select(`*, user:profiles(id, first_name, last_name, role, updated_at)`)
-        .eq('channel_id', channelId)
-        .order('created_at', { ascending: false });
-      
-      if (postsError) {
-        console.error("Error fetching posts:", postsError);
-        return;
-      }
-
-      const { data: userLikes, error: likesError } = await supabase
-        .from("user_likes")
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('post_id', 'is.not.null');
-      
-      if (likesError) {
-        console.error("Error fetching user likes:", likesError);
-      }
-
-      const postsWithLikes = postsData.map((post: any) => {
-        const postWithTypedUser: Post = {
-          ...post,
-          user: post.user as Profile,
-          user_has_liked: userLikes ? userLikes.some((like: any) => like.post_id === post.id) : false
-        };
-        return postWithTypedUser;
-      });
-
-      setPosts(postsWithLikes);
-      
-      const initialCommentsVisibility: { [key: string]: boolean } = {};
-      postsWithLikes.forEach((post: Post) => {
-        initialCommentsVisibility[post.id] = false;
-      });
-      setShowComments(initialCommentsVisibility);
-      
-      const initialNewComments: { [key: string]: string } = {};
-      postsWithLikes.forEach((post: Post) => {
-        initialNewComments[post.id] = "";
-      });
-      setNewComment(initialNewComments);
-      
-    } catch (error) {
-      console.error("Error in fetchPosts:", error);
-    } finally {
-      setLoading(false);
+  const { data: session } = useQuery({
+    queryKey: ['auth-session'],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getSession();
+      return data.session;
     }
-  };
+  });
+
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email, photo, role, username')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (error) throw error;
+      return data as Profile;
+    },
+    enabled: !!session?.user?.id
+  });
+
+  const { data: subscription } = useQuery({
+    queryKey: ['user-subscription', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('id, is_active, is_canceled, expires_at')
+        .eq('user_id', session.user.id)
+        .eq('is_active', true)
+        .maybeSingle();
+        
+      if (error) {
+        console.error("Error fetching subscription:", error);
+        return null;
+      }
+      
+      if (data) {
+        const now = new Date();
+        const expiryDate = new Date(data.expires_at);
+        const isExpired = now > expiryDate;
+        
+        if (isExpired || data.is_canceled) {
+          return { ...data, isValid: false };
+        }
+        
+        return { ...data, isValid: true };
+      }
+      
+      return null;
+    },
+    enabled: !!session?.user?.id
+  });
+
+  const { 
+    data: posts = [], 
+    isLoading: postsLoading,
+    error: postsError,
+    refetch: refetchPosts
+  } = useQuery({
+    queryKey: ['channel-posts', channelId],
+    queryFn: async () => {
+      try {
+        if (subscription && !subscription.isValid) {
+          throw new Error("Subscription expired or canceled");
+        }
+        
+        const { data, error } = await supabase
+          .from('community_posts')
+          .select(`
+            *,
+            user:user_id (id, first_name, last_name, email, photo, role, username)
+          `)
+          .eq('channel_id', channelId)
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
+        
+        if (session?.user?.id) {
+          const { data: userLikes, error: likesError } = await supabase
+            .from('user_likes')
+            .select('post_id')
+            .eq('user_id', session.user.id)
+            .is('comment_id', null);
+            
+          if (likesError) throw likesError;
+          
+          return data.map((post: any) => ({
+            ...post,
+            user: post.user,
+            user_has_liked: userLikes?.some((like: any) => like.post_id === post.id) || false
+          })) as Post[];
+        }
+        
+        return data as Post[];
+      } catch (error) {
+        console.error("Error fetching posts:", error);
+        throw error;
+      }
+    },
+    enabled: !!channelId && (subscription?.isValid !== false)
+  });
 
   const fetchComments = async (postId: string) => {
+    if (!session) {
+      toast({
+        title: "Login necessário",
+        description: "Você precisa estar logado para ver os comentários.",
+        variant: "destructive"
+      });
+      return [];
+    }
+    
     try {
-      const { data: commentsData, error: commentsError } = await supabase
-        .from("post_comments")
-        .select(`*, user:profiles(id, first_name, last_name, role, updated_at)`)
+      setLoadingComments(prev => ({ ...prev, [postId]: true }));
+      
+      const { data, error } = await supabase
+        .from('post_comments')
+        .select(`
+          *,
+          user:user_id (id, first_name, last_name, email, photo, role, username)
+        `)
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
+        
+      if (error) throw error;
       
-      if (commentsError) {
-        console.error("Error fetching comments:", commentsError);
-        return;
-      }
-      
-      const { data: userLikes, error: likesError } = await supabase
-        .from("user_likes")
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('comment_id', 'is.not.null');
-      
-      if (likesError) {
-        console.error("Error fetching comment likes:", likesError);
-      }
-      
-      const commentsWithLikes = commentsData.map((comment: any) => {
-        const commentWithTypedUser: Comment = {
+      if (session?.user?.id) {
+        const { data: userLikes, error: likesError } = await supabase
+          .from('user_likes')
+          .select('comment_id')
+          .eq('user_id', session.user.id)
+          .is('post_id', null);
+          
+        if (likesError) throw likesError;
+        
+        return data.map((comment: any) => ({
           ...comment,
-          user: comment.user as Profile,
-          user_has_liked: userLikes ? userLikes.some((like: any) => like.comment_id === comment.id) : false
-        };
-        return commentWithTypedUser;
+          user: comment.user,
+          user_has_liked: userLikes?.some((like: any) => like.comment_id === comment.id) || false
+        })) as Comment[];
+      }
+      
+      return data as Comment[];
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      toast({
+        title: "Erro ao carregar comentários",
+        description: "Não foi possível carregar os comentários deste post.",
+        variant: "destructive"
+      });
+      return [];
+    } finally {
+      setLoadingComments(prev => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  const likePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      if (!session?.user?.id) {
+        throw new Error("Usuário não autenticado");
+      }
+      
+      const { data, error } = await supabase
+        .from('user_likes')
+        .insert({
+          user_id: session.user.id,
+          post_id: postId
+        });
+        
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, postId) => {
+      queryClient.invalidateQueries({ queryKey: ['channel-posts', channelId] });
+    },
+    onError: (error) => {
+      console.error("Error liking post:", error);
+      toast({
+        title: "Erro ao curtir post",
+        description: "Não foi possível curtir o post. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const unlikePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      if (!session?.user?.id) {
+        throw new Error("Usuário não autenticado");
+      }
+      
+      const { error } = await supabase
+        .from('user_likes')
+        .delete()
+        .eq('user_id', session.user.id)
+        .eq('post_id', postId);
+        
+      if (error) throw error;
+    },
+    onSuccess: (_, postId) => {
+      queryClient.invalidateQueries({ queryKey: ['channel-posts', channelId] });
+    },
+    onError: (error) => {
+      console.error("Error unliking post:", error);
+      toast({
+        title: "Erro ao descurtir post",
+        description: "Não foi possível descurtir o post. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const createCommentMutation = useMutation({
+    mutationFn: async ({ postId, content }: { postId: string, content: string }) => {
+      if (!session?.user?.id) {
+        throw new Error("Usuário não autenticado");
+      }
+      
+      const { data, error } = await supabase
+        .from('post_comments')
+        .insert({
+          user_id: session.user.id,
+          post_id: postId,
+          content
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      setNewComment("");
+      
+      fetchComments(variables.postId).then(comments => {
+        queryClient.setQueryData(['post-comments', variables.postId], comments);
       });
       
-      setComments(prev => ({
-        ...prev,
-        [postId]: commentsWithLikes
-      }));
+      queryClient.invalidateQueries({ queryKey: ['channel-posts', channelId] });
       
-    } catch (error) {
-      console.error("Error in fetchComments:", error);
+      toast({
+        title: "Comentário adicionado",
+        description: "Seu comentário foi publicado com sucesso.",
+      });
+    },
+    onError: (error) => {
+      console.error("Error creating comment:", error);
+      toast({
+        title: "Erro ao adicionar comentário",
+        description: "Não foi possível adicionar o comentário. Tente novamente.",
+        variant: "destructive"
+      });
     }
-  };
+  });
 
-  const handleToggleComments = async (postId: string) => {
-    const newValue = !showComments[postId];
-    setShowComments({ ...showComments, [postId]: newValue });
+  const handleLikePost = (post: Post) => {
+    if (!session) {
+      toast({
+        title: "Login necessário",
+        description: "Você precisa estar logado para curtir posts.",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    if (newValue && (!comments[postId] || comments[postId].length === 0)) {
-      await fetchComments(postId);
+    if (post.user_has_liked) {
+      unlikePostMutation.mutate(post.id);
+    } else {
+      likePostMutation.mutate(post.id);
     }
   };
 
-  const handleLikePost = async (post: Post) => {
-    if (!user) return;
+  const handleViewComments = async (postId: string) => {
+    setActivePost(activePost === postId ? null : postId);
     
-    try {
-      if (post.user_has_liked) {
-        const { error } = await supabase
-          .from("user_likes")
-          .delete()
-          .eq('user_id', user.id)
-          .eq('post_id', post.id);
-        
-        if (error) {
-          console.error("Error unliking post:", error);
-          return;
-        }
-        
-        setPosts(posts.map(p => 
-          p.id === post.id 
-            ? { ...p, likes_count: p.likes_count - 1, user_has_liked: false } 
-            : p
-        ));
-        
-      } else {
-        const { error } = await supabase
-          .from("user_likes")
-          .insert({
-            user_id: user.id,
-            post_id: post.id
-          });
-        
-        if (error) {
-          console.error("Error liking post:", error);
-          return;
-        }
-        
-        setPosts(posts.map(p => 
-          p.id === post.id 
-            ? { ...p, likes_count: p.likes_count + 1, user_has_liked: true } 
-            : p
-        ));
-      }
-    } catch (error) {
-      console.error("Error in handleLikePost:", error);
+    if (activePost !== postId) {
+      const comments = await fetchComments(postId);
+      queryClient.setQueryData(['post-comments', postId], comments);
     }
   };
 
-  const handleSubmitComment = async (postId: string) => {
-    if (!user || !newComment[postId].trim()) return;
+  const handleSubmitComment = (postId: string) => {
+    if (!newComment.trim()) return;
     
-    try {
-      const { data, error } = await supabase
-        .from("post_comments")
-        .insert({
-          user_id: user.id,
-          post_id: postId,
-          content: newComment[postId].trim()
-        })
-        .select();
-      
-      if (error) {
-        console.error("Error submitting comment:", error);
-        toast({
-          title: "Erro ao enviar comentário",
-          description: "Ocorreu um problema ao enviar seu comentário.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      setPosts(posts.map(p => 
-        p.id === postId 
-          ? { ...p, comments_count: p.comments_count + 1 } 
-          : p
-      ));
-      
-      setNewComment({ ...newComment, [postId]: "" });
-      
-      await fetchComments(postId);
-      
-    } catch (error) {
-      console.error("Error in handleSubmitComment:", error);
-    }
+    createCommentMutation.mutate({
+      postId,
+      content: newComment.trim()
+    });
   };
 
-  const formatTimestamp = (timestamp: string) => {
-    try {
-      return format(new Date(timestamp), "dd/MM/yyyy 'às' HH:mm");
-    } catch (e) {
-      return timestamp;
-    }
+  const handleRefresh = () => {
+    refetchPosts();
   };
 
-  const getInitials = (profile: Profile | undefined) => {
-    if (!profile) return "U";
-    const firstInitial = profile.first_name ? profile.first_name.charAt(0).toUpperCase() : "";
-    const lastInitial = profile.last_name ? profile.last_name.charAt(0).toUpperCase() : "";
-    return `${firstInitial}${lastInitial}`;
-  };
-
-  const getFullName = (profile: Profile | undefined) => {
-    if (!profile) return "Usuário";
-    return `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || "Usuário";
-  };
-
-  const handleNewPost = () => {
-    setIsCreatePostOpen(true);
-  };
-
-  const handlePostCreated = () => {
-    fetchPosts();
-    setIsCreatePostOpen(false);
-  };
+  if (subscription && !subscription.isValid) {
+    return (
+      <Card>
+        <CardContent className="p-6 flex flex-col items-center justify-center">
+          <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
+          <h3 className="text-xl font-semibold mb-2">Assinatura inativa</h3>
+          <p className="text-center text-muted-foreground mb-4">
+            Sua assinatura está inativa, expirada ou foi cancelada. 
+            Para acessar a comunidade, por favor, renove ou reative sua assinatura.
+          </p>
+          <Button onClick={() => window.location.href = "/plans"}>
+            Ver planos disponíveis
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Comunidade</h2>
-        <Button onClick={handleNewPost}>Nova Publicação</Button>
-      </div>
+    <>
+      <Card className="mb-4">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-center">
+            <CardTitle>Postagens</CardTitle>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRefresh}
+                disabled={postsLoading}
+              >
+                {postsLoading ? 
+                  <Loader2 className="h-4 w-4 animate-spin" /> : 
+                  "Atualizar"
+                }
+              </Button>
+              <Button 
+                size="sm"
+                onClick={() => setCreatePostOpen(true)}
+              >
+                Nova postagem
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
       
-      {loading ? (
+      {postsLoading ? (
         <Card>
           <CardContent className="flex justify-center items-center p-8">
-            <div>Carregando publicações...</div>
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            <span>Carregando postagens...</span>
+          </CardContent>
+        </Card>
+      ) : postsError ? (
+        <Card>
+          <CardContent className="flex justify-center items-center p-8">
+            <AlertCircle className="h-6 w-6 text-red-500 mr-2" />
+            <span>Erro ao carregar postagens. Tente novamente.</span>
           </CardContent>
         </Card>
       ) : posts.length === 0 ? (
         <Card>
-          <CardContent className="flex justify-center items-center p-8">
-            <div>
-              <p className="text-center text-muted-foreground mb-4">
-                Não há publicações neste canal ainda.
-              </p>
-              <Button onClick={handleNewPost} className="mx-auto block">
-                Criar primeira publicação
-              </Button>
-            </div>
+          <CardContent className="flex flex-col justify-center items-center p-8">
+            <p className="text-muted-foreground mb-4">Nenhuma postagem neste canal.</p>
+            <Button onClick={() => setCreatePostOpen(true)}>
+              Criar primeira postagem
+            </Button>
           </CardContent>
         </Card>
       ) : (
-        posts.map((post: Post) => (
-          <Card key={post.id} className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <AvatarFallback>{getInitials(post.user)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium">{getFullName(post.user)}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {formatTimestamp(post.created_at)}
-                    </div>
-                  </div>
-                </div>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              <div className="px-4 py-2">
-                <p className="whitespace-pre-line">{post.content}</p>
-              </div>
-              
-              <div className="px-4 py-2 flex items-center justify-between">
-                <div className="flex items-center space-x-6">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className={`flex items-center space-x-2 ${post.user_has_liked ? 'text-blue-500' : ''}`}
-                    onClick={() => handleLikePost(post)}
-                  >
-                    <ThumbsUp className="h-4 w-4" />
-                    <span>{post.likes_count}</span>
-                  </Button>
-                  
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="flex items-center space-x-2"
-                    onClick={() => handleToggleComments(post.id)}
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    <span>{post.comments_count}</span>
-                  </Button>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              {showComments[post.id] && (
-                <div className="p-4 bg-muted/20">
-                  <div className="space-y-4 mb-4">
-                    {comments[post.id]?.length > 0 ? (
-                      comments[post.id].map((comment: Comment) => (
-                        <div key={comment.id} className="flex space-x-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-xs">
-                              {getInitials(comment.user)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="bg-background rounded-lg p-3">
-                              <div className="font-medium text-sm">
-                                {getFullName(comment.user)}
-                              </div>
-                              <p className="text-sm">{comment.content}</p>
-                            </div>
-                            <div className="flex items-center mt-1 space-x-4">
-                              <span className="text-xs text-muted-foreground">
-                                {formatTimestamp(comment.created_at)}
-                              </span>
-                            </div>
+        <div className="space-y-4">
+          {posts.map((post) => {
+            const comments = queryClient.getQueryData<Comment[]>(['post-comments', post.id]) || [];
+            
+            return (
+              <Card key={post.id} className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="p-4 pb-2">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={post.user?.photo || ''} alt={post.user?.first_name} />
+                        <AvatarFallback>
+                          {post.user?.first_name?.[0]}{post.user?.last_name?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-semibold">
+                              {post.user?.first_name} {post.user?.last_name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(post.created_at), "dd/MM/yyyy HH:mm")}
+                            </p>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center text-muted-foreground py-4">
-                        Sem comentários. Seja o primeiro a comentar!
+                        <h4 className="font-medium mt-2">{post.title}</h4>
+                        <p className="mt-1 text-base">{post.content}</p>
                       </div>
-                    )}
+                    </div>
                   </div>
                   
-                  <div className="flex space-x-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>{user ? getInitials(user) : "U"}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 flex items-center">
-                      <Input
-                        value={newComment[post.id] || ""}
-                        onChange={(e) => setNewComment({
-                          ...newComment,
-                          [post.id]: e.target.value
-                        })}
-                        placeholder="Escreva um comentário..."
-                        className="flex-1 bg-background"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSubmitComment(post.id);
-                          }
-                        }}
-                      />
+                  <div className="px-4 py-2 flex justify-between items-center">
+                    <div className="flex gap-4">
                       <Button 
-                        size="icon" 
                         variant="ghost" 
-                        className="ml-2"
-                        onClick={() => handleSubmitComment(post.id)}
-                        disabled={!newComment[post.id]?.trim()}
+                        size="sm" 
+                        className="flex items-center gap-1"
+                        onClick={() => handleLikePost(post)}
                       >
-                        <SendIcon className="h-4 w-4" />
+                        <ThumbsUp className={`h-4 w-4 ${post.user_has_liked ? 'fill-primary' : ''}`} />
+                        <span>{post.likes_count}</span>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="flex items-center gap-1"
+                        onClick={() => handleViewComments(post.id)}
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        <span>{post.comments_count}</span>
                       </Button>
                     </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))
+                  
+                  {activePost === post.id && (
+                    <div className="border-t">
+                      <div className="p-4">
+                        <h4 className="font-medium mb-3">Comentários</h4>
+                        
+                        {loadingComments[post.id] ? (
+                          <div className="flex justify-center py-4">
+                            <Loader2 className="h-6 w-6 animate-spin" />
+                          </div>
+                        ) : comments.length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-2">
+                            Nenhum comentário ainda. Seja o primeiro a comentar!
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {comments.map((comment) => (
+                              <div key={comment.id} className="flex gap-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={comment.user?.photo || ''} alt={comment.user?.first_name} />
+                                  <AvatarFallback>
+                                    {comment.user?.first_name?.[0]}{comment.user?.last_name?.[0]}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                  <div className="bg-muted p-3 rounded-md">
+                                    <div className="flex justify-between items-start">
+                                      <h5 className="font-medium text-sm">
+                                        {comment.user?.first_name} {comment.user?.last_name}
+                                      </h5>
+                                      <span className="text-xs text-muted-foreground">
+                                        {format(new Date(comment.created_at), "dd/MM/yyyy HH:mm")}
+                                      </span>
+                                    </div>
+                                    <p className="text-sm mt-1">{comment.content}</p>
+                                  </div>
+                                  <div className="flex items-center mt-1 ml-2">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-6 px-2"
+                                    >
+                                      <ThumbsUp className="h-3 w-3 mr-1" />
+                                      <span className="text-xs">{comment.likes_count}</span>
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {session && (
+                          <div className="mt-4 flex gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={userProfile?.photo || ''} alt={userProfile?.first_name} />
+                              <AvatarFallback>
+                                {userProfile?.first_name?.[0]}{userProfile?.last_name?.[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 flex gap-2">
+                              <Textarea 
+                                placeholder="Escreva um comentário..."
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                                className="min-h-0"
+                                rows={1}
+                              />
+                              <Button 
+                                size="sm"
+                                onClick={() => handleSubmitComment(post.id)}
+                                disabled={!newComment.trim() || createCommentMutation.isPending}
+                              >
+                                {createCommentMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Send className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
       
       <CreatePostDialog 
-        open={isCreatePostOpen} 
-        onOpenChange={setIsCreatePostOpen}
+        open={createPostOpen} 
+        onOpenChange={setCreatePostOpen}
         channelId={channelId}
-        onPostCreated={handlePostCreated}
+        onPostCreated={handleRefresh}
       />
-    </div>
+    </>
   );
 };
 

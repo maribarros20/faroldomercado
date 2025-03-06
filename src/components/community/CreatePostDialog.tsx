@@ -112,8 +112,8 @@ const CreatePostDialog: React.FC<CreatePostDialogProps> = ({
     try {
       createPostMutation.mutate();
       
-      if (props.onPostCreated) {
-        props.onPostCreated();
+      if (onPostCreated) {
+        onPostCreated();
       }
     } catch (error) {
       console.error("Error creating post:", error);

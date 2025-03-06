@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -111,7 +112,7 @@ const AdminSubscribers = () => {
       subscriber.email?.toLowerCase().includes(searchValue) ||
       subscriber.profile?.first_name?.toLowerCase().includes(searchValue) ||
       subscriber.profile?.last_name?.toLowerCase().includes(searchValue) ||
-      subscriber.profile?.company?.toLowerCase().includes(searchValue)
+      subscriber.profile?.cnpj?.toLowerCase().includes(searchValue)
     );
   });
 

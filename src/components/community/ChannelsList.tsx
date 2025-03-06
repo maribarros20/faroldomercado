@@ -1,57 +1,58 @@
 
 import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-interface Channel {
+type Channel = {
   id: string;
   name: string;
-  description?: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
   is_company_specific: boolean;
-}
+  company_id: string | null;
+};
 
 interface ChannelsListProps {
   channels: Channel[];
-  selectedChannel: string | null;  // Changed from activeChannel to selectedChannel
+  activeChannel: string | null;
   onSelectChannel: (channelId: string) => void;
 }
 
-const ChannelsList: React.FC<ChannelsListProps> = ({ 
-  channels, 
-  selectedChannel,  // Changed from activeChannel to selectedChannel
-  onSelectChannel 
+const ChannelsList: React.FC<ChannelsListProps> = ({
+  channels,
+  activeChannel,
+  onSelectChannel
 }) => {
-  // If no channels available, show empty state
-  if (channels.length === 0) {
-    return (
-      <div className="text-center py-4">
-        <p className="text-sm text-gray-500">Nenhum canal disponível.</p>
-      </div>
-    );
-  }
-
   return (
-    <ul className="space-y-1">
-      {channels.map((channel) => (
-        <li key={channel.id}>
-          <button
-            onClick={() => onSelectChannel(channel.id)}
-            className={cn(
-              "w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-sm",
-              selectedChannel === channel.id  // Changed from activeChannel to selectedChannel
-                ? "bg-gray-100 text-trade-blue font-medium"
-                : "text-gray-700 hover:bg-gray-50"
-            )}
-          >
-            <MessageSquare className="h-4 w-4" />
-            <span>{channel.name}</span>
-            {channel.is_company_specific && (
-              <span className="ml-auto bg-gray-100 text-gray-600 text-xs px-1.5 py-0.5 rounded">Empresa</span>
-            )}
-          </button>
-        </li>
-      ))}
-    </ul>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle>Canais</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {channels.length === 0 ? (
+          <p className="text-center text-muted-foreground py-4">
+            Nenhum canal disponível
+          </p>
+        ) : (
+          <div className="space-y-1">
+            {channels.map((channel) => (
+              <Button
+                key={channel.id}
+                variant={activeChannel === channel.id ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => onSelectChannel(channel.id)}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                <span className="truncate">{channel.name}</span>
+              </Button>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
