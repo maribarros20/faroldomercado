@@ -92,8 +92,23 @@ export default function MentorPictureUploader({
         return;
       }
 
-      // Update in database
-      await supabase.from("mentors").update({ photo: publicUrlData.publicUrl }).eq("id", mentorId);
+      // The photo column was added to the mentors table via SQL migration
+      // Now we can update the mentor record with the photo URL
+      const { error: updateError } = await supabase
+        .from("mentors")
+        .update({ photo: publicUrlData.publicUrl })
+        .eq("id", mentorId);
+        
+      if (updateError) {
+        console.error("Error updating mentor photo:", updateError);
+        toast({
+          title: "Erro",
+          description: "Não foi possível atualizar a foto do mentor no banco de dados.",
+          variant: "destructive",
+        });
+        setUploading(false);
+        return;
+      }
 
       setPreview(publicUrlData.publicUrl);
       onUploadSuccess(publicUrlData.publicUrl);

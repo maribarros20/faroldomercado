@@ -94,6 +94,7 @@ export type Database = {
           id: string
           name: string
           phone: string
+          photo: string | null
         }
         Insert: {
           cnpj: string
@@ -102,6 +103,7 @@ export type Database = {
           id?: string
           name: string
           phone: string
+          photo?: string | null
         }
         Update: {
           cnpj?: string
@@ -110,6 +112,7 @@ export type Database = {
           id?: string
           name?: string
           phone?: string
+          photo?: string | null
         }
         Relationships: []
       }
