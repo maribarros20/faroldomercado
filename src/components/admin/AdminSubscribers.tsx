@@ -31,12 +31,13 @@ type Subscription = {
   id: string;
   user_id: string;
   plan_id: string;
-  status: string;
+  status: string; // Add a computed status property
   created_at: string;
+  is_active: boolean; // Renamed from status to is_active
   expires_at: string;
   plan?: {
     name: string;
-    price: number;
+    price?: number; // Make price optional
   };
 };
 
@@ -74,7 +75,7 @@ const AdminSubscribers = () => {
       // Fetch subscriptions
       const { data: subscriptionsData, error: subscriptionsError } = await supabase
         .from("subscriptions")
-        .select("*, plan:plans(name, price)");
+        .select("*, plan:plans(name)");
       
       if (subscriptionsError) {
         console.error("Error fetching subscriptions:", subscriptionsError);
@@ -89,8 +90,14 @@ const AdminSubscribers = () => {
         };
       });
 
+      // Transform subscription data to include the status property
+      const processedSubscriptions = subscriptionsData?.map((sub: any) => ({
+        ...sub,
+        status: sub.is_active ? 'active' : 'inactive' // Compute status from is_active
+      })) || [];
+
       setSubscribers(usersWithProfiles);
-      setSubscriptions(subscriptionsData || []);
+      setSubscriptions(processedSubscriptions);
     } catch (error) {
       console.error("Error in fetchSubscribers:", error);
     } finally {
@@ -170,7 +177,7 @@ const AdminSubscribers = () => {
                         {subscription?.plan?.name || "Sem plano"}
                       </td>
                       <td className="py-3">
-                        <Badge variant={subscription?.status === "active" ? "success" : "secondary"}>
+                        <Badge variant={subscription?.status === "active" ? "outline" : "secondary"}>
                           {subscription?.status || "Inativo"}
                         </Badge>
                       </td>

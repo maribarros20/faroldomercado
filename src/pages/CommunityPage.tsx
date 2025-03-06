@@ -23,8 +23,31 @@ type Channel = {
 type UserProfile = {
   id: string;
   role: string;
-  company: string | null;
-  // Other profile fields...
+  company_id?: string | null;
+  cnpj?: string | null;
+  first_name?: string;
+  last_name?: string;
+};
+
+// Type for subscription plan
+type Plan = {
+  id: string;
+  name: string;
+  description: string;
+  monthly_price: number | null;
+  yearly_price: number | null;
+  duration_days: number;
+  trial_days: number;
+  is_active: boolean | null;
+  is_popular: boolean | null;
+  features?: PlanFeature[];
+};
+
+// Type for plan feature
+type PlanFeature = {
+  id: string;
+  feature_code: string;
+  is_enabled: boolean;
 };
 
 const CommunityPage = () => {
@@ -64,26 +87,51 @@ const CommunityPage = () => {
           return;
         }
         
-        setUserProfile(profileData);
+        // Map to UserProfile interface
+        const userProfileData: UserProfile = {
+          id: profileData.id,
+          role: profileData.role,
+          company_id: profileData.company_id || null
+        };
+        
+        setUserProfile(userProfileData);
         
         // Get user's active subscription
         const { data: subscription, error: subscriptionError } = await supabase
           .from("subscriptions")
-          .select("*, plan:plans(*)")
+          .select("*, plan:plans(id, name, description, monthly_price, yearly_price, duration_days, trial_days, is_active, is_popular)")
           .eq("user_id", session.user.id)
-          .eq("status", "active")
+          .eq("is_active", true)
           .maybeSingle();
         
         if (subscriptionError) {
           console.error("Error fetching subscription:", subscriptionError);
         }
         
-        setUserSubscription(subscription);
-        
-        // Check if user has access to community
-        if (subscription?.plan?.features) {
-          const planFeatures = subscription.plan.features;
-          const hasCommunityAccess = planFeatures.some((feature: any) => 
+        // If subscription has a plan, check for community access
+        if (subscription && subscription.plan) {
+          // Get plan features
+          const { data: planFeatures } = await supabase
+            .from("plan_features")
+            .select("*")
+            .eq("plan_id", subscription.plan.id);
+            
+          // Add features to plan
+          const planWithFeatures = {
+            ...subscription.plan,
+            features: planFeatures || []
+          };
+          
+          // Update subscription with features
+          const subscriptionWithFeatures = {
+            ...subscription,
+            plan: planWithFeatures
+          };
+          
+          setUserSubscription(subscriptionWithFeatures);
+          
+          // Check if user has access to community
+          const hasCommunityAccess = planFeatures?.some((feature: any) => 
             feature.feature_code === "community" && feature.is_enabled
           );
           
@@ -98,7 +146,7 @@ const CommunityPage = () => {
         }
         
         // Fetch channels
-        fetchChannels(profileData);
+        fetchChannels(userProfileData);
         
       } catch (error) {
         console.error("Error checking user access:", error);
@@ -113,7 +161,7 @@ const CommunityPage = () => {
     };
     
     checkUserAccess();
-  }, []);
+  }, [toast]);
 
   const fetchChannels = async (profile: UserProfile) => {
     try {
@@ -123,8 +171,8 @@ const CommunityPage = () => {
         .order("name");
       
       // If user is not admin and has a company, filter by company-specific channels
-      if (profile.role !== "admin" && profile.company) {
-        query = query.or(`is_company_specific.eq.false,company_id.eq.${profile.company}`);
+      if (profile.role !== "admin" && profile.company_id) {
+        query = query.or(`is_company_specific.eq.false,company_id.eq.${profile.company_id}`);
       }
       
       const { data, error } = await query;

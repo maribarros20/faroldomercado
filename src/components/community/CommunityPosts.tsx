@@ -1,33 +1,40 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { ThumbsUp, MessageCircle, SendIcon, MoreVertical } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+interface CreatePostDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  channelId: string;
+  onPostCreated?: () => void;
+}
+
 import CreatePostDialog from "./CreatePostDialog";
 
 type Profile = {
   id: string;
-  first_name: string;
-  last_name: string;
-  company: string;
-  cnpj: string;
-  phone: string;
-  cpf: string;
-  role: "user" | "admin";
-  updated_at: string;
+  first_name?: string;
+  last_name?: string;
+  role?: "user" | "admin";
+  updated_at?: string;
+  photo?: string | null;
+  company_id?: string | null;
+  cpf?: string | null;
+  phone?: string | null;
 };
 
 type Post = {
   id: string;
   user_id: string;
   content: string;
+  title?: string;
   created_at: string;
   updated_at: string;
   channel_id: string;
@@ -79,13 +86,9 @@ const CommunityPosts = ({ channelId }: CommunityPostsProps) => {
     try {
       setLoading(true);
       
-      // Get all posts for the current channel
       const { data: postsData, error: postsError } = await supabase
         .from("community_posts")
-        .select(`
-          *,
-          user:profiles(*)
-        `)
+        .select(`*, user:profiles(id, first_name, last_name, role, updated_at)`)
         .eq('channel_id', channelId)
         .order('created_at', { ascending: false });
       
@@ -94,33 +97,33 @@ const CommunityPosts = ({ channelId }: CommunityPostsProps) => {
         return;
       }
 
-      // Get user likes for posts
       const { data: userLikes, error: likesError } = await supabase
         .from("user_likes")
         .select('*')
         .eq('user_id', user.id)
-        .eq('like_type', 'post');
+        .eq('post_id', 'is.not.null');
       
       if (likesError) {
         console.error("Error fetching user likes:", likesError);
       }
 
-      // Add user_has_liked flag to each post
-      const postsWithLikes = postsData.map((post: Post) => ({
-        ...post,
-        user_has_liked: userLikes ? userLikes.some((like: any) => like.post_id === post.id) : false
-      }));
+      const postsWithLikes = postsData.map((post: any) => {
+        const postWithTypedUser: Post = {
+          ...post,
+          user: post.user as Profile,
+          user_has_liked: userLikes ? userLikes.some((like: any) => like.post_id === post.id) : false
+        };
+        return postWithTypedUser;
+      });
 
       setPosts(postsWithLikes);
       
-      // Initialize comments visibility
       const initialCommentsVisibility: { [key: string]: boolean } = {};
       postsWithLikes.forEach((post: Post) => {
         initialCommentsVisibility[post.id] = false;
       });
       setShowComments(initialCommentsVisibility);
       
-      // Initialize new comment form for each post
       const initialNewComments: { [key: string]: string } = {};
       postsWithLikes.forEach((post: Post) => {
         initialNewComments[post.id] = "";
@@ -138,10 +141,7 @@ const CommunityPosts = ({ channelId }: CommunityPostsProps) => {
     try {
       const { data: commentsData, error: commentsError } = await supabase
         .from("post_comments")
-        .select(`
-          *,
-          user:profiles(*)
-        `)
+        .select(`*, user:profiles(id, first_name, last_name, role, updated_at)`)
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
       
@@ -150,22 +150,24 @@ const CommunityPosts = ({ channelId }: CommunityPostsProps) => {
         return;
       }
       
-      // Get user likes for comments
       const { data: userLikes, error: likesError } = await supabase
         .from("user_likes")
         .select('*')
         .eq('user_id', user.id)
-        .eq('like_type', 'comment');
+        .eq('comment_id', 'is.not.null');
       
       if (likesError) {
         console.error("Error fetching comment likes:", likesError);
       }
       
-      // Add user_has_liked flag to each comment
-      const commentsWithLikes = commentsData.map((comment: Comment) => ({
-        ...comment,
-        user_has_liked: userLikes ? userLikes.some((like: any) => like.comment_id === comment.id) : false
-      }));
+      const commentsWithLikes = commentsData.map((comment: any) => {
+        const commentWithTypedUser: Comment = {
+          ...comment,
+          user: comment.user as Profile,
+          user_has_liked: userLikes ? userLikes.some((like: any) => like.comment_id === comment.id) : false
+        };
+        return commentWithTypedUser;
+      });
       
       setComments(prev => ({
         ...prev,
@@ -191,13 +193,11 @@ const CommunityPosts = ({ channelId }: CommunityPostsProps) => {
     
     try {
       if (post.user_has_liked) {
-        // Unlike post
         const { error } = await supabase
           .from("user_likes")
           .delete()
           .eq('user_id', user.id)
-          .eq('post_id', post.id)
-          .eq('like_type', 'post');
+          .eq('post_id', post.id);
         
         if (error) {
           console.error("Error unliking post:", error);
@@ -211,13 +211,11 @@ const CommunityPosts = ({ channelId }: CommunityPostsProps) => {
         ));
         
       } else {
-        // Like post
         const { error } = await supabase
           .from("user_likes")
           .insert({
             user_id: user.id,
-            post_id: post.id,
-            like_type: 'post'
+            post_id: post.id
           });
         
         if (error) {
@@ -259,17 +257,14 @@ const CommunityPosts = ({ channelId }: CommunityPostsProps) => {
         return;
       }
       
-      // Update posts count
       setPosts(posts.map(p => 
         p.id === postId 
           ? { ...p, comments_count: p.comments_count + 1 } 
           : p
       ));
       
-      // Reset comment input
       setNewComment({ ...newComment, [postId]: "" });
       
-      // Refresh comments
       await fetchComments(postId);
       
     } catch (error) {
@@ -294,7 +289,7 @@ const CommunityPosts = ({ channelId }: CommunityPostsProps) => {
 
   const getFullName = (profile: Profile | undefined) => {
     if (!profile) return "Usuário";
-    return `${profile.first_name} ${profile.last_name}`;
+    return `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || "Usuário";
   };
 
   const handleNewPost = () => {
@@ -336,7 +331,6 @@ const CommunityPosts = ({ channelId }: CommunityPostsProps) => {
         posts.map((post: Post) => (
           <Card key={post.id} className="overflow-hidden">
             <CardContent className="p-0">
-              {/* Post header */}
               <div className="p-4 flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Avatar>
@@ -354,12 +348,10 @@ const CommunityPosts = ({ channelId }: CommunityPostsProps) => {
                 </Button>
               </div>
               
-              {/* Post content */}
               <div className="px-4 py-2">
                 <p className="whitespace-pre-line">{post.content}</p>
               </div>
               
-              {/* Post actions */}
               <div className="px-4 py-2 flex items-center justify-between">
                 <div className="flex items-center space-x-6">
                   <Button 
@@ -386,10 +378,8 @@ const CommunityPosts = ({ channelId }: CommunityPostsProps) => {
               
               <Separator />
               
-              {/* Comments section */}
               {showComments[post.id] && (
                 <div className="p-4 bg-muted/20">
-                  {/* Comment list */}
                   <div className="space-y-4 mb-4">
                     {comments[post.id]?.length > 0 ? (
                       comments[post.id].map((comment: Comment) => (
@@ -421,7 +411,6 @@ const CommunityPosts = ({ channelId }: CommunityPostsProps) => {
                     )}
                   </div>
                   
-                  {/* New comment form */}
                   <div className="flex space-x-3">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>{user ? getInitials(user) : "U"}</AvatarFallback>

@@ -12,13 +12,13 @@ interface Channel {
 
 interface ChannelsListProps {
   channels: Channel[];
-  activeChannel: string | null;
+  selectedChannel: string | null;  // Changed from activeChannel to selectedChannel
   onSelectChannel: (channelId: string) => void;
 }
 
 const ChannelsList: React.FC<ChannelsListProps> = ({ 
   channels, 
-  activeChannel, 
+  selectedChannel,  // Changed from activeChannel to selectedChannel
   onSelectChannel 
 }) => {
   // If no channels available, show empty state
@@ -38,7 +38,7 @@ const ChannelsList: React.FC<ChannelsListProps> = ({
             onClick={() => onSelectChannel(channel.id)}
             className={cn(
               "w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-sm",
-              activeChannel === channel.id
+              selectedChannel === channel.id  // Changed from activeChannel to selectedChannel
                 ? "bg-gray-100 text-trade-blue font-medium"
                 : "text-gray-700 hover:bg-gray-50"
             )}

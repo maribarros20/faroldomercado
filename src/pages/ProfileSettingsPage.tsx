@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,7 +79,7 @@ const ProfileSettingsPage = () => {
               firstName: profile.first_name || "",
               lastName: profile.last_name || "",
               email: user.email || "",
-              company: profile.company || "",
+              company: profile.cnpj || "",
               cnpj: profile.cnpj || "",
               phone: profile.phone || "",
               cpf: profile.cpf || "",
