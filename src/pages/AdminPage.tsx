@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +22,6 @@ const AdminPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check if the user is an admin with enhanced error handling
   const { data: isAdmin, isLoading, isError, error } = useQuery({
     queryKey: ['check-admin'],
     queryFn: async () => {
@@ -63,7 +61,6 @@ const AdminPage = () => {
     }
   });
 
-  // Set up auth state listener
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -80,7 +77,6 @@ const AdminPage = () => {
     };
   }, [navigate]);
 
-  // Redirect if not an admin
   useEffect(() => {
     if (!isLoading && isAdmin === false) {
       toast({
@@ -154,7 +150,7 @@ const AdminPage = () => {
           <TabsTrigger value="plans">Planos</TabsTrigger>
           <TabsTrigger value="audit-logs">Logs de Auditoria</TabsTrigger>
           <TabsTrigger value="market-news">Notícias do Mercado</TabsTrigger>
-          <TabsTrigger value="finance-spreadsheet">Planilha Financeira</TabsTrigger>
+          <TabsTrigger value="finance-spreadsheet">Planilhas Financeiras</TabsTrigger>
         </TabsList>
         
         <Card>
