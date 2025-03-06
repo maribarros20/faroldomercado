@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -48,98 +47,67 @@ function extractImageFromContent(content: string): string | null {
   return match ? match[1] : null;
 }
 
-// Função para buscar notícias do RSS da Infomoney
-async function fetchInfoMoneyRSS(): Promise<NewsItem[]> {
-  try {
-    const response = await fetch('https://www.infomoney.com.br/feed/');
-    
-    if (!response.ok) {
-      console.error(`Erro ao buscar RSS da InfoMoney: ${response.status}`);
-      return [];
-    }
-    
-    const xml = await response.text();
-    // Parsing manual simplificado para RSS
-    const news = parseRSS(xml, {
-      source: 'InfoMoney',
-      defaultCategory: 'Mercado de Ações'
-    });
-    
-    return news;
-  } catch (error) {
-    console.error('Erro ao processar RSS da InfoMoney:', error);
-    return [];
+// Configuração das fontes de RSS
+const RSS_SOURCES = [
+  {
+    url: 'https://www.infomoney.com.br/feed/',
+    source: 'InfoMoney',
+    defaultCategory: 'Mercado de Ações'
+  },
+  {
+    url: 'https://valor.globo.com/rss/valor',
+    source: 'Valor Econômico',
+    defaultCategory: 'Economia'
+  },
+  {
+    url: 'https://feeds.bloomberg.com/markets/news.rss',
+    source: 'Bloomberg',
+    defaultCategory: 'Mercado de Ações'
+  },
+  {
+    url: 'https://feeds.bloomberg.com/economics/news.rss',
+    source: 'Bloomberg',
+    defaultCategory: 'Economia'
+  },
+  {
+    url: 'https://ir.thomsonreuters.com/rss/news-releases.xml?items=15',
+    source: 'Thomson Reuters',
+    defaultCategory: 'Mercado de Ações'
+  },
+  {
+    url: 'http://rss.cnn.com/rss/money_markets.rss',
+    source: 'CNN Money',
+    defaultCategory: 'Mercado de Ações'
+  },
+  {
+    url: 'https://www.bloomberglinea.com.br/arc/outboundfeeds/sections-feed.xml',
+    source: 'Bloomberg Línea',
+    defaultCategory: 'Mercado de Ações'
   }
-}
+];
 
-// Função para buscar notícias do RSS do Valor Econômico
-async function fetchValorEconomicoRSS(): Promise<NewsItem[]> {
+// Função para buscar notícias de uma fonte RSS
+async function fetchRSS(source: { url: string, source: string, defaultCategory: string }): Promise<NewsItem[]> {
   try {
-    const response = await fetch('https://valor.globo.com/rss/valor');
+    console.log(`Buscando notícias de ${source.source} (${source.url})`);
+    const response = await fetch(source.url);
     
     if (!response.ok) {
-      console.error(`Erro ao buscar RSS do Valor Econômico: ${response.status}`);
+      console.error(`Erro ao buscar RSS de ${source.source}: ${response.status}`);
       return [];
     }
     
     const xml = await response.text();
     // Parsing manual simplificado para RSS
     const news = parseRSS(xml, {
-      source: 'Valor Econômico',
-      defaultCategory: 'Economia'
+      source: source.source,
+      defaultCategory: source.defaultCategory
     });
     
+    console.log(`Obtidas ${news.length} notícias de ${source.source}`);
     return news;
   } catch (error) {
-    console.error('Erro ao processar RSS do Valor Econômico:', error);
-    return [];
-  }
-}
-
-// Função para buscar notícias do CNN Money
-async function fetchCNNMoneyRSS(): Promise<NewsItem[]> {
-  try {
-    const response = await fetch('https://money.cnn.com/services/rss/');
-    
-    if (!response.ok) {
-      console.error(`Erro ao buscar RSS da CNN Money: ${response.status}`);
-      return [];
-    }
-    
-    const xml = await response.text();
-    // Parsing manual simplificado para RSS
-    const news = parseRSS(xml, {
-      source: 'CNN Money',
-      defaultCategory: 'Mercado de Ações'
-    });
-    
-    return news;
-  } catch (error) {
-    console.error('Erro ao processar RSS da CNN Money:', error);
-    return [];
-  }
-}
-
-// Função para buscar notícias da Bloomberg
-async function fetchBloombergRSS(): Promise<NewsItem[]> {
-  try {
-    const response = await fetch('https://www.bloomberg.com/feed/podcast/etf-report');
-    
-    if (!response.ok) {
-      console.error(`Erro ao buscar RSS da Bloomberg: ${response.status}`);
-      return [];
-    }
-    
-    const xml = await response.text();
-    // Parsing manual simplificado para RSS
-    const news = parseRSS(xml, {
-      source: 'Bloomberg',
-      defaultCategory: 'Mercado de Ações'
-    });
-    
-    return news;
-  } catch (error) {
-    console.error('Erro ao processar RSS da Bloomberg:', error);
+    console.error(`Erro ao processar RSS de ${source.source}:`, error);
     return [];
   }
 }
@@ -168,9 +136,17 @@ function parseRSS(xml: string, options: { source: string, defaultCategory: strin
       let link = (itemContent.match(linkRegex) || [])[1] || '';
       let description = (itemContent.match(descriptionRegex) || [])[1] || '';
       let content = (itemContent.match(contentRegex) || [])[1] || description;
-      const pubDate = (itemContent.match(pubDateRegex) || [])[1] || new Date().toISOString();
+      const pubDateStr = (itemContent.match(pubDateRegex) || [])[1] || '';
       let creator = (itemContent.match(creatorRegex) || [])[1] || options.source;
       let category = (itemContent.match(categoryRegex) || [])[1] || options.defaultCategory;
+      
+      // Tratar data de publicação
+      let pubDate;
+      try {
+        pubDate = pubDateStr ? new Date(pubDateStr).toISOString() : new Date().toISOString();
+      } catch (e) {
+        pubDate = new Date().toISOString();
+      }
       
       // Extract image from multiple possible sources
       let imageUrl = null;
@@ -207,7 +183,11 @@ function parseRSS(xml: string, options: { source: string, defaultCategory: strin
             imageUrl = 'https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png';
             break;
           case 'Bloomberg':
+          case 'Bloomberg Línea':
             imageUrl = 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
+            break;
+          case 'Thomson Reuters':
+            imageUrl = 'https://s3.ap-southeast-1.amazonaws.com/thomson-media-resources/images/logos/tr-new.svg';
             break;
           default:
             imageUrl = 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop';
@@ -230,7 +210,7 @@ function parseRSS(xml: string, options: { source: string, defaultCategory: strin
           title: title,
           subtitle: description.substring(0, 120) + (description.length > 120 ? '...' : ''),
           content: content || description,
-          publication_date: new Date(pubDate).toISOString(),
+          publication_date: pubDate,
           author: creator,
           category: category,
           image_url: imageUrl,
@@ -361,7 +341,7 @@ function getBackupNews(): NewsItem[] {
     },
     {
       title: "IPCA de novembro fica abaixo das expectativas e alivia pressão sobre Banco Central",
-      subtitle: "Inflação oficial do país avançou 0,28% no mês, abaixo da projeção de 0,30% do mercado",
+      subtitle: "Inflação oficial do país avançou 0,28% no mês, abaixo das projeções de 0,30% do mercado",
       content: "O IPCA (Índice Nacional de Preços ao Consumidor Amplo) de novembro registrou alta de 0,28%, ficando abaixo das expectativas do mercado, que previam avanço de 0,30%. No acumulado de 12 meses, a inflação está em 4,35%, dentro do teto da meta estabelecida pelo Conselho Monetário Nacional para 2023. O resultado alivia a pressão sobre o Banco Central e fortalece a expectativa de que a taxa Selic seja mantida em 11,25% na última reunião do Copom deste ano.",
       publication_date: currentDate,
       author: "Valor Econômico",
@@ -398,17 +378,21 @@ function getBackupNews(): NewsItem[] {
 // Função principal para buscar notícias de todas as fontes
 async function fetchAllExternalNews(category?: string): Promise<NewsItem[]> {
   try {
-    // Buscar notícias de todas as fontes em paralelo
-    const [infoMoneyNews, valorEconomicoNews, cnnMoneyNews, bloombergNews, alphaVantageNews] = await Promise.all([
-      fetchInfoMoneyRSS(),
-      fetchValorEconomicoRSS(),
-      fetchCNNMoneyRSS(),
-      fetchBloombergRSS(),
-      fetchAlphaVantageNews()
-    ]);
+    console.log("Iniciando busca de notícias externas...");
+    
+    // Buscar notícias de todas as fontes RSS em paralelo
+    const rssPromises = RSS_SOURCES.map(source => fetchRSS(source));
+    
+    // Adicionar Alpha Vantage se configurado
+    const allPromises = [...rssPromises, fetchAlphaVantageNews()];
+    
+    // Aguardar todas as requisições completarem
+    const results = await Promise.all(allPromises);
     
     // Combinar todas as notícias
-    let allNews = [...infoMoneyNews, ...valorEconomicoNews, ...cnnMoneyNews, ...bloombergNews, ...alphaVantageNews];
+    let allNews = results.flat();
+    
+    console.log(`Total de notícias obtidas: ${allNews.length}`);
     
     // Se não houver notícias (por problemas nas APIs), usar backup
     if (allNews.length === 0) {
@@ -430,7 +414,18 @@ async function fetchAllExternalNews(category?: string): Promise<NewsItem[]> {
       return dateB - dateA;
     });
     
-    return allNews;
+    // Remover possíveis duplicatas (baseado no título)
+    const uniqueNews = Array.from(
+      allNews.reduce((map, item) => {
+        if (!map.has(item.title)) {
+          map.set(item.title, item);
+        }
+        return map;
+      }, new Map()).values()
+    );
+    
+    console.log(`Total de notícias após filtragem: ${uniqueNews.length}`);
+    return uniqueNews;
   } catch (error) {
     console.error('Erro ao buscar notícias externas:', error);
     // Em caso de erro, retornar backup

@@ -29,6 +29,18 @@ export const NEWS_CATEGORIES = [
   "Internacional"
 ];
 
+// Fontes de notícias financeiras
+export const FINANCIAL_NEWS_SOURCES = [
+  "InfoMoney",
+  "Valor Econômico",
+  "Bloomberg",
+  "Bloomberg Línea",
+  "CNN Money",
+  "Thomson Reuters",
+  "Alpha Vantage",
+  "manual" // Notícias criadas manualmente pelos administradores
+];
+
 // Função para limpar texto de tags CDATA e HTML
 export const cleanTextContent = (text?: string): string => {
   if (!text) return '';
@@ -140,23 +152,26 @@ export const fetchAllNews = async (
   search?: string
 ): Promise<NewsItem[]> => {
   try {
-    const [manualNews, externalNews] = await Promise.all([
-      fetchManualNews(),
-      fetchExternalNews(category)
-    ]);
-    
-    // Combinar e ordenar por data de publicação (mais recentes primeiro)
-    let allNews = [...manualNews, ...externalNews].sort((a, b) => {
-      return new Date(b.publication_date || b.created_at || '').getTime() - 
-             new Date(a.publication_date || a.created_at || '').getTime();
+    // Chamar a edge function que lida com todas as fontes de notícias
+    const { data, error } = await supabase.functions.invoke('fetch-news', {
+      body: { category }
     });
     
-    // Filtrar por categoria se especificada
-    if (category && category !== 'all') {
-      allNews = allNews.filter(news => 
-        news.category?.toLowerCase().includes(category.toLowerCase())
-      );
+    if (error) {
+      console.error("Erro ao buscar todas as notícias:", error);
+      return [];
     }
+    
+    // Garantir que todo o conteúdo esteja limpo de tags CDATA e HTML
+    let allNews = data ? data.map((item: NewsItem) => ({
+      ...item,
+      title: cleanTextContent(item.title),
+      subtitle: cleanTextContent(item.subtitle),
+      content: cleanTextContent(item.content),
+      author: cleanTextContent(item.author),
+      category: cleanTextContent(item.category),
+      image_url: getValidImageUrl(item.image_url)
+    })) : [];
     
     // Filtrar por termo de busca se especificado
     if (search) {

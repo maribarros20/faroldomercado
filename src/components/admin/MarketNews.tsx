@@ -1,22 +1,18 @@
 
 import React, { useState } from "react";
 import { 
-  fetchAllNews, NEWS_CATEGORIES, NewsItem, 
-  cleanTextContent, getValidImageUrl 
+  fetchAllNews, NEWS_CATEGORIES, FINANCIAL_NEWS_SOURCES, NewsItem 
 } from "@/services/NewsService";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Search, RefreshCw, Calendar, User, ExternalLink, Filter 
+  Search, RefreshCw, Filter 
 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
 import { NewsCard } from "./news/NewsCard";
 
@@ -52,12 +48,10 @@ const MarketNews = () => {
       // Se o filtro de notícias financeiras estiver ativo, filtrar apenas notícias financeiras
       if (showOnlyFinancialNews) {
         return allNews.filter(newsItem => 
+          // Verificar se a categoria é relacionada a finanças
           FINANCE_CATEGORIES.includes(newsItem.category || "") || 
-          newsItem.source === "InfoMoney" ||
-          newsItem.source === "Valor Econômico" ||
-          newsItem.source === "Bloomberg" ||
-          newsItem.source === "CNN Money" ||
-          newsItem.source === "Alpha Vantage"
+          // Ou se a fonte é uma fonte financeira conhecida
+          FINANCIAL_NEWS_SOURCES.includes(newsItem.source || "")
         );
       }
       
