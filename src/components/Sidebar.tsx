@@ -145,7 +145,7 @@ const Sidebar = () => {
     <SidebarContainer>
       <SidebarHeader className="border-b border-border p-4">
         <div className="flex gap-2 items-center">
-          <Logo className="h-6 w-6" />
+          <Logo />
           <span className="font-bold text-xl">Farol do Mercado</span>
         </div>
       </SidebarHeader>

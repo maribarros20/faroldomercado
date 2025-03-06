@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import MarketNews from "@/components/admin/MarketNews";
 import FinanceSpreadsheet from "@/components/admin/FinanceSpreadsheet";
 import { Shield, AlertCircle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("subscribers");
@@ -47,13 +48,15 @@ const AdminPage = () => {
         throw err;
       }
     },
-    onError: (err: any) => {
-      console.error('Erro ao verificar status de admin:', err);
-      toast({
-        title: "Erro",
-        description: "Não foi possível verificar suas permissões: " + (err.message || 'Erro desconhecido'),
-        variant: "destructive"
-      });
+    meta: {
+      onError: (err: any) => {
+        console.error('Erro ao verificar status de admin:', err);
+        toast({
+          title: "Erro",
+          description: "Não foi possível verificar suas permissões: " + (err.message || 'Erro desconhecido'),
+          variant: "destructive"
+        });
+      }
     }
   });
 
@@ -87,7 +90,7 @@ const AdminPage = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        <Spinner size="lg" />
       </div>
     );
   }
