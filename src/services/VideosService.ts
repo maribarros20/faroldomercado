@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { Database } from "@/integrations/supabase/types";
 
 export type VideoSource = "youtube" | "vimeo" | "storage";
 
@@ -18,40 +19,59 @@ export interface Video {
   views: number;
 }
 
+// Add a type guard to validate video objects
+function isValidVideo(video: any): video is Video {
+  return (
+    video &&
+    typeof video.id === 'string' &&
+    typeof video.title === 'string' &&
+    typeof video.url === 'string'
+  );
+}
+
 export const useVideos = (categoryFilter?: string, learningPathFilter?: string) => {
   return useQuery({
     queryKey: ['videos', categoryFilter, learningPathFilter],
     queryFn: async () => {
-      let query = supabase
-        .from('videos')
-        .select('*')
-        .order('date_added', { ascending: false });
-      
-      if (categoryFilter) {
-        query = query.eq('category', categoryFilter);
+      try {
+        let query = supabase
+          .from('videos')
+          .select('*')
+          .order('date_added', { ascending: false });
+        
+        if (categoryFilter) {
+          query = query.eq('category', categoryFilter);
+        }
+        
+        if (learningPathFilter) {
+          query = query.eq('learning_path', learningPathFilter);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error("Error fetching videos:", error);
+          throw new Error(error.message);
+        }
+        
+        if (!data) return [];
+        
+        // Validate each video object
+        const validVideos = data.filter(isValidVideo);
+        return validVideos as Video[];
+      } catch (error) {
+        console.error("Error in useVideos query:", error);
+        return [] as Video[];
       }
-      
-      if (learningPathFilter) {
-        query = query.eq('learning_path', learningPathFilter);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error("Error fetching videos:", error);
-        throw new Error(error.message);
-      }
-      
-      return data as unknown as Video[];
     }
   });
 };
 
 export const incrementVideoViews = async (videoId: string) => {
   try {
-    // Using rpc with explicit type assertion for the function name
+    // Specifically type the function name for the RPC call
     const { data, error } = await supabase.rpc(
-      'increment_video_views' as any, 
+      'increment_video_views', 
       {
         video_id: videoId
       }
@@ -71,6 +91,12 @@ export const incrementVideoViews = async (videoId: string) => {
 
 export const getRelatedVideos = async (videoId: string, category: string) => {
   try {
+    // Use a defensive approach with explicit error handling
+    if (!videoId || !category) {
+      console.error("Missing required parameters for getRelatedVideos");
+      return [];
+    }
+    
     const { data, error } = await supabase
       .from('videos')
       .select('*')
@@ -83,7 +109,11 @@ export const getRelatedVideos = async (videoId: string, category: string) => {
       return [];
     }
     
-    return data as unknown as Video[];
+    if (!data) return [];
+    
+    // Validate each video object
+    const validVideos = data.filter(isValidVideo);
+    return validVideos as Video[];
   } catch (error) {
     console.error("Failed to get related videos:", error);
     return [];
