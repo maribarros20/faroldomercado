@@ -159,11 +159,15 @@ const AdminMentors = () => {
       const filePath = `mentors/${fileName}`;
 
       // First, check if the storage bucket exists
-      const { data: bucketData, error: bucketError } = await supabase.storage.getBucket("mentors");
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const mentorBucket = buckets?.find(bucket => bucket.name === 'mentors');
       
       // If bucket doesn't exist, create it
-      if (bucketError) {
-        await supabase.storage.createBucket("mentors", { public: true });
+      if (!mentorBucket) {
+        await supabase.storage.createBucket('mentors', { 
+          public: true,
+          fileSizeLimit: 52428800 // 50MB
+        });
       }
 
       // Upload the file

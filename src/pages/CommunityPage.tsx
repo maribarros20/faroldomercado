@@ -1,143 +1,156 @@
 
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Channel } from '@/types/community';
-import CommunityPosts from '@/components/community/CommunityPosts';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Spinner } from '@/components/ui/spinner';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from "react";
+import CommunityPosts from "@/components/community/CommunityPosts";
+import ChannelsList from "@/components/community/ChannelsList";
+import CreatePostDialog from "@/components/community/CreatePostDialog";
+import { Card } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const CommunityPage = () => {
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [activeChannel, setActiveChannel] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { toast } = useToast();
 
+  // Check if user is authenticated
   useEffect(() => {
-    const getSession = async () => {
+    const checkAuth = async () => {
       try {
+        setIsLoading(true);
         const { data, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Error fetching session:', error);
-          setError('Erro ao verificar sua sessão. Por favor, atualize a página.');
-          return;
-        }
         
-        if (data.session) {
-          setUserId(data.session.user.id);
-        } else {
-          setError('Você precisa estar autenticado para acessar a comunidade.');
-        }
-      } catch (e) {
-        console.error('Error in getSession:', e);
-        setError('Ocorreu um erro ao verificar sua sessão.');
-      }
-    };
-
-    getSession();
-  }, []);
-
-  useEffect(() => {
-    const fetchChannels = async () => {
-      try {
-        setLoading(true);
-        
-        const { data, error } = await supabase
-          .from('community_channels')
-          .select('*')
-          .order('name');
-
         if (error) {
-          console.error('Error fetching channels:', error);
-          setError('Erro ao carregar os canais da comunidade.');
+          console.error("Error checking authentication:", error);
+          setHasError(true);
           toast({
-            title: "Erro",
-            description: "Não foi possível carregar os canais da comunidade.",
+            title: "Erro na autenticação",
+            description: "Não foi possível verificar sua sessão. Por favor, faça login novamente.",
             variant: "destructive"
           });
           return;
         }
-
-        if (data && data.length > 0) {
-          setChannels(data as Channel[]);
-          setActiveChannel(data[0].id);
-        } else {
-          setError('Nenhum canal disponível.');
+        
+        if (!data.session) {
+          // User is not authenticated, redirect to login
+          window.location.href = "/auth";
+          return;
         }
-      } catch (e) {
-        console.error('Error in fetchChannels:', e);
-        setError('Ocorreu um erro ao carregar os canais.');
-      } finally {
-        setLoading(false);
+        
+        // Load default channel
+        const { data: channels, error: channelsError } = await supabase
+          .from('community_channels')
+          .select('id')
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .single();
+        
+        if (channelsError) {
+          console.error("Error fetching default channel:", channelsError);
+        } else if (channels) {
+          setSelectedChannelId(channels.id);
+        }
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error in auth check:", error);
+        setHasError(true);
+        setIsLoading(false);
       }
     };
+    
+    checkAuth();
+  }, [toast]);
 
-    if (userId) {
-      fetchChannels();
-    }
-  }, [userId, toast]);
+  // Select a channel
+  const handleSelectChannel = (channelId: string) => {
+    setSelectedChannelId(channelId);
+  };
 
-  if (loading) {
+  // Open create post dialog
+  const handleCreatePost = () => {
+    setIsCreateDialogOpen(true);
+  };
+
+  // Handle post creation success
+  const handlePostCreated = () => {
+    setIsCreateDialogOpen(false);
+    toast({
+      title: "Post criado",
+      description: "Seu post foi publicado com sucesso.",
+    });
+  };
+
+  if (isLoading) {
     return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-6">Comunidade</h1>
-        <div className="flex items-center justify-center h-64">
-          <Spinner />
-          <span className="ml-2">Carregando canais da comunidade...</span>
+      <div className="container mx-auto py-8 flex justify-center items-center">
+        <div className="text-center">
+          <Spinner size="lg" className="mb-4" />
+          <p>Carregando comunidade...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (hasError) {
     return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-6">Comunidade</h1>
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">
-          <p>{error}</p>
+      <div className="container mx-auto py-8">
+        <Card className="p-6">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Erro ao carregar</h2>
+          <p className="mb-4">Não foi possível carregar a página da comunidade. Por favor, tente novamente mais tarde.</p>
           <button 
-            onClick={() => window.location.reload()} 
-            className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="bg-primary text-white px-4 py-2 rounded"
+            onClick={() => window.location.reload()}
           >
             Tentar novamente
           </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (channels.length === 0) {
-    return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-6">Comunidade</h1>
-        <div className="p-4 bg-gray-100 rounded-md">Nenhum canal disponível.</div>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Comunidade</h1>
-      
-      <Tabs defaultValue={activeChannel || channels[0]?.id} onValueChange={(value) => setActiveChannel(value)}>
-        <TabsList className="mb-6">
-          {channels.map((channel) => (
-            <TabsTrigger key={channel.id} value={channel.id}>
-              {channel.name}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+    <div className="container mx-auto py-8 animate-fade-in">
+      <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
+        {/* Channels sidebar */}
+        <div className="w-full md:w-1/4">
+          <ChannelsList
+            selectedChannelId={selectedChannelId}
+            onSelectChannel={handleSelectChannel}
+          />
+        </div>
         
-        {channels.map((channel) => (
-          <TabsContent key={channel.id} value={channel.id}>
-            {userId && activeChannel && (
-              <CommunityPosts channelId={channel.id} userId={userId} />
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
+        {/* Posts content */}
+        <div className="w-full md:w-3/4">
+          <div className="mb-4 flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Publicações</h2>
+            <Button onClick={handleCreatePost}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova publicação
+            </Button>
+          </div>
+          
+          {selectedChannelId ? (
+            <CommunityPosts channelId={selectedChannelId} />
+          ) : (
+            <Card className="p-6 text-center">
+              <p>Selecione um canal para ver as publicações</p>
+            </Card>
+          )}
+        </div>
+      </div>
+      
+      {/* Create post dialog */}
+      <CreatePostDialog
+        isOpen={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+        onPostCreated={handlePostCreated}
+        channelId={selectedChannelId}
+      />
     </div>
   );
 };

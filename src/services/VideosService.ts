@@ -1,8 +1,5 @@
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-
-export type VideoSource = "youtube" | "vimeo" | "storage";
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Video {
   id: string;
@@ -10,112 +7,181 @@ export interface Video {
   description: string;
   source: VideoSource;
   url: string;
-  thumbnail: string | null;
+  thumbnail: string;
   category: string;
   learning_path: string;
-  duration: string | null;
+  duration: string;
   date_added: string;
   views: number;
-  created_by: string | null;
+  created_by: string;
 }
 
-export const useVideos = (category?: string, learningPath?: string) => {
-  const [data, setData] = useState<Video[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+export type VideoSource = 'youtube' | 'vimeo' | 'url';
 
-  useEffect(() => {
-    const fetchVideos = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+class VideosService {
+  async getVideos(): Promise<Video[]> {
+    try {
+      const { data, error } = await supabase
+        .from('videos')
+        .select('*')
+        .order('date_added', { ascending: false });
 
-        let query = supabase.from("videos").select("*");
-
-        if (category) {
-          query = query.eq("category", category);
-        }
-
-        if (learningPath) {
-          query = query.eq("learning_path", learningPath);
-        }
-
-        const { data, error } = await query.order("date_added", { ascending: false });
-
-        if (error) {
-          throw new Error(error.message);
-        }
-
-        setData(data as Video[]);
-      } catch (err) {
-        console.error("Error fetching videos:", err);
-        setError(err instanceof Error ? err : new Error("Failed to fetch videos"));
-      } finally {
-        setIsLoading(false);
+      if (error) {
+        console.error('Error fetching videos:', error);
+        throw new Error(error.message);
       }
-    };
 
-    fetchVideos();
-  }, [category, learningPath]);
-
-  return { data, isLoading, error };
-};
-
-export const getVideoById = async (id: string): Promise<Video | null> => {
-  try {
-    const { data, error } = await supabase
-      .from("videos")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
-
-    if (error) {
-      throw new Error(error.message);
+      return data || [];
+    } catch (error) {
+      console.error('Error in getVideos service:', error);
+      throw error;
     }
-
-    return data as Video;
-  } catch (error) {
-    console.error("Error fetching video:", error);
-    return null;
   }
-};
 
-export const getRelatedVideos = async (
-  currentVideoId: string,
-  category: string,
-  limit = 5
-): Promise<Video[]> => {
-  try {
-    const { data, error } = await supabase
-      .from("videos")
-      .select("*")
-      .eq("category", category)
-      .neq("id", currentVideoId)
-      .limit(limit);
+  async getVideoById(id: string): Promise<Video> {
+    try {
+      const { data, error } = await supabase
+        .from('videos')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-    if (error) {
-      throw new Error(error.message);
+      if (error) {
+        console.error('Error fetching video by ID:', error);
+        throw new Error(error.message);
+      }
+
+      // Increment view count
+      await this.incrementViews(id);
+
+      return data;
+    } catch (error) {
+      console.error('Error in getVideoById service:', error);
+      throw error;
     }
-
-    return data as Video[];
-  } catch (error) {
-    console.error("Error fetching related videos:", error);
-    return [];
   }
-};
 
-export const incrementVideoViews = async (videoId: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase.rpc('increment_video_views', { video_id: videoId });
-    
-    if (error) {
-      console.error("Error incrementing video views:", error);
-      return false;
+  async incrementViews(videoId: string): Promise<void> {
+    try {
+      // Use the RPC function to increment views safely
+      const { error } = await supabase.rpc('increment_video_views', {
+        video_id: videoId
+      });
+
+      if (error) {
+        console.error('Error incrementing video views:', error);
+      }
+    } catch (error) {
+      console.error('Error in incrementViews service:', error);
     }
-    
-    return data as boolean;
-  } catch (error) {
-    console.error("Exception incrementing video views:", error);
-    return false;
   }
-};
+
+  async getRelatedVideos(category: string, currentVideoId: string): Promise<Video[]> {
+    try {
+      const { data, error } = await supabase
+        .from('videos')
+        .select('*')
+        .eq('category', category)
+        .neq('id', currentVideoId)
+        .limit(4);
+
+      if (error) {
+        console.error('Error fetching related videos:', error);
+        throw new Error(error.message);
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getRelatedVideos service:', error);
+      throw error;
+    }
+  }
+
+  async getVideosByCategory(category: string): Promise<Video[]> {
+    try {
+      const { data, error } = await supabase
+        .from('videos')
+        .select('*')
+        .eq('category', category)
+        .order('date_added', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching videos by category:', error);
+        throw new Error(error.message);
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getVideosByCategory service:', error);
+      throw error;
+    }
+  }
+
+  async createVideo(videoData: Omit<Video, 'id' | 'date_added' | 'views'>): Promise<Video> {
+    try {
+      // Get the current user's session
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+
+      const { data, error } = await supabase
+        .from('videos')
+        .insert({
+          ...videoData,
+          created_by: userId, // Set the created_by field to the current user's ID
+          views: 0
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating video:', error);
+        throw new Error(error.message);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in createVideo service:', error);
+      throw error;
+    }
+  }
+
+  async updateVideo(id: string, videoData: Partial<Video>): Promise<Video> {
+    try {
+      const { data, error } = await supabase
+        .from('videos')
+        .update(videoData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating video:', error);
+        throw new Error(error.message);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in updateVideo service:', error);
+      throw error;
+    }
+  }
+
+  async deleteVideo(id: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('videos')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting video:', error);
+        throw new Error(error.message);
+      }
+    } catch (error) {
+      console.error('Error in deleteVideo service:', error);
+      throw error;
+    }
+  }
+}
+
+export default new VideosService();

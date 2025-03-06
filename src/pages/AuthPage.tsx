@@ -40,15 +40,17 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
         
         if (error) {
           console.error("Session check error:", error);
+          setCheckingSession(false);
           return;
         }
         
         if (data.session) {
           navigate("/dashboard");
+        } else {
+          setCheckingSession(false);
         }
       } catch (error) {
         console.error("Error checking session:", error);
-      } finally {
         setCheckingSession(false);
       }
     };
@@ -123,19 +125,24 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
           return;
         }
         
+        // Extract first and last name for database
+        const nameParts = name.split(" ");
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(" ") || "";
+        
         // Register with Supabase - modified to match database schema
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
-              first_name: name.split(" ")[0] || "",
-              last_name: name.split(" ").slice(1).join(" ") || "",
+              first_name: firstName,
+              last_name: lastName,
               cnpj,
               phone,
               cpf,
-              date_of_birth: dateOfBirth
-              // Removed company field as it doesn't exist in the database
+              date_of_birth: dateOfBirth,
+              role: 'user'
             }
           }
         });
@@ -150,13 +157,29 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
           return;
         }
         
+        // Check if user already exists (Supabase returns empty identities array)
+        if (data?.user?.identities?.length === 0) {
+          toast({
+            title: "E-mail já cadastrado",
+            description: "Este e-mail já está cadastrado no sistema. Tente fazer login ou recuperar sua senha.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
         toast({
           title: "Cadastro realizado com sucesso!",
           description: "Verifique seu e-mail para confirmar o cadastro.",
         });
         
-        // Go to login after registration
-        setIsLogin(true);
+        // Optional: redirect to dashboard if email confirmation is disabled in Supabase
+        if (data.session) {
+          navigate("/dashboard");
+        } else {
+          // Go to login after registration if no session (email confirmation required)
+          setIsLogin(true);
+        }
       }
     } catch (error) {
       console.error("Authentication error:", error);
@@ -191,9 +214,9 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
           </div>
           
           <nav className="flex gap-8 mb-16">
-            <a href="https://painel.faroldomercado.com.br" className="text-gray-800 hover:text-black font-medium">Site</a>
-            <a href="https://painel.faroldomercado.com/farolito-blog" className="text-gray-800 hover:text-black font-medium">Blog</a>
-            <a href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" className="text-gray-800 hover:text-black font-medium">Falar com Luma</a>
+            <a href="/" className="text-gray-800 hover:text-black font-medium">Site</a>
+            <a href="/" className="text-gray-800 hover:text-black font-medium">Blog</a>
+            <a href="/" className="text-gray-800 hover:text-black font-medium">Falar com Luma</a>
           </nav>
           
           <div className="flex-grow flex flex-col justify-center">
@@ -233,9 +256,9 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
         </div>
         
         <nav className="flex gap-8 mb-16">
-          <a href="https://painel.faroldomercado.com.br" className="text-gray-800 hover:text-black font-medium">Site</a>
-          <a href="https://painel.faroldomercado.com/farolito-blog" className="text-gray-800 hover:text-black font-medium">Blog</a>
-          <a href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" className="text-gray-800 hover:text-black font-medium">Falar com Luma</a>
+          <a href="/" className="text-gray-800 hover:text-black font-medium">Site</a>
+          <a href="/" className="text-gray-800 hover:text-black font-medium">Blog</a>
+          <a href="/" className="text-gray-800 hover:text-black font-medium">Falar com Luma</a>
         </nav>
         
         <div className="flex-grow flex flex-col justify-center">
@@ -244,7 +267,7 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
           </h2>
           <p className="text-gray-800">
             você deve realizar o cadastro dos seus dados e do mentor. Após o registro, 
-            acompanhe em seu e-mail as etapas para usar todas as funcionalidade e 
+            acompanhe em seu e-mail as etapas para usar todas as funcionalidades e 
             iniciar uma gestão inteligente em saúde corporativa.
           </p>
         </div>
@@ -261,10 +284,11 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
           {/* Back button and auth toggle */}
           <div className="flex justify-between items-center mb-8">
             <button 
-              onClick={() => navigate(-1)} 
+              onClick={() => navigate("/")} 
               className="text-primary flex items-center gap-2"
             >
               <ArrowLeft size={20} />
+              <span>Voltar</span>
             </button>
             <div className="text-gray-700">
               {isLogin ? (
@@ -281,7 +305,7 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
         
           {/* Form Title */}
           <h1 className="text-3xl font-bold mb-8">
-            Vamos <span className="text-primary">iniciar</span>
+            {isLogin ? "Acessar" : "Cadastrar"} <span className="text-primary">conta</span>
           </h1>
         
           {/* Auth Form */}
@@ -336,7 +360,7 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password">Senha *</Label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <Input 
@@ -346,6 +370,7 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Digite sua senha"
                   className="pl-10"
+                  required
                 />
               </div>
               {!isLogin && (

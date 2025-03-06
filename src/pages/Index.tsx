@@ -21,6 +21,9 @@ const Index = () => {
   const [showForgotPasswordDialog, setShowForgotPasswordDialog] = useState(false);
   const [showTermsDialog, setShowTermsDialog] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  
+  // Registration and login form data
   const [loginData, setLoginData] = useState({
     email: "",
     password: ""
@@ -38,26 +41,28 @@ const Index = () => {
   useEffect(() => {
     // Check if user is already logged in
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        navigate("/dashboard");
+      try {
+        setCheckingSession(true);
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error checking authentication:", error);
+          setCheckingSession(false);
+          return;
+        }
+        
+        if (data.session) {
+          navigate("/dashboard");
+        } else {
+          setCheckingSession(false);
+        }
+      } catch (error) {
+        console.error("Error in auth check:", error);
+        setCheckingSession(false);
       }
     };
     
     checkSession();
-
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (session) {
-          navigate("/dashboard");
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, [navigate]);
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,6 +100,7 @@ const Index = () => {
           description: "Por favor, preencha todos os campos.",
           variant: "destructive"
         });
+        setLoading(false);
         return;
       }
 
@@ -105,11 +111,13 @@ const Index = () => {
       });
 
       if (error) {
+        console.error("Login error details:", error);
         toast({
           title: "Erro no login",
           description: error.message,
           variant: "destructive"
         });
+        setLoading(false);
         return;
       }
 
@@ -118,7 +126,7 @@ const Index = () => {
         description: "Bem-vindo de volta!"
       });
 
-      navigate("/dashboard");
+      // Navigation happens automatically via the auth listener in App.tsx
     } catch (error) {
       console.error("Login error:", error);
       toast({
@@ -126,7 +134,6 @@ const Index = () => {
         description: "Ocorreu um erro ao processar sua solicitação. Tente novamente.",
         variant: "destructive"
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -136,7 +143,7 @@ const Index = () => {
     setLoading(true);
     
     try {
-      // Validate required fields based on profiles table requirements
+      // Validate required fields
       if (!registerData.fullName || !registerData.email || !registerData.password || 
           !registerData.cpf || !registerData.phone || !registerData.date_of_birth) {
         toast({
@@ -149,13 +156,10 @@ const Index = () => {
       }
       
       // Validate password
-      if (registerData.password.length < 8 || 
-          !/[A-Z]/.test(registerData.password) || 
-          !/[0-9]/.test(registerData.password) || 
-          !/[^A-Za-z0-9]/.test(registerData.password)) {
+      if (registerData.password.length < 8) {
         toast({
           title: "Senha inválida",
-          description: "A senha deve ter pelo menos 8 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.",
+          description: "A senha deve ter pelo menos 8 caracteres.",
           variant: "destructive"
         });
         setLoading(false);
@@ -178,22 +182,7 @@ const Index = () => {
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
       
-      // Format date to YYYY-MM-DD for Postgres compatibility
-      const formattedDate = registerData.date_of_birth;
-      
-      // Log the data being sent for debugging
-      console.log("Enviando dados de registro:", {
-        email: registerData.email,
-        password: "***",
-        firstName,
-        lastName,
-        phone: registerData.phone,
-        cpf: registerData.cpf,
-        date_of_birth: formattedDate,
-        role: "user"
-      });
-      
-      // Register with Supabase - Fixed format for user meta data
+      // Register with Supabase
       const { data, error } = await supabase.auth.signUp({
         email: registerData.email,
         password: registerData.password,
@@ -203,7 +192,7 @@ const Index = () => {
             last_name: lastName,
             phone: registerData.phone,
             cpf: registerData.cpf,
-            date_of_birth: formattedDate,
+            date_of_birth: registerData.date_of_birth,
             role: 'user'
           }
         }
@@ -232,63 +221,17 @@ const Index = () => {
         return;
       }
       
-      // Verify if user creation was successful but we need to manually populate profiles
-      if (data?.user?.id && !error) {
-        try {
-          // Ensure the profile entry exists by checking first
-          const { data: profileData, error: profileCheckError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .maybeSingle();
-            
-          console.log("Verificação de perfil:", { profileData, profileCheckError });
-            
-          // If profile doesn't exist, create it manually
-          if (!profileData && !profileCheckError) {
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert({
-                id: data.user.id,
-                first_name: firstName,
-                last_name: lastName,
-                email: registerData.email,
-                phone: registerData.phone,
-                cpf: registerData.cpf,
-                date_of_birth: formattedDate,
-                role: 'user'
-              });
-              
-            if (insertError) {
-              console.error("Erro ao inserir perfil:", insertError);
-              // Don't show this error to the user, we'll proceed with registration anyway
-            } else {
-              console.log("Perfil criado manualmente com sucesso");
-            }
-          }
-        } catch (profileError) {
-          console.error("Erro ao verificar/criar perfil:", profileError);
-          // Continue with registration process despite this error
-        }
-      }
-      
       // Registration successful
       toast({
         title: "Cadastro realizado com sucesso",
         description: "Verifique seu e-mail para confirmar o cadastro."
       });
       
-      // Additional toast for development information
-      toast({
-        title: "Email de confirmação enviado",
-        description: "Você pode precisar desativar a verificação de email nas configurações do Supabase durante o desenvolvimento."
-      });
-      
       setShowRegisterDialog(false);
       
-      // Optional: redirect to dashboard if email confirmation is disabled in Supabase
+      // If email confirmation is disabled in Supabase, redirect to dashboard
       if (data.session) {
-        navigate("/dashboard");
+        // Navigation happens automatically via the auth listener in App.tsx
       }
     } catch (error) {
       console.error("Registration error:", error);
@@ -297,10 +240,20 @@ const Index = () => {
         description: "Ocorreu um erro ao processar sua solicitação. Tente novamente.",
         variant: "destructive"
       });
-    } finally {
       setLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p>Verificando sessão...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row w-full max-h-screen overflow-hidden">
@@ -310,9 +263,9 @@ const Index = () => {
           <div className="mb-6 flex items-center justify-between">
             <Logo />
             <div>
-              <span className="text-gray-600 text-sm">Já tem conta?</span>{" "}
-              <Button variant="link" className="text-trade-blue p-0 text-sm" onClick={() => navigate("/dashboard")}>
-                Entrar
+              <span className="text-gray-600 text-sm">Não tem conta?</span>{" "}
+              <Button variant="link" className="text-trade-blue p-0 text-sm" onClick={() => setShowRegisterDialog(true)}>
+                Cadastrar
               </Button>
             </div>
           </div>
@@ -364,6 +317,7 @@ const Index = () => {
                 <Button 
                   variant="link" 
                   className="text-gray-600 p-0 text-sm"
+                  type="button"
                   onClick={() => setShowForgotPasswordDialog(true)}
                 >
                   Esqueceu a senha?
@@ -402,10 +356,10 @@ const Index = () => {
             {/* Left Section in Dialog - Blue Background */}
             <div className="bg-trade-blue w-full md:w-1/2 p-8 flex flex-col">
               <div className="flex space-x-6 mb-8 text-white">
-                <a href="https://painel.faroldomercado.com.br" className="text-base font-medium hover:underline">Site</a>
-                <a href="https://painel.faroldomercado.com/farolito-blog" className="text-base font-medium hover:underline">Blog</a>
-                <a href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" className="text-base font-medium hover:underline">Falar com Luma</a>
-                <a href="https://wa.me/5585996282222" className="text-base font-medium hover:underline">Ajuda</a>
+                <a href="/" className="text-base font-medium hover:underline">Site</a>
+                <a href="/" className="text-base font-medium hover:underline">Blog</a>
+                <a href="/" className="text-base font-medium hover:underline">Falar com Luma</a>
+                <a href="/" className="text-base font-medium hover:underline">Ajuda</a>
               </div>
               
               <div className="flex-1 flex flex-col justify-center max-w-md">
@@ -414,7 +368,7 @@ const Index = () => {
                 </h1>
                 <p className="text-white mb-8 text-sm">
                   você deve realizar o cadastro dos seus dados e do mentor. Após o registro, 
-                  acompanhe em seu e-mail as etapas para usar todas as funcionalidade e iniciar 
+                  acompanhe em seu e-mail as etapas para usar todas as funcionalidades e iniciar 
                   uma gestão inteligente em saúde corporativa.
                 </p>
               </div>
@@ -497,7 +451,7 @@ const Index = () => {
                     />
                   </div>
                   <p className="text-xs text-gray-500">
-                    A senha deve ter pelo menos 8 caracteres, sendo 1 número, 1 letra maiúscula e 1 caractere especial
+                    A senha deve ter pelo menos 8 caracteres
                   </p>
                 </div>
 
@@ -587,10 +541,10 @@ const Index = () => {
             {/* Left Section in Dialog - Blue Background */}
             <div className="bg-trade-blue w-full md:w-1/2 p-8 flex flex-col">
               <div className="flex space-x-6 mb-8 text-white">
-                <a href="https://painel.faroldomercado.com.br" className="text-base font-medium hover:underline">Site</a>
-                <a href="https://painel.faroldomercado.com/farolito-blog" className="text-base font-medium hover:underline">Blog</a>
-                <a href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" className="text-base font-medium hover:underline">Falar com Luma</a>
-                <a href="https://wa.me/5585996282222" className="text-base font-medium hover:underline">Ajuda</a>
+                <a href="/" className="text-base font-medium hover:underline">Site</a>
+                <a href="/" className="text-base font-medium hover:underline">Blog</a>
+                <a href="/" className="text-base font-medium hover:underline">Falar com Luma</a>
+                <a href="/" className="text-base font-medium hover:underline">Ajuda</a>
               </div>
               
               <div className="flex-1 flex flex-col justify-center max-w-md">

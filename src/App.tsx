@@ -27,17 +27,32 @@ function App() {
   // Check if user is authenticated on initial load and set up auth listener
   useEffect(() => {
     const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      const publicPaths = ['/', '/auth', '/register'];
-      
-      if (!data.session && !publicPaths.includes(location.pathname)) {
-        // Display toast only if not already on a public page
-        if (location.pathname !== '/auth') {
-          toast({
-            title: "Sessão expirada",
-            description: "Por favor, faça login novamente.",
-          });
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Session check error:", error);
+          navigate("/auth");
+          return;
         }
+        
+        const publicPaths = ['/', '/auth', '/register'];
+        
+        if (!data.session && !publicPaths.includes(location.pathname)) {
+          // Display toast only if not already on a public page
+          if (location.pathname !== '/auth') {
+            toast({
+              title: "Sessão expirada",
+              description: "Por favor, faça login novamente.",
+            });
+          }
+          navigate("/auth");
+        } else if (data.session && publicPaths.includes(location.pathname)) {
+          // If authenticated and on a public page, redirect to dashboard
+          navigate("/dashboard");
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
         navigate("/auth");
       }
     };
