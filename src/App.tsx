@@ -4,6 +4,7 @@ import {
   BrowserRouter as Router,
   Route,
   Routes,
+  Navigate
 } from "react-router-dom";
 import Footer from "@/components/Footer";
 import Index from "@/pages/Index";
@@ -36,7 +37,11 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/register" element={<AuthPage register={true} />} />
-                <Route path="/dashboard" element={<AppLayout><DashboardPage /></AppLayout>} />
+                <Route path="/dashboard" element={
+                  <AppLayout>
+                    <DashboardPage />
+                  </AppLayout>
+                } />
                 <Route path="/materials" element={<AppLayout><MaterialsPage /></AppLayout>} />
                 <Route path="/videos" element={<AppLayout><VideosPage /></AppLayout>} />
                 <Route path="/profile" element={<AppLayout><ProfilePage /></AppLayout>} />
