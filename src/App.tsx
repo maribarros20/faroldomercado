@@ -35,7 +35,8 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<AuthPage />} />
-              <Route path="/register" element={<AuthPage register />} />
+              {/* Fix the TypeScript error by using a JSX expression to pass props */}
+              <Route path="/register" element={<AuthPage register={true} />} />
               <Route path="/dashboard" element={<AppLayout><DashboardPage /></AppLayout>} />
               <Route path="/materials" element={<AppLayout><MaterialsPage /></AppLayout>} />
               <Route path="/videos" element={<AppLayout><VideosPage /></AppLayout>} />
