@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,13 +18,12 @@ type UserPlan = {
   features: string[];
   spreadsheet_url?: string;
 };
+
 const DashboardPage = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   // Check user plan
@@ -134,19 +134,21 @@ const DashboardPage = () => {
     }
     setActiveTab(value);
   };
-  return <div className="animate-fade-in container mx-auto px-4 py-6">
+
+  return (
+    <div className="animate-fade-in container mx-auto px-4 py-6">
       <h1 className="text-3xl font-bold mb-6">Painel do Mercado</h1>
       
-      <Tabs defaultValue="dashboard" value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="mb-6 w-full md:w-auto flex flex-wrap">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="dashboard">Carteira</TabsTrigger>
           <TabsTrigger value="market-news">Notícias</TabsTrigger>
           <TabsTrigger value="finance-spreadsheet">Mercado</TabsTrigger>
         </TabsList>
         
-        <Card>
-          <CardContent className="p-6">
-            <TabsContent value="dashboard" className="mt-0">
+        <TabsContent value="dashboard">
+          <Card>
+            <CardContent className="p-6">
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-bold">Acompanhamento da Carteira</h2>
@@ -160,18 +162,28 @@ const DashboardPage = () => {
                 
                 <MarketOverview />
               </div>
-            </TabsContent>
-            
-            <TabsContent value="market-news" className="mt-0">
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="market-news">
+          <Card>
+            <CardContent className="p-6">
               <MarketNews />
-            </TabsContent>
-            
-            <TabsContent value="finance-spreadsheet" className="mt-0">
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="finance-spreadsheet">
+          <Card>
+            <CardContent className="p-6">
               <FinanceSpreadsheet spreadsheetUrl={userPlan?.spreadsheet_url} />
-            </TabsContent>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
-    </div>;
+    </div>
+  );
 };
+
 export default DashboardPage;
