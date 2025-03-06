@@ -16,12 +16,19 @@ import {
   BookMarked,
   LineChart,
   User,
+  BellRing,
+  ExternalLink,
+  HelpCircle,
+  Sparkles,
+  Globe,
 } from "lucide-react";
 import { Sidebar as UISidebar, useSidebar, SidebarProvider, Trigger, Header, Section, Content, Footer } from "@/components/ui/sidebar";
 import Logo from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
+import NotificationPopover from "@/components/notifications/NotificationPopover";
+import { useNotifications } from "@/hooks/use-notifications";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -32,6 +39,7 @@ const Sidebar = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const { expanded, setExpanded } = useSidebar();
+  const { unreadCount } = useNotifications();
 
   // Fetch user details
   useEffect(() => {
@@ -126,7 +134,7 @@ const Sidebar = () => {
           <NavItem
             to="/dashboard"
             icon={<LayoutDashboard size={20} />}
-            text="Painéis"
+            text="Radar"
             active={isActive("/dashboard")}
             expanded={expanded}
           />
@@ -134,7 +142,7 @@ const Sidebar = () => {
           <NavItem
             to="/materials"
             icon={<BookOpen size={20} />}
-            text="Materiais"
+            text="Documentos"
             active={isActive("/materials")}
             expanded={expanded}
           />
@@ -150,7 +158,7 @@ const Sidebar = () => {
           <NavItem
             to="/progress"
             icon={<TrendingUp size={20} />}
-            text="Progresso"
+            text="Desempenho"
             active={isActive("/progress")}
             expanded={expanded}
           />
@@ -158,7 +166,7 @@ const Sidebar = () => {
           <NavItem
             to="/community"
             icon={<Users size={20} />}
-            text="Comunidade"
+            text="Faróverso"
             active={isActive("/community")}
             expanded={expanded}
           />
@@ -189,36 +197,101 @@ const Sidebar = () => {
             />
           )}
         </Section>
+
+        {/* External Links Section */}
+        {expanded && (
+          <Section className="mt-6 px-3 space-y-1">
+            <div className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-3">
+              Links Úteis
+            </div>
+            
+            <a 
+              href="https://www.faroldomercado.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              <Globe className="w-5 h-5 mr-3" />
+              Site Farol
+            </a>
+
+            <a 
+              href="https://painel.faroldomercado.com/farolito" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              <BookMarked className="w-5 h-5 mr-3" />
+              Blog Farolito
+            </a>
+
+            <a 
+              href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              <Sparkles className="w-5 h-5 mr-3" />
+              Luma IA
+            </a>
+
+            <a 
+              href="https://wa.me/5511999999999" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              <HelpCircle className="w-5 h-5 mr-3" />
+              Ajuda
+            </a>
+          </Section>
+        )}
       </Content>
       
       <Footer className="border-t p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
-              ) : (
-                <User size={20} className="text-gray-500" />
+        <div className="flex flex-col space-y-4">
+          {expanded && (
+            <NotificationPopover>
+              <button className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+                <BellRing className="w-5 h-5 mr-3" />
+                <span className="flex-1">Notificações</span>
+                {unreadCount > 0 && (
+                  <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            </NotificationPopover>
+          )}
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
+                ) : (
+                  <User size={20} className="text-gray-500" />
+                )}
+              </div>
+              {expanded && (
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium truncate max-w-32">
+                    {userName || "Usuário"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {userRole === "admin" ? "Administrador" : "Usuário"}
+                  </span>
+                </div>
               )}
             </div>
-            {expanded && (
-              <div className="flex flex-col">
-                <span className="text-sm font-medium truncate max-w-32">
-                  {userName || "Usuário"}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {userRole === "admin" ? "Administrador" : "Usuário"}
-                </span>
-              </div>
-            )}
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-full hover:bg-gray-100"
+              title="Sair"
+            >
+              <LogOut size={20} className="text-gray-500" />
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="p-2 rounded-full hover:bg-gray-100"
-            title="Sair"
-          >
-            <LogOut size={20} className="text-gray-500" />
-          </button>
         </div>
       </Footer>
     </UISidebar>
