@@ -7,6 +7,9 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarTrigger,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -152,20 +155,21 @@ const Sidebar = () => {
       <SidebarContent>
         <ScrollArea className="h-[calc(100vh-8rem)]">
           <div className="px-3 py-2">
-            <nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2">
+            <SidebarMenu>
               {menuItems.map((item, index) => (
-                <Link
-                  key={index}
-                  to={item.href}
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground ${
-                    location.pathname === item.href ? "bg-accent text-accent-foreground" : ""
-                  }`}
-                >
-                  {item.icon}
-                  <span className="text-sm">{item.title}</span>
-                </Link>
+                <SidebarMenuItem key={index}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === item.href}
+                  >
+                    <Link to={item.href}>
+                      {item.icon}
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               ))}
-            </nav>
+            </SidebarMenu>
           </div>
         </ScrollArea>
       </SidebarContent>
