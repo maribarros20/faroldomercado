@@ -18,7 +18,8 @@ import {
   History,
   Bookmark,
   Clock,
-  CheckCircle
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -31,6 +32,10 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { Spinner } from "@/components/ui/spinner";
 
 // Types
 enum Level {
@@ -49,15 +54,18 @@ type MaterialCategory = {
 type Material = {
   id: string;
   title: string;
-  description: string;
-  type: "pdf" | "excel" | "doc";
-  addedTime: string;
+  description: string | null;
+  type: string;
+  addedTime?: string;
+  date_added: string;
   category: string;
-  level: Level;
+  level?: Level;
   progress?: number;
   isFavorite?: boolean;
   isLocked?: boolean;
-  tags: string[];
+  tags?: string[];
+  file_url?: string | null;
+  downloads: number;
 };
 
 type LearningPath = {
@@ -71,7 +79,7 @@ type LearningPath = {
   image: string;
 };
 
-// Sample data
+// Sample categories data (this could be moved to the database later)
 const categories: MaterialCategory[] = [
   { 
     id: "1", 
@@ -111,96 +119,7 @@ const categories: MaterialCategory[] = [
   },
 ];
 
-const materials: Material[] = [
-  {
-    id: "1",
-    title: "Introdução à Análise Técnica",
-    description: "Aprenda os fundamentos da análise técnica e padrões gráficos",
-    type: "pdf",
-    addedTime: "2 dias",
-    category: "Análise Técnica",
-    level: Level.BEGINNER,
-    progress: 75,
-    isFavorite: true,
-    tags: ["análise técnica", "iniciante", "gráficos"]
-  },
-  {
-    id: "2",
-    title: "Modelo de Calculadora de Risco",
-    description: "Calcular tamanhos de posição e parâmetros de gerenciamento de risco",
-    type: "excel",
-    addedTime: "1 semana",
-    category: "Gestão de Risco",
-    level: Level.INTERMEDIATE,
-    progress: 30,
-    tags: ["gestão de risco", "calculadora", "intermediário"]
-  },
-  {
-    id: "3",
-    title: "Modelo de diário de negociação",
-    description: "Acompanhe suas negociações e analise seu desempenho",
-    type: "doc",
-    addedTime: "2 semanas",
-    category: "Psicologia do Trader",
-    level: Level.BEGINNER,
-    progress: 100,
-    isFavorite: true,
-    tags: ["psicologia", "diário", "desempenho"]
-  },
-  {
-    id: "4",
-    title: "Guia de Análise Fundamental",
-    description: "Guia completo para análise de demonstrações financeiras",
-    type: "pdf",
-    addedTime: "3 semanas",
-    category: "Macroeconomia",
-    level: Level.INTERMEDIATE,
-    tags: ["macroeconomia", "análise", "finanças"]
-  },
-  {
-    id: "5",
-    title: "Fundamentos da psicologia de negociação",
-    description: "Domine os aspectos mentais da negociação",
-    type: "pdf",
-    addedTime: "1 mês",
-    category: "Psicologia do Trader",
-    level: Level.BEGINNER,
-    progress: 50,
-    tags: ["psicologia", "negociação", "aspectos mentais"]
-  },
-  {
-    id: "6",
-    title: "Rastreador de Portfólio",
-    description: "Acompanhe e analise seu portfólio de investimentos",
-    type: "excel",
-    addedTime: "1 mês",
-    category: "Gestão de Risco",
-    level: Level.INTERMEDIATE,
-    tags: ["portfólio", "gestão", "investimentos"]
-  },
-  {
-    id: "7",
-    title: "Estratégias avançadas de Day Trading",
-    description: "Técnicas e estratégias para operações intradiárias",
-    type: "pdf",
-    addedTime: "2 meses",
-    category: "Estratégias de Trading",
-    level: Level.ADVANCED,
-    isLocked: true,
-    tags: ["day trading", "estratégias", "avançado"]
-  },
-  {
-    id: "8",
-    title: "Interpretação de Dados Econômicos",
-    description: "Como interpretar relatórios e dados macroeconômicos",
-    type: "pdf",
-    addedTime: "3 meses",
-    category: "Dados Econômicos",
-    level: Level.INTERMEDIATE,
-    tags: ["dados", "economia", "relatórios"]
-  },
-];
-
+// Sample learning paths data
 const learningPaths: LearningPath[] = [
   {
     id: "1",
@@ -250,69 +169,198 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
 };
 
-const getTypeIcon = (type: string) => {
-  switch (type) {
-    case "pdf":
-      return (
-        <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-          <FileText size={20} className="text-red-500" />
-        </div>
-      );
-    case "excel":
-      return (
-        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-          <FileText size={20} className="text-green-500" />
-        </div>
-      );
-    default:
-      return (
-        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-          <FileText size={20} className="text-blue-500" />
-        </div>
-      );
-  }
-};
-
-const getLevelBadge = (level: Level) => {
-  switch (level) {
-    case Level.BEGINNER:
-      return <Badge className="bg-green-500 hover:bg-green-600">{level}</Badge>;
-    case Level.INTERMEDIATE:
-      return <Badge className="bg-blue-500 hover:bg-blue-600">{level}</Badge>;
-    case Level.ADVANCED:
-      return <Badge className="bg-purple-500 hover:bg-purple-600">{level}</Badge>;
-    default:
-      return null;
-  }
-};
-
 export default function MaterialsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<Level | null>(null);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Fetch materials from Supabase
+  const { data: materials, isLoading, isError } = useQuery({
+    queryKey: ['materials'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('materials')
+        .select('*')
+        .order('date_added', { ascending: false });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Add some default values for the UI
+      return data.map((material: any) => ({
+        ...material,
+        level: Level.BEGINNER, // You could make this dynamic based on some criteria
+        // Convert the PostgreSQL timestamp to a relative time string
+        addedTime: getRelativeTimeString(new Date(material.date_added)),
+        // Set a default progress for UI demonstration
+        progress: Math.floor(Math.random() * 100),
+        // Random selection of materials as favorites for demo
+        isFavorite: Math.random() > 0.5,
+        // Lock some advanced materials for premium users
+        isLocked: material.category === "Estratégias de Trading" && Math.random() > 0.5,
+        // Generate some tags based on properties
+        tags: [material.category.toLowerCase(), material.type.toLowerCase()]
+      })) as Material[];
+    }
+  });
+
+  // Function to convert date to relative time string
+  const getRelativeTimeString = (date: Date): string => {
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays < 1) {
+      return 'hoje';
+    } else if (diffInDays === 1) {
+      return '1 dia';
+    } else if (diffInDays < 7) {
+      return `${diffInDays} dias`;
+    } else if (diffInDays < 30) {
+      const weeks = Math.floor(diffInDays / 7);
+      return weeks === 1 ? '1 semana' : `${weeks} semanas`;
+    } else if (diffInDays < 365) {
+      const months = Math.floor(diffInDays / 30);
+      return months === 1 ? '1 mês' : `${months} meses`;
+    } else {
+      const years = Math.floor(diffInDays / 365);
+      return years === 1 ? '1 ano' : `${years} anos`;
+    }
+  };
+
+  // Mutation for incrementing download count
+  const incrementDownloadMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const material = materials?.find(m => m.id === id);
+      if (!material) throw new Error("Material não encontrado");
+      
+      const { data, error } = await supabase
+        .from('materials')
+        .update({ downloads: material.downloads + 1 })
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['materials'] });
+    },
+    onError: (error: any) => {
+      console.error('Erro ao incrementar downloads:', error);
+    }
+  });
   
   const toggleFavorite = (id: string) => {
     // In a real app, this would update state or call an API
     console.log(`Toggle favorite for material ${id}`);
   };
 
-  const filteredMaterials = materials.filter(material => {
+  // Download a material and increment download count
+  const handleDownload = (material: Material) => {
+    if (material.file_url) {
+      // Open file in new tab
+      window.open(material.file_url, '_blank');
+      
+      // Increment download count
+      incrementDownloadMutation.mutate(material.id);
+    } else {
+      toast({
+        title: "Arquivo não disponível",
+        description: "Este material não possui um arquivo para download.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const filteredMaterials = materials?.filter(material => {
     const matchesSearch = material.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          material.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          material.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+                          material.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (material.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ?? false);
     
     const matchesCategory = selectedCategory ? material.category === selectedCategory : true;
     const matchesLevel = selectedLevel ? material.level === selectedLevel : true;
     const matchesFavorites = showOnlyFavorites ? material.isFavorite : true;
     
     return matchesSearch && matchesCategory && matchesLevel && matchesFavorites;
-  });
+  }) || [];
 
-  const favoritesMaterials = materials.filter(m => m.isFavorite);
-  const inProgressMaterials = materials.filter(m => m.progress && m.progress > 0 && m.progress < 100);
-  const completedMaterials = materials.filter(m => m.progress === 100);
+  const favoritesMaterials = materials?.filter(m => m.isFavorite) || [];
+  const inProgressMaterials = materials?.filter(m => m.progress && m.progress > 0 && m.progress < 100) || [];
+  const completedMaterials = materials?.filter(m => m.progress === 100) || [];
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case "pdf":
+        return (
+          <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+            <FileText size={20} className="text-red-500" />
+          </div>
+        );
+      case "excel":
+        return (
+          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+            <FileText size={20} className="text-green-500" />
+          </div>
+        );
+      default:
+        return (
+          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+            <FileText size={20} className="text-blue-500" />
+          </div>
+        );
+    }
+  };
+
+  const getLevelBadge = (level?: Level) => {
+    if (!level) return null;
+    
+    switch (level) {
+      case Level.BEGINNER:
+        return <Badge className="bg-green-500 hover:bg-green-600">{level}</Badge>;
+      case Level.INTERMEDIATE:
+        return <Badge className="bg-blue-500 hover:bg-blue-600">{level}</Badge>;
+      case Level.ADVANCED:
+        return <Badge className="bg-purple-500 hover:bg-purple-600">{level}</Badge>;
+      default:
+        return null;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12 min-h-screen">
+        <div className="text-center">
+          <Spinner className="h-10 w-10 mx-auto mb-4" />
+          <p>Carregando materiais...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center p-12 min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="h-10 w-10 mx-auto mb-4 text-red-500" />
+          <h3 className="text-lg font-semibold mb-2">Erro ao carregar materiais</h3>
+          <p>Ocorreu um erro ao carregar os materiais. Por favor, tente novamente mais tarde.</p>
+          <Button 
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['materials'] })}
+            className="mt-4"
+          >
+            Tentar novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in p-4 max-w-7xl mx-auto">
@@ -595,8 +643,18 @@ export default function MaterialsPage() {
                     <Clock size={14} />
                     Adicionado há {material.addedTime}
                   </span>
-                  <Button size="sm" variant="outline" className="rounded-full h-8 w-8 p-0">
-                    <Download size={16} />
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="rounded-full h-8 w-8 p-0"
+                    onClick={() => handleDownload(material)}
+                    disabled={incrementDownloadMutation.isPending}
+                  >
+                    {incrementDownloadMutation.isPending && incrementDownloadMutation.variables === material.id ? (
+                      <Spinner className="h-4 w-4" />
+                    ) : (
+                      <Download size={16} />
+                    )}
                   </Button>
                 </div>
               </div>

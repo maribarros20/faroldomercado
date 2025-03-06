@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          entity_id: string
+          entity_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       community_channels: {
         Row: {
           company_id: string | null
@@ -85,6 +115,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      materials: {
+        Row: {
+          category: string
+          created_by: string | null
+          date_added: string | null
+          description: string | null
+          downloads: number | null
+          file_url: string | null
+          id: string
+          thumbnail_url: string | null
+          title: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_by?: string | null
+          date_added?: string | null
+          description?: string | null
+          downloads?: number | null
+          file_url?: string | null
+          id?: string
+          thumbnail_url?: string | null
+          title: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_by?: string | null
+          date_added?: string | null
+          description?: string | null
+          downloads?: number | null
+          file_url?: string | null
+          id?: string
+          thumbnail_url?: string | null
+          title?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       mentors: {
         Row: {

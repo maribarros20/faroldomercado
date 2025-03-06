@@ -9,48 +9,68 @@ import AdminSubscribers from "@/components/admin/AdminSubscribers";
 import AdminMaterials from "@/components/admin/AdminMaterials";
 import AdminVideos from "@/components/admin/AdminVideos";
 import AdminPlans from "@/components/admin/AdminPlans";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import MarketNews from "@/components/admin/MarketNews";
 import FinanceSpreadsheet from "@/components/admin/FinanceSpreadsheet";
+import { Shield, AlertCircle } from "lucide-react";
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("subscribers");
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  // Check if the user is an admin
-  const { data: isAdmin, isLoading } = useQuery({
+  // Check if the user is an admin with enhanced error handling
+  const { data: isAdmin, isLoading, isError, error } = useQuery({
     queryKey: ['check-admin'],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        return false;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          return false;
+        }
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (error) {
+          console.error('Erro ao verificar status de admin:', error);
+          throw new Error(error.message);
+        }
+        
+        return data?.role === 'admin';
+      } catch (err) {
+        console.error('Erro ao verificar status de admin:', err);
+        throw err;
       }
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (error) {
-        console.error('Erro ao verificar status de admin:', error);
-        return false;
-      }
-      
-      return data?.role === 'admin';
     },
-    meta: {
-      onError: (error: any) => {
-        console.error('Erro ao verificar status de admin:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível verificar suas permissões",
-          variant: "destructive"
-        });
-      }
+    onError: (err: any) => {
+      console.error('Erro ao verificar status de admin:', err);
+      toast({
+        title: "Erro",
+        description: "Não foi possível verificar suas permissões: " + (err.message || 'Erro desconhecido'),
+        variant: "destructive"
+      });
     }
   });
+
+  // Set up auth state listener
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          navigate('/auth');
+        }
+      }
+    );
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   // Redirect if not an admin
   useEffect(() => {
@@ -62,7 +82,7 @@ const AdminPage = () => {
       });
       navigate('/dashboard');
     }
-  }, [isAdmin, isLoading, navigate]);
+  }, [isAdmin, isLoading, navigate, toast]);
 
   if (isLoading) {
     return (
@@ -72,8 +92,44 @@ const AdminPage = () => {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center p-6 max-w-md">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Erro ao verificar permissões</h2>
+          <p className="text-gray-600 mb-4">
+            {error instanceof Error ? error.message : "Ocorreu um erro ao verificar suas permissões."}
+          </p>
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Voltar para o Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAdmin) {
-    return null; // Will redirect in useEffect
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center p-6 max-w-md">
+          <Shield className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Acesso Restrito</h2>
+          <p className="text-gray-600 mb-4">
+            Esta área é reservada para administradores. Você não tem permissão para acessar este conteúdo.
+          </p>
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Voltar para o Dashboard
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
