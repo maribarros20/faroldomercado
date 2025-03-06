@@ -74,7 +74,7 @@ const ProfileSettingsPage = () => {
               phone: userMetadata.phone || null,
               cpf: userMetadata.cpf || null,
               date_of_birth: userMetadata.date_of_birth || new Date().toISOString().split('T')[0],
-              role: "user"
+              role: "user" as "user" | "admin" // Fixed: explicit type cast to enum type
             };
             
             console.log("Creating new profile with data:", newProfile);

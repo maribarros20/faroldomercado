@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import ProfilePictureUploader from "@/components/ProfilePictureUploader";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { Profile } from "@/types/community";
 
 export default function Profile() {
   const [user, setUser] = useState<any>(null);
@@ -40,7 +41,7 @@ export default function Profile() {
                 phone: userMeta?.phone || null,
                 cpf: userMeta?.cpf || null,
                 date_of_birth: userMeta?.date_of_birth || new Date().toISOString().split('T')[0],
-                role: "user"
+                role: "user" as "user" | "admin" // Fixed: explicit type cast to enum type
               };
               
               const { error: insertError } = await supabase
