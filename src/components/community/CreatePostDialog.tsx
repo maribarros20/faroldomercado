@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,16 +19,19 @@ interface CreatePostDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   channelId: string;
+  onPostCreated?: () => void; // Make this prop optional
 }
 
 const CreatePostDialog: React.FC<CreatePostDialogProps> = ({ 
   open, 
   onOpenChange,
-  channelId
+  channelId,
+  onPostCreated
 }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Create post mutation
   const createPostMutation = useMutation({
@@ -103,9 +105,26 @@ const CreatePostDialog: React.FC<CreatePostDialogProps> = ({
     }
   });
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    createPostMutation.mutate();
+    setIsSubmitting(true);
+    
+    try {
+      createPostMutation.mutate();
+      
+      if (props.onPostCreated) {
+        props.onPostCreated();
+      }
+    } catch (error) {
+      console.error("Error creating post:", error);
+      toast({
+        title: "Erro ao criar post",
+        description: error instanceof Error ? error.message : "Não foi possível criar o post. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

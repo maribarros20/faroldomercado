@@ -311,10 +311,12 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          canceled_at: string | null
           created_at: string | null
           expires_at: string | null
           id: string
           is_active: boolean | null
+          is_canceled: boolean | null
           payment_method_id: string
           plan_id: string
           started_at: string | null
@@ -322,10 +324,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          canceled_at?: string | null
           created_at?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_canceled?: boolean | null
           payment_method_id: string
           plan_id: string
           started_at?: string | null
@@ -333,10 +337,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          canceled_at?: string | null
           created_at?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_canceled?: boolean | null
           payment_method_id?: string
           plan_id?: string
           started_at?: string | null

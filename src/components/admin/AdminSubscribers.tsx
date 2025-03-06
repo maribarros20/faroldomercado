@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,6 @@ type User = {
   profile?: {
     first_name: string;
     last_name: string;
-    company: string;
     cnpj: string;
     phone: string;
     cpf: string;
@@ -31,9 +29,10 @@ type Subscription = {
   id: string;
   user_id: string;
   plan_id: string;
-  status: string; // Add a computed status property
+  status: string; // Computed status property
   created_at: string;
-  is_active: boolean; // Renamed from status to is_active
+  is_active: boolean;
+  is_canceled: boolean;
   expires_at: string;
   plan?: {
     name: string;
@@ -93,7 +92,7 @@ const AdminSubscribers = () => {
       // Transform subscription data to include the status property
       const processedSubscriptions = subscriptionsData?.map((sub: any) => ({
         ...sub,
-        status: sub.is_active ? 'active' : 'inactive' // Compute status from is_active
+        status: sub.is_canceled ? 'canceled' : (sub.is_active ? 'active' : 'inactive')
       })) || [];
 
       setSubscribers(usersWithProfiles);
@@ -177,8 +176,12 @@ const AdminSubscribers = () => {
                         {subscription?.plan?.name || "Sem plano"}
                       </td>
                       <td className="py-3">
-                        <Badge variant={subscription?.status === "active" ? "outline" : "secondary"}>
-                          {subscription?.status || "Inativo"}
+                        <Badge variant={
+                          subscription?.status === "active" ? "outline" : 
+                          subscription?.status === "canceled" ? "destructive" : "secondary"
+                        }>
+                          {subscription?.status === "active" ? "Ativo" : 
+                           subscription?.status === "canceled" ? "Cancelado" : "Inativo"}
                         </Badge>
                       </td>
                       <td className="py-3">{formatDate(subscriber.last_sign_in_at)}</td>

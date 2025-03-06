@@ -7,11 +7,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { User, Bell, Shield, Key, File, CreditCard, Phone } from "lucide-react";
+import { User, Bell, Shield, Key, File, CreditCard, Phone, CreditCard as PaymentIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import SubscriptionManager from "@/components/SubscriptionManager";
 
 const ProfileSettingsPage = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -23,7 +24,6 @@ const ProfileSettingsPage = () => {
     firstName: "",
     lastName: "",
     email: "",
-    company: "",
     cnpj: "",
     phone: "",
     cpf: "",
@@ -79,7 +79,6 @@ const ProfileSettingsPage = () => {
               firstName: profile.first_name || "",
               lastName: profile.last_name || "",
               email: user.email || "",
-              company: profile.cnpj || "",
               cnpj: profile.cnpj || "",
               phone: profile.phone || "",
               cpf: profile.cpf || "",
@@ -259,10 +258,14 @@ const ProfileSettingsPage = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 lg:grid-cols-4 mb-8">
+        <TabsList className="grid grid-cols-2 lg:grid-cols-5 mb-8">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User size={16} />
             <span>Perfil</span>
+          </TabsTrigger>
+          <TabsTrigger value="subscription" className="flex items-center gap-2">
+            <PaymentIcon size={16} />
+            <span>Assinatura</span>
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Key size={16} />
@@ -352,16 +355,6 @@ const ProfileSettingsPage = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="company">Empresa</Label>
-                    <Input
-                      id="company"
-                      name="company"
-                      value={formData.company}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
                     <Label htmlFor="cnpj">CNPJ</Label>
                     <Input
                       id="cnpj"
@@ -395,6 +388,10 @@ const ProfileSettingsPage = () => {
               </form>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="subscription">
+          <SubscriptionManager />
         </TabsContent>
         
         <TabsContent value="security">
