@@ -13,6 +13,7 @@ import VideosPage from "./pages/VideosPage";
 import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
 import ProfileSettingsPage from "./pages/ProfileSettingsPage";
+import Profile from "./pages/Profile";
 import PlansPage from "./pages/PlansPage";
 import ProgressPage from "./pages/ProgressPage";
 import CommunityPage from "./pages/CommunityPage";
@@ -95,6 +96,11 @@ const App = () => {
                 </ProtectedRoute>
               } />
               <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile-settings" element={
                 <ProtectedRoute>
                   <ProfileSettingsPage />
                 </ProtectedRoute>

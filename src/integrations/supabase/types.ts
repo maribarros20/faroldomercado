@@ -86,6 +86,51 @@ export type Database = {
           },
         ]
       }
+      mentors: {
+        Row: {
+          cnpj: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string
+        }
+        Insert: {
+          cnpj: string
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          phone: string
+        }
+        Update: {
+          cnpj?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
+        }
+        Relationships: []
+      }
+      payment_methods: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       plan_features: {
         Row: {
           created_at: string | null
@@ -122,33 +167,39 @@ export type Database = {
         Row: {
           created_at: string | null
           description: string
+          duration_days: number
           id: string
           is_active: boolean | null
           is_popular: boolean | null
           monthly_price: number | null
           name: string
+          trial_days: number
           updated_at: string | null
           yearly_price: number | null
         }
         Insert: {
           created_at?: string | null
           description: string
+          duration_days?: number
           id?: string
           is_active?: boolean | null
           is_popular?: boolean | null
           monthly_price?: number | null
           name: string
+          trial_days?: number
           updated_at?: string | null
           yearly_price?: number | null
         }
         Update: {
           created_at?: string | null
           description?: string
+          duration_days?: number
           id?: string
           is_active?: boolean | null
           is_popular?: boolean | null
           monthly_price?: number | null
           name?: string
+          trial_days?: number
           updated_at?: string | null
           yearly_price?: number | null
         }
@@ -195,38 +246,68 @@ export type Database = {
       profiles: {
         Row: {
           cnpj: string | null
-          company: string | null
           cpf: string | null
-          first_name: string | null
+          date_of_birth: string
+          email: string
+          first_name: string
           id: string
-          last_name: string | null
+          last_name: string
+          mentor_id: string | null
           phone: string | null
+          photo: string | null
+          plan_id: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string | null
+          username: string | null
         }
         Insert: {
           cnpj?: string | null
-          company?: string | null
           cpf?: string | null
-          first_name?: string | null
+          date_of_birth: string
+          email: string
+          first_name: string
           id: string
-          last_name?: string | null
+          last_name: string
+          mentor_id?: string | null
           phone?: string | null
+          photo?: string | null
+          plan_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
+          username?: string | null
         }
         Update: {
           cnpj?: string | null
-          company?: string | null
           cpf?: string | null
-          first_name?: string | null
+          date_of_birth?: string
+          email?: string
+          first_name?: string
           id?: string
-          last_name?: string | null
+          last_name?: string
+          mentor_id?: string | null
           phone?: string | null
+          photo?: string | null
+          plan_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
+          username?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_mentor_id_fkey"
+            columns: ["mentor_id"]
+            isOneToOne: false
+            referencedRelation: "mentors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscriptions: {
         Row: {
@@ -234,7 +315,7 @@ export type Database = {
           expires_at: string | null
           id: string
           is_active: boolean | null
-          payment_type: string | null
+          payment_method_id: string
           plan_id: string
           started_at: string | null
           updated_at: string | null
@@ -245,7 +326,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
-          payment_type?: string | null
+          payment_method_id: string
           plan_id: string
           started_at?: string | null
           updated_at?: string | null
@@ -256,13 +337,20 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
-          payment_type?: string | null
+          payment_method_id?: string
           plan_id?: string
           started_at?: string | null
           updated_at?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "subscriptions_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subscriptions_plan_id_fkey"
             columns: ["plan_id"]
@@ -404,6 +492,12 @@ export type Database = {
       }
     }
     Enums: {
+      payment_type_enum:
+        | "sem_pagamento"
+        | "cartao_credito_vista"
+        | "cartao_credito_parcelado"
+        | "pix"
+        | "boleto"
       user_role: "user" | "admin"
     }
     CompositeTypes: {
