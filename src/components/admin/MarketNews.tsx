@@ -213,8 +213,13 @@ const MarketNews = () => {
       } else {
         // Criar nova notícia
         const newNews = await createNews({
-          ...values,
-          publication_date: values.publication_date ? new Date(values.publication_date).toISOString() : undefined
+          title: values.title, // Garantir que title é fornecido
+          content: values.content, // Garantir que content é fornecido
+          subtitle: values.subtitle,
+          publication_date: values.publication_date ? new Date(values.publication_date).toISOString() : undefined,
+          author: values.author,
+          category: values.category,
+          image_url: values.image_url
         });
         
         // Adicionar à lista
