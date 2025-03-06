@@ -34,7 +34,7 @@ export const cleanTextContent = (text?: string): string => {
   if (!text) return '';
   
   // Remove CDATA tags
-  const withoutCDATA = text.replace(/(\[CDATA\[|\]\]>)/g, '');
+  const withoutCDATA = text.replace(/(\<\!\[CDATA\[|\]\]\>)/g, '');
   
   // Remove HTML tags but preserve content
   const withoutHTML = withoutCDATA.replace(/<[^>]*>?/gm, '');
