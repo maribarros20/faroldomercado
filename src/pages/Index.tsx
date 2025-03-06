@@ -437,12 +437,13 @@ const Index = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="cnpj">CNPJ</Label>
+                  <Label htmlFor="cnpj">CNPJ da empresa ou do mentor</Label>
                   <Input 
                     id="cnpj" 
                     name="cnpj" 
                     value={registerData.cnpj}
                     onChange={handleRegisterChange}
+                    placeholder="Digite o CNPJ da empresa ou do mentor"
                   />
                 </div>
                 

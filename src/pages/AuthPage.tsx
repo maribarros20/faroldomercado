@@ -352,14 +352,14 @@ const AuthPage = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="cnpj">CNPJ</Label>
+                  <Label htmlFor="cnpj">CNPJ da empresa ou do mentor</Label>
                   <div className="relative">
                     <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <Input 
                       id="cnpj" 
                       value={cnpj}
                       onChange={(e) => setCnpj(e.target.value)}
-                      placeholder="Digite o CNPJ"
+                      placeholder="Digite o CNPJ da empresa ou do mentor"
                       className="pl-10"
                     />
                   </div>
