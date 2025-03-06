@@ -178,8 +178,19 @@ const Index = () => {
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
       
-      // Register with Supabase - Modified to remove the CNPJ field
-      const { error } = await supabase.auth.signUp({
+      // Adicionar logs para debug
+      console.log("Enviando dados de registro:", {
+        email: registerData.email,
+        password: "***",
+        firstName,
+        lastName,
+        phone: registerData.phone,
+        cpf: registerData.cpf,
+        date_of_birth: registerData.date_of_birth
+      });
+      
+      // Register with Supabase - Fixed format for user meta data
+      const { data, error } = await supabase.auth.signUp({
         email: registerData.email,
         password: registerData.password,
         options: {
@@ -188,10 +199,13 @@ const Index = () => {
             last_name: lastName,
             phone: registerData.phone,
             cpf: registerData.cpf,
-            date_of_birth: registerData.date_of_birth
+            date_of_birth: registerData.date_of_birth,
+            role: 'user'
           }
         }
       });
+      
+      console.log("Resposta do registro:", { data, error });
       
       if (error) {
         toast({
@@ -203,12 +217,35 @@ const Index = () => {
         return;
       }
       
+      // Verificar se o registro foi bem-sucedido mas precisa de confirmação de email
+      if (data?.user?.identities?.length === 0) {
+        toast({
+          title: "E-mail já cadastrado",
+          description: "Este e-mail já está cadastrado no sistema. Tente fazer login ou recuperar sua senha.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+      
+      // Registro bem-sucedido
       toast({
         title: "Cadastro realizado com sucesso",
         description: "Verifique seu e-mail para confirmar o cadastro."
       });
       
+      // Para facilitar o teste, vamos adicionar um toast informando que o email de confirmação foi enviado
+      toast({
+        title: "Email de confirmação enviado",
+        description: "Você pode precisar desativar a verificação de email nas configurações do Supabase durante o desenvolvimento."
+      });
+      
       setShowRegisterDialog(false);
+      
+      // Opcional: redirecionar para o dashboard se a confirmação de email estiver desativada no Supabase
+      if (data.session) {
+        navigate("/dashboard");
+      }
     } catch (error) {
       console.error("Registration error:", error);
       toast({
