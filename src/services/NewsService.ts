@@ -11,6 +11,7 @@ export interface NewsItem {
   category?: string;
   image_url?: string;
   source?: string; // Para diferenciar entre notícias manuais e da API
+  source_url?: string; // URL original da notícia
   created_at?: string;
   updated_at?: string;
 }
@@ -51,55 +52,62 @@ export const fetchManualNews = async (): Promise<NewsItem[]> => {
   }
 };
 
-// Função para buscar notícias de APIs externas
-export const fetchExternalNews = async (): Promise<NewsItem[]> => {
+// Função para buscar notícias de APIs externas e RSS feeds
+export const fetchExternalNews = async (category?: string): Promise<NewsItem[]> => {
   try {
-    // Exemplo usando API gratuita do marketaux.com (limitada, mas útil para demonstração)
-    // Em produção, seria necessário substituir por uma API mais robusta
-    const response = await fetch(
-      'https://api.marketaux.com/v1/news/all?symbols=AAPL,TSLA,MSFT&filter_entities=true&language=pt&api_token=demo'
-    );
+    // Chamada para a edge function que lida com as integrações externas
+    const { data, error } = await supabase.functions.invoke('fetch-news', {
+      body: { category }
+    });
     
-    if (!response.ok) {
-      throw new Error(`Erro na API: ${response.status}`);
+    if (error) {
+      console.error("Erro ao buscar notícias externas:", error);
+      return [];
     }
     
-    const data = await response.json();
-    
-    // Transformar os dados da API no formato esperado
-    return data.data.map((item: any) => ({
-      id: `ext-${item.uuid || Math.random().toString(36).substring(2, 15)}`,
-      title: item.title,
-      subtitle: item.description,
-      content: item.snippet,
-      publication_date: item.published_at,
-      author: item.source,
-      category: "Mercado de Ações",
-      image_url: item.image_url,
-      source: 'api',
-      created_at: item.published_at,
-      updated_at: item.published_at
-    }));
+    return data;
   } catch (error) {
     console.error("Erro ao buscar notícias externas:", error);
-    // Retornar array vazio em caso de erro, para não quebrar a aplicação
     return [];
   }
 };
 
-// Buscar todas as notícias (manuais + APIs)
-export const fetchAllNews = async (): Promise<NewsItem[]> => {
+// Buscar todas as notícias (manuais + APIs + RSS)
+export const fetchAllNews = async (
+  category?: string, 
+  search?: string
+): Promise<NewsItem[]> => {
   try {
     const [manualNews, externalNews] = await Promise.all([
       fetchManualNews(),
-      fetchExternalNews()
+      fetchExternalNews(category)
     ]);
     
     // Combinar e ordenar por data de publicação (mais recentes primeiro)
-    return [...manualNews, ...externalNews].sort((a, b) => {
+    let allNews = [...manualNews, ...externalNews].sort((a, b) => {
       return new Date(b.publication_date || b.created_at || '').getTime() - 
              new Date(a.publication_date || a.created_at || '').getTime();
     });
+    
+    // Filtrar por categoria se especificada
+    if (category) {
+      allNews = allNews.filter(news => 
+        news.category?.toLowerCase().includes(category.toLowerCase())
+      );
+    }
+    
+    // Filtrar por termo de busca se especificado
+    if (search) {
+      const searchLower = search.toLowerCase();
+      allNews = allNews.filter(news => 
+        news.title.toLowerCase().includes(searchLower) || 
+        news.content.toLowerCase().includes(searchLower) || 
+        news.subtitle?.toLowerCase().includes(searchLower) || 
+        news.author?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return allNews;
   } catch (error) {
     console.error("Erro ao buscar todas as notícias:", error);
     return [];
@@ -119,6 +127,7 @@ export const createNews = async (newsData: NewsItem): Promise<NewsItem> => {
         author: newsData.author,
         category: newsData.category,
         image_url: newsData.image_url,
+        source_url: newsData.source_url,
         created_by: (await supabase.auth.getUser()).data.user?.id
       }])
       .select()
@@ -152,6 +161,7 @@ export const updateNews = async (id: string, newsData: Partial<NewsItem>): Promi
         author: newsData.author,
         category: newsData.category,
         image_url: newsData.image_url,
+        source_url: newsData.source_url,
         updated_at: new Date().toISOString()
       })
       .eq('id', id);

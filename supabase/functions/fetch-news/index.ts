@@ -1,11 +1,12 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { corsHeaders } from '../_shared/cors.ts'
+import { Parser } from 'https://deno.land/x/rss@0.5.8/mod.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-// Interface para notícias
+// Interfaces
 interface NewsItem {
   id?: string;
   title: string;
@@ -16,92 +17,228 @@ interface NewsItem {
   category?: string;
   image_url?: string;
   source: string;
+  source_url?: string;
   created_at?: string;
   updated_at?: string;
 }
 
-// Função para fazer o fetch das notícias de diferentes fontes
-async function fetchExternalNews(): Promise<NewsItem[]> {
+// Função para extrair imagem do conteúdo HTML
+function extractImageFromContent(content: string): string | null {
+  const imgRegex = /<img[^>]+src="([^">]+)"/i;
+  const match = content.match(imgRegex);
+  return match ? match[1] : null;
+}
+
+// Função para buscar notícias do RSS da Infomoney
+async function fetchInfoMoneyRSS(): Promise<NewsItem[]> {
   try {
-    // Array com várias fontes de notícias para ter mais conteúdo
-    const sources = [
-      // InfoMoney API (precisaria de uma API key em produção)
-      'https://api.exemplo.com/infomoney/noticias',
-      // Valor Econômico API (precisaria de uma API key em produção)
-      'https://api.exemplo.com/valor/noticias',
-      // Usando News API como fonte genérica para demo
-      `https://newsapi.org/v2/top-business-headlines?country=br&category=business&apiKey=${Deno.env.get('NEWS_API_KEY') || 'demo'}`,
-    ];
-
-    // Simular dados para fins de demonstração
-    // Em produção, você usaria APIs reais com chaves válidas
-    const mockData: NewsItem[] = [
-      {
-        title: "Ibovespa sobe 1,5% e fecha acima dos 130 mil pontos",
-        subtitle: "Índice foi impulsionado por commodities e pelo cenário internacional positivo",
-        content: "O Ibovespa, principal índice da bolsa brasileira, fechou o pregão desta quarta-feira (8) em alta de 1,5%, aos 130.156 pontos, impulsionado pela valorização das commodities no exterior e pelo otimismo com dados econômicos positivos nos Estados Unidos. As ações da Petrobras e da Vale, as mais negociadas do índice, subiram 2,3% e 1,8%, respectivamente.",
-        publication_date: new Date().toISOString(),
-        author: "Equipe InfoMoney",
-        category: "Mercado de Ações",
-        image_url: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=2070&auto=format&fit=crop",
-        source: "InfoMoney"
-      },
-      {
-        title: "Banco Central mantém Selic em 10,75% ao ano",
-        subtitle: "Decisão foi unânime e já era esperada pelo mercado financeiro",
-        content: "O Comitê de Política Monetária (Copom) do Banco Central decidiu, por unanimidade, manter a taxa básica de juros (Selic) em 10,75% ao ano. A decisão estava em linha com as expectativas do mercado. Em comunicado, o BC destacou que o cenário externo segue adverso, com os bancos centrais das principais economias determinados a manter uma política monetária contracionista por período prolongado.",
-        publication_date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-        author: "Valor Econômico",
-        category: "Economia",
-        image_url: "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?q=80&w=2070&auto=format&fit=crop",
-        source: "Valor Econômico"
-      },
-      {
-        title: "Dólar recua para R$ 5,05 com entrada de fluxo estrangeiro",
-        subtitle: "Moeda americana caiu pelo terceiro dia consecutivo",
-        content: "O dólar fechou em queda de 0,7% nesta quarta-feira (8), cotado a R$ 5,05 na venda, em dia de forte entrada de fluxo estrangeiro no país. O movimento foi impulsionado pela melhora do clima para emergentes no exterior e por dados positivos da economia brasileira. No ano, a moeda americana acumula queda de 5,3% frente ao real.",
-        publication_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        author: "Agência Brasil",
-        category: "Câmbio",
-        image_url: "https://images.unsplash.com/photo-1591033594798-33227a05780d?q=80&w=2069&auto=format&fit=crop",
-        source: "Agência Brasil"
-      },
-      {
-        title: "Petrobras anuncia investimentos de R$ 380 bilhões até 2028",
-        subtitle: "Plano de investimentos da estatal foi aprovado pelo conselho de administração",
-        content: "A Petrobras anunciou nesta terça-feira (7) seu novo plano estratégico para o período de 2024 a 2028, com investimentos previstos de US$ 73 bilhões (cerca de R$ 380 bilhões). Do total, 72% serão destinados à exploração e produção de petróleo e gás, com foco no pré-sal. A companhia também prevê aportes em projetos de transição energética, com R$ 16 bilhões para iniciativas de descarbonização e energias renováveis.",
-        publication_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        author: "Reuters",
-        category: "Negócios",
-        image_url: "https://images.unsplash.com/photo-1531403939386-c08a239fbc68?q=80&w=1970&auto=format&fit=crop",
-        source: "Reuters"
-      },
-      {
-        title: "PIB do Brasil cresce 0,8% no primeiro trimestre, acima das projeções",
-        subtitle: "Resultado superou expectativa do mercado, que era de 0,5%",
-        content: "A economia brasileira cresceu 0,8% no primeiro trimestre de 2023, na comparação com os últimos três meses do ano passado, segundo dados divulgados pelo IBGE nesta quarta-feira (8). O resultado ficou acima da mediana das projeções de analistas consultados, que era de alta de 0,5%. Na comparação com o mesmo trimestre de 2022, o PIB teve expansão de 2,3%. O setor de serviços foi o principal responsável pelo desempenho positivo, com alta de 1,2% no período.",
-        publication_date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-        author: "IBGE",
-        category: "Economia",
-        image_url: "https://images.unsplash.com/photo-1616803140344-7862904e6f2b?q=80&w=2070&auto=format&fit=crop",
-        source: "IBGE"
-      },
-      {
-        title: "Bitcoin ultrapassa US$ 65 mil e renova máxima histórica",
-        subtitle: "Criptomoeda está em tendência de alta desde o início do ano",
-        content: "O Bitcoin ultrapassou a marca de US$ 65 mil nesta quinta-feira (9), renovando sua máxima histórica. A criptomoeda acumula valorização de mais de 50% desde o início do ano, impulsionada pela aprovação dos ETFs de Bitcoin à vista nos Estados Unidos e pela expectativa do próximo 'halving', evento que reduz pela metade a emissão de novos bitcoins, previsto para ocorrer em abril.",
-        publication_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        author: "CoinDesk",
-        category: "Criptomoedas",
-        image_url: "https://images.unsplash.com/photo-1625806335347-4f5f7e8d4a8e?q=80&w=2070&auto=format&fit=crop",
-        source: "CoinDesk"
-      }
-    ];
-
-    return mockData;
+    const response = await fetch('https://www.infomoney.com.br/feed/');
+    
+    if (!response.ok) {
+      console.error(`Erro ao buscar RSS da InfoMoney: ${response.status}`);
+      return [];
+    }
+    
+    const xml = await response.text();
+    const parser = new Parser();
+    const feed = await parser.parse(xml);
+    
+    return feed.entries.map((entry) => {
+      const imageUrl = extractImageFromContent(entry.description || '');
+      
+      return {
+        title: entry.title?.value || 'Sem título',
+        subtitle: entry.title?.value,
+        content: entry.description || entry.content || 'Sem conteúdo',
+        publication_date: entry.published || new Date().toISOString(),
+        author: entry.author?.name || 'InfoMoney',
+        category: entry.categories?.[0]?.term || 'Mercado de Ações',
+        image_url: imageUrl,
+        source: 'InfoMoney',
+        source_url: entry.links?.[0]?.href,
+      };
+    });
   } catch (error) {
-    console.error("Erro ao buscar notícias externas:", error);
+    console.error('Erro ao processar RSS da InfoMoney:', error);
     return [];
+  }
+}
+
+// Função para buscar notícias do RSS do Valor Econômico
+async function fetchValorEconomicoRSS(): Promise<NewsItem[]> {
+  try {
+    const response = await fetch('https://valor.globo.com/rss/valor');
+    
+    if (!response.ok) {
+      console.error(`Erro ao buscar RSS do Valor Econômico: ${response.status}`);
+      return [];
+    }
+    
+    const xml = await response.text();
+    const parser = new Parser();
+    const feed = await parser.parse(xml);
+    
+    return feed.entries.map((entry) => {
+      return {
+        title: entry.title?.value || 'Sem título',
+        subtitle: entry.title?.value,
+        content: entry.description || entry.content || 'Sem conteúdo',
+        publication_date: entry.published || new Date().toISOString(),
+        author: entry.author?.name || 'Valor Econômico',
+        category: 'Economia',
+        image_url: extractImageFromContent(entry.description || ''),
+        source: 'Valor Econômico',
+        source_url: entry.links?.[0]?.href,
+      };
+    });
+  } catch (error) {
+    console.error('Erro ao processar RSS do Valor Econômico:', error);
+    return [];
+  }
+}
+
+// Função para buscar notícias da API Alpha Vantage (notícias financeiras)
+async function fetchAlphaVantageNews(): Promise<NewsItem[]> {
+  try {
+    const apiKey = Deno.env.get('ALPHA_VANTAGE_API_KEY');
+    if (!apiKey) {
+      console.error('API Key não configurada para Alpha Vantage');
+      return [];
+    }
+    
+    const response = await fetch(
+      `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=financial_markets&apikey=${apiKey}`
+    );
+    
+    if (!response.ok) {
+      console.error(`Erro na API Alpha Vantage: ${response.status}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    if (!data || !data.feed) {
+      console.error('Formato de resposta inválido da Alpha Vantage');
+      return [];
+    }
+    
+    return data.feed.map((item: any) => ({
+      title: item.title || 'Sem título',
+      subtitle: item.summary,
+      content: item.summary || 'Sem conteúdo disponível',
+      publication_date: item.time_published || new Date().toISOString(),
+      author: item.authors?.[0] || 'Alpha Vantage',
+      category: item.category || 'Mercado de Ações',
+      image_url: item.banner_image || null,
+      source: item.source || 'Alpha Vantage',
+      source_url: item.url,
+    }));
+  } catch (error) {
+    console.error('Erro ao buscar notícias da Alpha Vantage:', error);
+    return [];
+  }
+}
+
+// Backup de notícias para exibição quando houver problemas com as APIs externas
+function getBackupNews(): NewsItem[] {
+  const currentDate = new Date().toISOString();
+  return [
+    {
+      title: "Mercados globais reagem à decisão do FED sobre taxas de juros",
+      subtitle: "Reserva Federal mantém taxas inalteradas, mas sinaliza possíveis cortes em 2024",
+      content: "Os mercados financeiros globais reagiram positivamente à decisão do Federal Reserve de manter as taxas de juros inalteradas na reunião desta quarta-feira. O presidente do Fed, Jerome Powell, indicou que o banco central americano pode começar a reduzir as taxas em 2024, dependendo dos dados de inflação e emprego nos próximos meses.",
+      publication_date: currentDate,
+      author: "Bloomberg News",
+      category: "Economia",
+      image_url: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=2070&auto=format&fit=crop",
+      source: "Bloomberg",
+      source_url: "https://www.bloomberg.com/news/articles/2023-12-13/fed-keeps-rates-steady-signals-three-2024-cuts-as-inflation-eases",
+    },
+    {
+      title: "Petrobras anuncia novo plano de investimentos para 2024-2028",
+      subtitle: "Estatal prevê investir US$ 102 bilhões em cinco anos, com foco em exploração e produção",
+      content: "A Petrobras divulgou nesta quinta-feira seu plano estratégico para o período de 2024 a 2028, com investimentos previstos de US$ 102 bilhões. Segundo a companhia, 72% desse valor será destinado à área de exploração e produção, principalmente em projetos do pré-sal. A empresa também prevê aportes significativos em transição energética, com US$ 16 bilhões para iniciativas de descarbonização e energias renováveis.",
+      publication_date: currentDate,
+      author: "Reuters",
+      category: "Negócios",
+      image_url: "https://images.unsplash.com/photo-1531403939386-c08a239fbc68?q=80&w=1970&auto=format&fit=crop",
+      source: "Reuters",
+      source_url: "https://www.reuters.com/business/energy/petrobras-unveils-102-billion-capex-plan-2024-2028-2023-11-23/",
+    },
+    {
+      title: "IPCA de novembro fica abaixo das expectativas e alivia pressão sobre Banco Central",
+      subtitle: "Inflação oficial do país avançou 0,28% no mês, abaixo da projeção de 0,30% do mercado",
+      content: "O IPCA (Índice Nacional de Preços ao Consumidor Amplo) de novembro registrou alta de 0,28%, ficando abaixo das expectativas do mercado, que previam avanço de 0,30%. No acumulado de 12 meses, a inflação está em 4,35%, dentro do teto da meta estabelecida pelo Conselho Monetário Nacional para 2023. O resultado alivia a pressão sobre o Banco Central e fortalece a expectativa de que a taxa Selic seja mantida em 11,25% na última reunião do Copom deste ano.",
+      publication_date: currentDate,
+      author: "Valor Econômico",
+      category: "Economia",
+      image_url: "https://images.unsplash.com/photo-1616803140344-7862904e6f2b?q=80&w=2070&auto=format&fit=crop",
+      source: "Valor Econômico",
+      source_url: "https://valor.globo.com/brasil/noticia/2023/12/12/ipca-de-novembro-fica-em-028percent-abaixo-das-expectativas.ghtml",
+    },
+    {
+      title: "Bitcoin ultrapassa US$ 44 mil e renova máxima do ano",
+      subtitle: "Criptomoeda está em alta com expectativa de aprovação de ETFs à vista nos EUA",
+      content: "O Bitcoin ultrapassou a marca de US$ 44 mil nesta terça-feira, atingindo sua maior cotação em 2023. A criptomoeda acumula valorização de mais de 160% no ano, impulsionada principalmente pela expectativa de que a Securities and Exchange Commission (SEC) dos Estados Unidos aprove em breve os primeiros ETFs (fundos negociados em bolsa) de Bitcoin à vista no país.",
+      publication_date: currentDate,
+      author: "CoinDesk",
+      category: "Criptomoedas",
+      image_url: "https://images.unsplash.com/photo-1625806335347-4f5f7e8d4a8e?q=80&w=2070&auto=format&fit=crop",
+      source: "CoinDesk",
+      source_url: "https://www.coindesk.com/markets/2023/12/05/bitcoin-tops-44k-for-first-time-since-april-2022/",
+    },
+    {
+      title: "Ibovespa encerra em alta e supera os 130 mil pontos",
+      subtitle: "Índice foi impulsionado por ações de bancos e commodities",
+      content: "O Ibovespa, principal índice da bolsa brasileira, fechou em alta de 1,2% nesta quarta-feira, aos 130.842 pontos, maior patamar desde julho. O movimento foi impulsionado pelo bom desempenho das ações de bancos e empresas ligadas a commodities, como Vale e Petrobras. Investidores reagiram positivamente aos sinais do Federal Reserve sobre possíveis cortes de juros no próximo ano e a dados econômicos positivos divulgados no Brasil.",
+      publication_date: currentDate,
+      author: "InfoMoney",
+      category: "Mercado de Ações",
+      image_url: "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop",
+      source: "InfoMoney",
+      source_url: "https://www.infomoney.com.br/mercados/ibovespa-hoje-bolsa-sobe-mais-de-1-e-fecha-acima-dos-130-mil-pontos/",
+    }
+  ];
+}
+
+// Função principal para buscar notícias de todas as fontes
+async function fetchAllExternalNews(category?: string): Promise<NewsItem[]> {
+  try {
+    // Buscar notícias de todas as fontes em paralelo
+    const [infoMoneyNews, valorEconomicoNews, alphaVantageNews] = await Promise.all([
+      fetchInfoMoneyRSS(),
+      fetchValorEconomicoRSS(),
+      fetchAlphaVantageNews()
+    ]);
+    
+    // Combinar todas as notícias
+    let allNews = [...infoMoneyNews, ...valorEconomicoNews, ...alphaVantageNews];
+    
+    // Se não houver notícias (por problemas nas APIs), usar backup
+    if (allNews.length === 0) {
+      console.log('Usando notícias de backup devido a falhas nas APIs');
+      allNews = getBackupNews();
+    }
+    
+    // Filtrar por categoria, se especificada
+    if (category) {
+      allNews = allNews.filter(news => 
+        news.category?.toLowerCase().includes(category.toLowerCase())
+      );
+    }
+    
+    // Ordenar por data (mais recentes primeiro)
+    allNews.sort((a, b) => {
+      const dateA = new Date(a.publication_date || '').getTime();
+      const dateB = new Date(b.publication_date || '').getTime();
+      return dateB - dateA;
+    });
+    
+    return allNews;
+  } catch (error) {
+    console.error('Erro ao buscar notícias externas:', error);
+    // Em caso de erro, retornar backup
+    return getBackupNews();
   }
 }
 
@@ -112,16 +249,23 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Apenas permitir GET requests
-    if (req.method !== 'GET') {
+    // Apenas permitir GET e POST requests
+    if (req.method !== 'GET' && req.method !== 'POST') {
       throw new Error(`Método ${req.method} não permitido`);
     }
 
     // Criar cliente Supabase para ler os dados
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Obter categoria do body se for POST
+    let category: string | undefined;
+    if (req.method === 'POST') {
+      const body = await req.json();
+      category = body.category;
+    }
+
     // Buscar notícias externas
-    const externalNews = await fetchExternalNews();
+    const externalNews = await fetchAllExternalNews(category);
 
     // Buscar notícias manuais do banco de dados
     const { data: manualNews, error } = await supabase
@@ -145,12 +289,12 @@ Deno.serve(async (req) => {
              new Date(a.publication_date || a.created_at || '').getTime();
     });
 
+    // Limitar a 100 resultados para não sobrecarregar
+    const limitedNews = allNews.slice(0, 100);
+
     // Retornar todas as notícias
     return new Response(
-      JSON.stringify({ 
-        data: allNews,
-        count: allNews.length 
-      }),
+      JSON.stringify(limitedNews),
       { 
         headers: { 
           ...corsHeaders,
@@ -159,6 +303,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
+    console.error('Erro na função fetch-news:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message 
