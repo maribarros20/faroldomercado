@@ -7,11 +7,12 @@ import SubscriptionManager from "@/components/SubscriptionManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { Profile } from "@/types/community";
 
 const ProfileSettingsPage = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [isLoading, setIsLoading] = useState(true);
-  const [profileData, setProfileData] = useState(null);
+  const [profileData, setProfileData] = useState<Profile | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -27,16 +28,18 @@ const ProfileSettingsPage = () => {
             description: "Você precisa estar logado para acessar esta página.",
             variant: "destructive"
           });
-          navigate("/auth");
+          navigate("/");
           return;
         }
+        
+        console.log("Sessão atual:", session.user.id);
         
         // Fetch profile data
         const { data: profile, error } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", session.user.id)
-          .single();
+          .maybeSingle();
           
         if (error) {
           console.error("Error fetching profile:", error);
@@ -48,7 +51,51 @@ const ProfileSettingsPage = () => {
           return;
         }
         
-        setProfileData(profile);
+        if (!profile) {
+          console.warn("Profile not found, trying to create it");
+          // Try to create profile based on auth data
+          const { user } = session;
+          const { data: userData, error: userError } = await supabase.auth.getUser();
+          
+          if (userError) {
+            console.error("Error getting user data:", userError);
+            return;
+          }
+          
+          const userMetadata = userData.user?.user_metadata;
+          
+          if (userMetadata) {
+            const newProfile = {
+              id: user.id,
+              first_name: userMetadata.first_name || "",
+              last_name: userMetadata.last_name || "",
+              email: user.email || "",
+              phone: userMetadata.phone || null,
+              cpf: userMetadata.cpf || null,
+              date_of_birth: userMetadata.date_of_birth || new Date().toISOString().split('T')[0],
+              role: "user"
+            };
+            
+            const { error: insertError } = await supabase
+              .from("profiles")
+              .insert(newProfile);
+              
+            if (insertError) {
+              console.error("Error creating profile:", insertError);
+              toast({
+                title: "Erro ao criar perfil",
+                description: "Não foi possível criar seu perfil. Tente novamente mais tarde.",
+                variant: "destructive"
+              });
+              return;
+            }
+            
+            setProfileData(newProfile as Profile);
+          }
+        } else {
+          console.log("Profile found:", profile);
+          setProfileData(profile as Profile);
+        }
       } catch (error) {
         console.error("Session check error:", error);
       } finally {

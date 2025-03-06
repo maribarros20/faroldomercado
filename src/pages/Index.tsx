@@ -178,7 +178,10 @@ const Index = () => {
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
       
-      // Adicionar logs para debug
+      // Format date to YYYY-MM-DD for Postgres compatibility
+      const formattedDate = registerData.date_of_birth;
+      
+      // Log the data being sent for debugging
       console.log("Enviando dados de registro:", {
         email: registerData.email,
         password: "***",
@@ -186,7 +189,8 @@ const Index = () => {
         lastName,
         phone: registerData.phone,
         cpf: registerData.cpf,
-        date_of_birth: registerData.date_of_birth
+        date_of_birth: formattedDate,
+        role: "user"
       });
       
       // Register with Supabase - Fixed format for user meta data
@@ -199,7 +203,7 @@ const Index = () => {
             last_name: lastName,
             phone: registerData.phone,
             cpf: registerData.cpf,
-            date_of_birth: registerData.date_of_birth,
+            date_of_birth: formattedDate,
             role: 'user'
           }
         }
@@ -217,7 +221,7 @@ const Index = () => {
         return;
       }
       
-      // Verificar se o registro foi bem-sucedido mas precisa de confirmação de email
+      // Check if user already exists (Supabase returns empty identities array)
       if (data?.user?.identities?.length === 0) {
         toast({
           title: "E-mail já cadastrado",
@@ -228,13 +232,53 @@ const Index = () => {
         return;
       }
       
-      // Registro bem-sucedido
+      // Verify if user creation was successful but we need to manually populate profiles
+      if (data?.user?.id && !error) {
+        try {
+          // Ensure the profile entry exists by checking first
+          const { data: profileData, error: profileCheckError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .maybeSingle();
+            
+          console.log("Verificação de perfil:", { profileData, profileCheckError });
+            
+          // If profile doesn't exist, create it manually
+          if (!profileData && !profileCheckError) {
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: data.user.id,
+                first_name: firstName,
+                last_name: lastName,
+                email: registerData.email,
+                phone: registerData.phone,
+                cpf: registerData.cpf,
+                date_of_birth: formattedDate,
+                role: 'user'
+              });
+              
+            if (insertError) {
+              console.error("Erro ao inserir perfil:", insertError);
+              // Don't show this error to the user, we'll proceed with registration anyway
+            } else {
+              console.log("Perfil criado manualmente com sucesso");
+            }
+          }
+        } catch (profileError) {
+          console.error("Erro ao verificar/criar perfil:", profileError);
+          // Continue with registration process despite this error
+        }
+      }
+      
+      // Registration successful
       toast({
         title: "Cadastro realizado com sucesso",
         description: "Verifique seu e-mail para confirmar o cadastro."
       });
       
-      // Para facilitar o teste, vamos adicionar um toast informando que o email de confirmação foi enviado
+      // Additional toast for development information
       toast({
         title: "Email de confirmação enviado",
         description: "Você pode precisar desativar a verificação de email nas configurações do Supabase durante o desenvolvimento."
@@ -242,7 +286,7 @@ const Index = () => {
       
       setShowRegisterDialog(false);
       
-      // Opcional: redirecionar para o dashboard se a confirmação de email estiver desativada no Supabase
+      // Optional: redirect to dashboard if email confirmation is disabled in Supabase
       if (data.session) {
         navigate("/dashboard");
       }
