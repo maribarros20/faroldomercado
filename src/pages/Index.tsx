@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import Logo from "@/components/Logo";
 import { motion } from "framer-motion";
@@ -170,7 +171,7 @@ const Index = () => {
         return;
       }
       
-      // Register with Supabase
+      // Register with Supabase - modified to match database schema
       const { error } = await supabase.auth.signUp({
         email: registerData.email,
         password: registerData.password,
@@ -182,6 +183,7 @@ const Index = () => {
             phone: registerData.phone,
             cpf: registerData.cpf,
             date_of_birth: registerData.date_of_birth
+            // Removed company field as it doesn't exist in the database
           }
         }
       });

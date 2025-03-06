@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -104,7 +105,7 @@ const AuthPage = () => {
           return;
         }
         
-        // Register with Supabase
+        // Register with Supabase - modified to match database schema
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -116,6 +117,7 @@ const AuthPage = () => {
               phone,
               cpf,
               date_of_birth: dateOfBirth
+              // Removed company field as it doesn't exist in the database
             }
           }
         });
