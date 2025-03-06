@@ -2,11 +2,50 @@
 import React, { useState, useEffect } from "react";
 import VideosView from "@/components/videos/VideosView";
 import { Card } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { Spinner } from "@/components/ui/spinner";
+import { supabase } from "@/integrations/supabase/client";
 
 const VideosPage = () => {
   const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  // Check if user is authenticated
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error checking authentication:", error);
+          setHasError(true);
+          toast({
+            title: "Erro na autenticação",
+            description: "Não foi possível verificar sua sessão. Por favor, faça login novamente.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        if (!data.session) {
+          // User is not authenticated, redirect to login
+          window.location.href = "/auth";
+          return;
+        }
+        
+        // User is authenticated, continue loading
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error in auth check:", error);
+        setHasError(true);
+        setIsLoading(false);
+      }
+    };
+    
+    checkAuth();
+  }, [toast]);
 
   // Error boundary to catch rendering errors
   useEffect(() => {
@@ -23,6 +62,17 @@ const VideosPage = () => {
     window.addEventListener('error', handleError);
     return () => window.removeEventListener('error', handleError);
   }, [toast]);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8 flex justify-center items-center">
+        <div className="text-center">
+          <Spinner size="lg" className="mb-4" />
+          <p>Carregando vídeos...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (hasError) {
     return (

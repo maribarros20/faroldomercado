@@ -50,7 +50,7 @@ function App() {
         console.log("Auth event:", event);
         
         if (event === 'SIGNED_OUT') {
-          // Always redirect to auth page on sign out
+          // Always redirect to auth page on sign out and show toast
           navigate('/auth');
           toast({
             title: "Sessão encerrada",
@@ -83,7 +83,9 @@ function App() {
     );
     
     return () => {
-      authListener.subscription.unsubscribe();
+      if (authListener && authListener.subscription) {
+        authListener.subscription.unsubscribe();
+      }
     };
   }, [navigate, location.pathname, toast]);
 

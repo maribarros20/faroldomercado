@@ -27,15 +27,29 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     // Check if user is already logged in
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        navigate("/dashboard");
+      try {
+        setCheckingSession(true);
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Session check error:", error);
+          return;
+        }
+        
+        if (data.session) {
+          navigate("/dashboard");
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
+      } finally {
+        setCheckingSession(false);
       }
     };
     
@@ -156,6 +170,17 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
     }
   };
 
+  if (checkingSession) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p>Verificando sessão...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (showForgotPassword) {
     return (
       <div className="min-h-screen flex flex-col md:flex-row">
@@ -188,6 +213,10 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
             onReset={() => {
               setShowForgotPassword(false);
               setIsLogin(true);
+              toast({
+                title: "E-mail enviado",
+                description: "Verifique seu e-mail para redefinir sua senha.",
+              });
             }}
           />
         </div>
