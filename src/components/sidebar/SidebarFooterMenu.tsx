@@ -1,10 +1,10 @@
 
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { SidebarFooter, SidebarTrigger, SidebarMenuButton } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
 import { UserCircle, Settings, LogOut } from "lucide-react";
 import { useUser } from "./SidebarUserContext";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const SidebarFooterMenu: React.FC = () => {
   const navigate = useNavigate();
@@ -32,9 +32,10 @@ export const SidebarFooterMenu: React.FC = () => {
   return (
     <SidebarFooter className="border-t border-border p-4 flex flex-col gap-2">
       {footerMenuItems.map((item, index) => (
-        <SidebarMenuButton
+        <Button
           key={index}
-          variant="default"
+          variant="ghost"
+          size="sm"
           className="w-full justify-start"
           asChild
         >
@@ -42,17 +43,17 @@ export const SidebarFooterMenu: React.FC = () => {
             {item.icon}
             <span className="ml-2">{item.title}</span>
           </Link>
-        </SidebarMenuButton>
+        </Button>
       ))}
-      <ThemeToggle />
-      <SidebarMenuButton
-        variant="default"
+      <Button
+        variant="ghost"
+        size="sm"
         className="w-full justify-start"
         onClick={handleSignOut}
       >
         <LogOut className="h-5 w-5 mr-2" />
         <span>Sair</span>
-      </SidebarMenuButton>
+      </Button>
       <SidebarTrigger />
     </SidebarFooter>
   );
