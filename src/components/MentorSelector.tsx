@@ -1,33 +1,32 @@
 
 import React, { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import MentorPictureUploader from "./MentorPictureUploader";
+import { Button } from "./ui/button";
+
+interface MentorSelectorProps {
+  userId?: string;
+  currentMentorId?: string;
+}
 
 interface Mentor {
   id: string;
   name: string;
-  cnpj: string;
   email: string;
   phone: string;
-  photo?: string;
+  cnpj: string;
+  photo?: string | null;
 }
 
-interface MentorSelectorProps {
-  userId: string | undefined;
-  currentMentorId?: string | null;
-}
-
-const MentorSelector: React.FC<MentorSelectorProps> = ({ userId, currentMentorId }) => {
+const MentorSelector = ({ userId, currentMentorId }: MentorSelectorProps) => {
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Fetch mentors from the database
   useEffect(() => {
     const fetchMentors = async () => {
       try {
@@ -35,7 +34,7 @@ const MentorSelector: React.FC<MentorSelectorProps> = ({ userId, currentMentorId
         const { data, error } = await supabase
           .from("mentors")
           .select("*")
-          .order("name", { ascending: true });
+          .order("name");
 
         if (error) {
           console.error("Error fetching mentors:", error);
@@ -47,12 +46,14 @@ const MentorSelector: React.FC<MentorSelectorProps> = ({ userId, currentMentorId
           return;
         }
 
-        setMentors(data || []);
+        setMentors(data as Mentor[]);
 
-        // If user has a current mentor, select it
+        // If currentMentorId is provided, set the selected mentor
         if (currentMentorId) {
-          const current = data?.find(mentor => mentor.id === currentMentorId) || null;
-          setSelectedMentor(current);
+          const currentMentor = data.find((mentor: Mentor) => mentor.id === currentMentorId);
+          if (currentMentor) {
+            setSelectedMentor(currentMentor);
+          }
         }
       } catch (error) {
         console.error("Error:", error);
@@ -64,104 +65,134 @@ const MentorSelector: React.FC<MentorSelectorProps> = ({ userId, currentMentorId
     fetchMentors();
   }, [currentMentorId, toast]);
 
-  // Handle mentor selection change
-  const handleMentorChange = (mentorId: string) => {
-    const mentor = mentors.find(m => m.id === mentorId) || null;
-    setSelectedMentor(mentor);
-  };
-
-  // Save mentor selection
-  const handleSave = async () => {
-    if (!userId) {
-      toast({
-        title: "Erro",
-        description: "ID do usuário não encontrado.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ mentor_id: selectedMentor?.id || null })
-        .eq("id", userId);
-
-      if (error) {
-        console.error("Error updating mentor:", error);
+  const handleMentorChange = async (mentorId: string) => {
+    if (!userId) return;
+    
+    const mentor = mentors.find((m) => m.id === mentorId);
+    if (mentor) {
+      setSelectedMentor(mentor);
+      
+      try {
+        const { error } = await supabase
+          .from("profiles")
+          .update({ mentor_id: mentor.id })
+          .eq("id", userId);
+          
+        if (error) {
+          console.error("Error updating mentor:", error);
+          toast({
+            title: "Erro ao atualizar mentor",
+            description: "Não foi possível associar o mentor ao seu perfil.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         toast({
-          title: "Erro ao atualizar mentor",
-          description: "Não foi possível salvar a seleção de mentor.",
-          variant: "destructive",
+          title: "Mentor atualizado",
+          description: `${mentor.name} foi associado ao seu perfil.`,
         });
-        return;
+      } catch (error) {
+        console.error("Error:", error);
       }
+    }
+  };
 
-      toast({
-        title: "Mentor atualizado",
-        description: selectedMentor 
-          ? `Mentor ${selectedMentor.name} selecionado com sucesso.` 
-          : "Nenhum mentor selecionado.",
+  const handlePhotoUpload = (photoUrl: string) => {
+    if (selectedMentor) {
+      setSelectedMentor({
+        ...selectedMentor,
+        photo: photoUrl
       });
-    } catch (error) {
-      console.error("Error:", error);
+      
       toast({
-        title: "Erro",
-        description: "Ocorreu um erro ao salvar a seleção de mentor.",
-        variant: "destructive",
+        title: "Foto atualizada",
+        description: "A foto do mentor foi atualizada com sucesso.",
       });
     }
   };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-6">
+          <p className="text-center text-muted-foreground">Carregando mentores...</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
-      <CardContent className="p-6 space-y-6">
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="mentorSelect">Selecione um Mentor</Label>
-            <Select
-              value={selectedMentor?.id || ""}
-              onValueChange={handleMentorChange}
-              disabled={loading}
-            >
-              <SelectTrigger id="mentorSelect" className="w-full">
-                <SelectValue placeholder="Selecione um mentor" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Nenhum mentor</SelectItem>
-                {mentors.map((mentor) => (
-                  <SelectItem key={mentor.id} value={mentor.id}>
-                    {mentor.name} - {mentor.cnpj}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <CardContent className="py-6 space-y-6">
+        <div>
+          <h3 className="text-lg font-medium mb-2">Selecione seu Mentor</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Escolha um mentor para lhe acompanhar em sua jornada de investimentos.
+          </p>
 
-          {selectedMentor && (
-            <div className="space-y-4 mt-4 p-4 bg-muted rounded-md">
-              <div className="flex flex-col md:flex-row items-center gap-4">
-                <div className="flex-shrink-0">
-                  <img
-                    src={selectedMentor.photo || "/placeholder.svg"}
-                    alt={`Foto de ${selectedMentor.name}`}
-                    className="w-24 h-24 rounded-full object-cover border border-border"
+          <Select
+            value={selectedMentor?.id || ""}
+            onValueChange={handleMentorChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Selecione um mentor" />
+            </SelectTrigger>
+            <SelectContent>
+              {mentors.map((mentor) => (
+                <SelectItem key={mentor.id} value={mentor.id}>
+                  {mentor.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {selectedMentor && (
+          <div className="mt-6 pt-6 border-t">
+            <h3 className="text-lg font-medium mb-4">Informações do Mentor</h3>
+            
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="flex-shrink-0">
+                {userId && (
+                  <MentorPictureUploader
+                    mentorId={selectedMentor.id}
+                    currentPhoto={selectedMentor.photo}
+                    onUploadSuccess={handlePhotoUpload}
                   />
+                )}
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Nome</p>
+                  <p className="text-base">{selectedMentor.name}</p>
                 </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">{selectedMentor.name}</h3>
-                  <p className="text-sm text-muted-foreground">CNPJ: {selectedMentor.cnpj}</p>
-                  <p className="text-sm text-muted-foreground">Email: {selectedMentor.email}</p>
-                  <p className="text-sm text-muted-foreground">Telefone: {selectedMentor.phone}</p>
+                
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Email</p>
+                  <p className="text-base">{selectedMentor.email}</p>
+                </div>
+                
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Telefone</p>
+                  <p className="text-base">{selectedMentor.phone}</p>
+                </div>
+                
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">CNPJ</p>
+                  <p className="text-base">{selectedMentor.cnpj}</p>
+                </div>
+                
+                <div className="pt-4">
+                  <Button variant="outline" size="sm" className="w-full">
+                    Enviar mensagem
+                  </Button>
                 </div>
               </div>
             </div>
-          )}
-
-          <Button onClick={handleSave} className="w-full mt-4" disabled={loading}>
-            Salvar Seleção de Mentor
-          </Button>
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   userId: string;
@@ -43,13 +43,21 @@ export default function ProfilePictureUploader({
       const bucketExists = buckets?.some(bucket => bucket.name === 'profile_pictures');
       
       if (!bucketExists) {
-        toast({
-          title: "Erro",
-          description: "O bucket 'profile_pictures' não existe. Entre em contato com o suporte.",
-          variant: "destructive",
+        // Create the bucket if it doesn't exist
+        const { data: newBucket, error: bucketError } = await supabase.storage.createBucket('profile_pictures', {
+          public: true,
+          fileSizeLimit: MAX_FILE_SIZE
         });
-        setUploading(false);
-        return;
+        
+        if (bucketError) {
+          toast({
+            title: "Erro",
+            description: "Não foi possível criar o bucket para armazenamento de imagens.",
+            variant: "destructive",
+          });
+          setUploading(false);
+          return;
+        }
       }
 
       const filePath = `${userId}/${Date.now()}-${file.name}`;
@@ -84,7 +92,21 @@ export default function ProfilePictureUploader({
       }
 
       // Atualiza no banco de dados
-      await supabase.from("profiles").update({ photo: publicUrlData.publicUrl }).eq("id", userId);
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ photo: publicUrlData.publicUrl })
+        .eq("id", userId);
+        
+      if (updateError) {
+        console.error("Erro ao atualizar foto de perfil:", updateError);
+        toast({
+          title: "Erro",
+          description: "Não foi possível atualizar a foto no banco de dados.",
+          variant: "destructive",
+        });
+        setUploading(false);
+        return;
+      }
 
       setPreview(publicUrlData.publicUrl);
       onUploadSuccess(publicUrlData.publicUrl);

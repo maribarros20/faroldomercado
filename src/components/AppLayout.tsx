@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import Footer from "./Footer";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -38,7 +37,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             <div className="flex-1 px-3 md:px-6 py-4 md:py-6">
               {children}
             </div>
-            <Footer />
           </main>
         </div>
       </div>

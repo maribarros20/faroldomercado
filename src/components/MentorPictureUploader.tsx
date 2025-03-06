@@ -1,12 +1,11 @@
 
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   mentorId: string;
-  currentPhoto?: string;
+  currentPhoto?: string | null;
   onUploadSuccess: (photoUrl: string) => void;
 }
 
@@ -45,15 +44,15 @@ export default function MentorPictureUploader({
       
       if (!bucketExists) {
         // Create the bucket if it doesn't exist
-        const { error: createBucketError } = await supabase.storage.createBucket('mentor_pictures', {
-          public: true
+        const { data: newBucket, error: bucketError } = await supabase.storage.createBucket('mentor_pictures', {
+          public: true,
+          fileSizeLimit: MAX_FILE_SIZE
         });
         
-        if (createBucketError) {
-          console.error("Error creating bucket:", createBucketError);
+        if (bucketError) {
           toast({
             title: "Erro",
-            description: "Não foi possível criar o bucket para fotos de mentores.",
+            description: "Não foi possível criar o bucket para armazenamento de imagens.",
             variant: "destructive",
           });
           setUploading(false);
@@ -77,7 +76,7 @@ export default function MentorPictureUploader({
         return;
       }
 
-      // Get public URL
+      // Obtém a URL pública
       const { data: publicUrlData } = supabase.storage
         .from("mentor_pictures")
         .getPublicUrl(filePath);
@@ -114,7 +113,7 @@ export default function MentorPictureUploader({
       onUploadSuccess(publicUrlData.publicUrl);
       toast({
         title: "Sucesso",
-        description: "Foto do mentor atualizada com sucesso!",
+        description: "Foto de perfil atualizada com sucesso!",
       });
     } catch (error) {
       console.error("Erro no upload:", error);
