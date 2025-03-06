@@ -97,6 +97,7 @@ const Sidebar = () => {
     }
   };
 
+  // Main menu items (excluding profile and settings)
   const menuItems = [
     {
       title: "Dashboard",
@@ -123,6 +124,19 @@ const Sidebar = () => {
       icon: <BarChart className="h-5 w-5" />,
       href: "/progress",
     },
+  ];
+
+  // Add admin menu item if user is admin
+  if (isAdmin) {
+    menuItems.push({
+      title: "Administração",
+      icon: <ShieldCheck className="h-5 w-5" />,
+      href: "/admin",
+    });
+  }
+
+  // Footer menu items (profile and settings)
+  const footerMenuItems = [
     {
       title: "Meu Perfil",
       icon: <UserCircle className="h-5 w-5" />,
@@ -135,21 +149,11 @@ const Sidebar = () => {
     },
   ];
 
-  // Add admin menu item if user is admin
-  if (isAdmin) {
-    menuItems.push({
-      title: "Administração",
-      icon: <ShieldCheck className="h-5 w-5" />,
-      href: "/admin",
-    });
-  }
-
   return (
     <SidebarContainer>
       <SidebarHeader className="border-b border-border p-4">
-        <div className="flex gap-2 items-center">
+        <div className="flex items-center">
           <Logo className="h-6 w-6" />
-          <span className="font-bold text-xl">Farol do Mercado</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -173,11 +177,25 @@ const Sidebar = () => {
           </div>
         </ScrollArea>
       </SidebarContent>
-      <SidebarFooter className="border-t border-border p-4">
+      <SidebarFooter className="border-t border-border p-4 flex flex-col gap-2">
+        {footerMenuItems.map((item, index) => (
+          <Button
+            key={index}
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start"
+            asChild
+          >
+            <Link to={item.href}>
+              {item.icon}
+              <span className="ml-2">{item.title}</span>
+            </Link>
+          </Button>
+        ))}
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start mb-4"
+          className="w-full justify-start"
           onClick={handleSignOut}
         >
           <LogOut className="h-5 w-5 mr-2" />
