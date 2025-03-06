@@ -11,6 +11,7 @@ export type Profile = {
   cpf?: string | null;
   cnpj?: string | null;
   date_of_birth: string;
+  mentor_id?: string | null;
 };
 
 export type Post = {

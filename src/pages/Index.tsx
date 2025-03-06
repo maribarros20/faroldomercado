@@ -18,9 +18,7 @@ const Index = () => {
   const location = useLocation();
   const { toast } = useToast();
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(
-    location.search.includes("forgot=true")
-  );
+  const [showForgotPasswordDialog, setShowForgotPasswordDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loginData, setLoginData] = useState({
     email: "",
@@ -30,7 +28,6 @@ const Index = () => {
     fullName: "",
     email: "",
     password: "",
-    company: "",
     cnpj: "",
     phone: "",
     cpf: "",
@@ -175,6 +172,11 @@ const Index = () => {
         setLoading(false);
         return;
       }
+
+      // Extract first and last name from full name
+      const nameParts = registerData.fullName.split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
       
       // Register with Supabase - modified to match database schema
       const { error } = await supabase.auth.signUp({
@@ -182,8 +184,8 @@ const Index = () => {
         password: registerData.password,
         options: {
           data: {
-            first_name: registerData.fullName.split(" ")[0] || "",
-            last_name: registerData.fullName.split(" ").slice(1).join(" ") || "",
+            first_name: firstName,
+            last_name: lastName,
             cnpj: registerData.cnpj,
             phone: registerData.phone,
             cpf: registerData.cpf,
@@ -220,45 +222,6 @@ const Index = () => {
       setLoading(false);
     }
   };
-
-  if (showForgotPassword) {
-    return (
-      <div className="min-h-screen flex flex-col md:flex-row">
-        {/* Left Panel */}
-        <div className="w-full md:w-2/5 lg:w-1/3 bg-blue-400 p-8 flex flex-col">
-          <div className="mb-6">
-            <h2 className="text-xl font-bold">Farol do Mercado</h2>
-          </div>
-          
-          <nav className="flex gap-8 mb-16">
-            <a href="https://painel.faroldomercado.com.br" className="text-gray-800 hover:text-black font-medium">Site</a>
-            <a href="https://painel.faroldomercado.com/farolito-blog" className="text-gray-800 hover:text-black font-medium">Blog</a>
-            <a href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" className="text-gray-800 hover:text-black font-medium">Falar com Luma</a>
-            <a href="#" className="text-gray-800 hover:text-black font-medium">Ajuda</a>
-          </nav>
-          
-          <div className="flex-grow flex flex-col justify-center">
-            <h2 className="text-2xl font-semibold mb-6">
-              Para recuperar sua senha
-            </h2>
-            <p className="text-gray-800">
-              siga as instruções para redefinir sua senha de acesso. Você receberá um código de verificação no e-mail associado à sua conta.
-            </p>
-          </div>
-        </div>
-        
-        {/* Right Panel */}
-        <div className="w-full md:w-3/5 lg:w-2/3 p-4 md:p-8 lg:p-12 flex items-center justify-center">
-          <ForgotPassword 
-            onBack={() => setShowForgotPassword(false)} 
-            onReset={() => {
-              setShowForgotPassword(false);
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row w-full max-h-screen overflow-hidden">
@@ -322,7 +285,7 @@ const Index = () => {
                 <Button 
                   variant="link" 
                   className="text-gray-600 p-0 text-sm"
-                  onClick={() => setShowForgotPassword(true)}
+                  onClick={() => setShowForgotPasswordDialog(true)}
                 >
                   Esqueceu a senha?
                 </Button>
@@ -488,21 +451,6 @@ const Index = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="company">Empresa ou Mentor</Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                    <Input 
-                      id="company" 
-                      name="company" 
-                      value={registerData.company}
-                      onChange={handleRegisterChange}
-                      className="pl-10"
-                      placeholder="Digite o nome da empresa ou mentor"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
                   <Label htmlFor="cnpj">CNPJ da empresa ou do mentor</Label>
                   <div className="relative">
                     <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -558,8 +506,74 @@ const Index = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Forgot Password Dialog / Pop-up */}
+      <Dialog open={showForgotPasswordDialog} onOpenChange={setShowForgotPasswordDialog}>
+        <DialogContent className="sm:max-w-md md:max-w-5xl p-0 overflow-hidden">
+          <div className="flex flex-col md:flex-row w-full">
+            {/* Left Section in Dialog - Blue Background */}
+            <div className="bg-trade-blue w-full md:w-1/2 p-8 flex flex-col">
+              <div className="flex space-x-6 mb-8 text-white">
+                <a href="https://painel.faroldomercado.com.br" className="text-base font-medium hover:underline">Site</a>
+                <a href="https://painel.faroldomercado.com/farolito-blog" className="text-base font-medium hover:underline">Blog</a>
+                <a href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" className="text-base font-medium hover:underline">Falar com Luma</a>
+                <a href="#" className="text-base font-medium hover:underline">Ajuda</a>
+              </div>
+              
+              <div className="flex-1 flex flex-col justify-center max-w-md">
+                <h1 className="text-xl md:text-2xl font-bold text-white mb-6">
+                  Para recuperar sua senha
+                </h1>
+                <p className="text-white mb-8 text-sm">
+                  siga as instruções para redefinir sua senha de acesso. Você receberá um código de verificação no e-mail associado à sua conta.
+                </p>
+              </div>
+            </div>
+
+            {/* Right Section in Dialog - Forgot Password Form */}
+            <div className="w-full md:w-1/2 bg-white p-6 md:p-8">
+              <div className="flex items-center mb-4">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="mr-2" 
+                  onClick={() => setShowForgotPasswordDialog(false)}
+                >
+                  <ArrowLeft size={20} />
+                </Button>
+                <div className="flex-1 text-right">
+                  <span className="text-gray-600 text-sm">Lembrou sua senha?</span>{" "}
+                  <Button variant="link" className="text-trade-blue p-0 text-sm" onClick={() => {
+                    setShowForgotPasswordDialog(false);
+                  }}>
+                    Entrar
+                  </Button>
+                </div>
+              </div>
+
+              <div className="pb-4 text-center">
+                <h2 className="text-xl font-bold">
+                  Recupere <span className="text-trade-blue">sua senha</span>
+                </h2>
+              </div>
+              
+              <ForgotPassword 
+                onBack={() => setShowForgotPasswordDialog(false)} 
+                onReset={() => {
+                  setShowForgotPasswordDialog(false);
+                  toast({
+                    title: "Email enviado",
+                    description: "Verifique seu e-mail para instruções de redefinição de senha.",
+                  });
+                }}
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default Index;
+
