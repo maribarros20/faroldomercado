@@ -12,9 +12,18 @@ export type FinanceIframe = {
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
+  plans?: { id: string; name: string };
+  mentors?: { id: string; name: string };
 };
 
-export type FinanceIframeInput = Omit<FinanceIframe, 'id' | 'created_at' | 'updated_at'>;
+export type FinanceIframeInput = {
+  title: string;
+  description?: string;
+  iframe_url: string;
+  plan_id?: string;
+  mentor_id?: string;
+  is_active?: boolean;
+};
 
 export const getFinanceIframes = async (): Promise<FinanceIframe[]> => {
   const { data, error } = await supabase

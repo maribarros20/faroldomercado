@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -133,7 +132,7 @@ const AdminFinanceIframes = () => {
 
   // Mutações para criar, atualizar e excluir iframes
   const createMutation = useMutation({
-    mutationFn: createFinanceIframe,
+    mutationFn: (data: FinanceIframeInput) => createFinanceIframe(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['finance-iframes'] });
       toast({
@@ -194,15 +193,25 @@ const AdminFinanceIframes = () => {
 
   // Lidar com o envio do formulário
   const onSubmit = (values: FormValues) => {
+    // Garantir que title e iframe_url estão presentes
+    const iframeData: FinanceIframeInput = {
+      title: values.title,
+      iframe_url: values.iframe_url,
+      description: values.description,
+      plan_id: values.plan_id,
+      mentor_id: values.mentor_id,
+      is_active: values.is_active
+    };
+
     // Se estiver editando um iframe existente
     if (selectedIframe) {
       updateMutation.mutate({
         id: selectedIframe.id,
-        data: values
+        data: iframeData
       });
     } else {
       // Criar novo iframe
-      createMutation.mutate(values);
+      createMutation.mutate(iframeData);
     }
   };
 
@@ -294,10 +303,10 @@ const AdminFinanceIframes = () => {
                 <TableRow key={iframe.id}>
                   <TableCell className="font-medium">{iframe.title}</TableCell>
                   <TableCell>
-                    {iframe.plans ? (iframe.plans as any).name : "Todos os planos"}
+                    {iframe.plans ? iframe.plans.name : "Todos os planos"}
                   </TableCell>
                   <TableCell>
-                    {iframe.mentors ? (iframe.mentors as any).name : "Todos os mentores"}
+                    {iframe.mentors ? iframe.mentors.name : "Todos os mentores"}
                   </TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
