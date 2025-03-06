@@ -136,6 +136,13 @@ const AdminAuditLogs = () => {
     return userProfiles[userId]?.email || "Email não disponível";
   };
 
+  // Function to clear filters
+  const clearFilters = () => {
+    setSearchTerm('');
+    setEntityTypeFilter('');
+    setActionFilter('');
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -202,21 +209,29 @@ const AdminAuditLogs = () => {
             <Spinner />
             <span className="ml-2 text-sm text-muted-foreground">Carregando logs...</span>
           </div>
+        ) : logs.length === 0 ? (
+          <div className="text-center py-12 border rounded-md">
+            <FileText className="h-12 w-12 mx-auto text-muted-foreground opacity-30 mb-2" />
+            <p className="text-muted-foreground">
+              Nenhum log de auditoria disponível no momento.
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={fetchAuditLogs}
+              className="mt-2"
+            >
+              Atualizar logs
+            </Button>
+          </div>
         ) : filteredLogs.length === 0 ? (
           <div className="text-center py-12 border rounded-md">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground opacity-30 mb-2" />
             <p className="text-muted-foreground">
-              {searchTerm || entityTypeFilter || actionFilter 
-                ? "Nenhum log encontrado com os filtros aplicados."
-                : "Nenhum log de auditoria disponível."}
+              Nenhum log encontrado com os filtros aplicados.
             </p>
             <Button 
               variant="link" 
-              onClick={() => {
-                setSearchTerm('');
-                setEntityTypeFilter('');
-                setActionFilter('');
-              }}
+              onClick={clearFilters}
               className="mt-2"
             >
               Limpar filtros
