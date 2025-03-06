@@ -30,7 +30,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Video as VideoType, VideoSource } from "@/services/VideosService";
 
-// Sample data for drop-downs
 const learningPaths = [
   { id: "1", name: "Iniciantes" },
   { id: "2", name: "Estratégias Avançadas" },
@@ -64,7 +63,6 @@ const AdminVideos = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch videos from Supabase
   const { data: videos = [], isLoading, error } = useQuery({
     queryKey: ['admin-videos'],
     queryFn: async () => {
@@ -84,7 +82,6 @@ const AdminVideos = () => {
     }
   });
 
-  // Add video mutation
   const addVideoMutation = useMutation({
     mutationFn: async (videoData: Omit<VideoType, 'id' | 'date_added' | 'views'>) => {
       const { data, error } = await supabase
@@ -117,7 +114,6 @@ const AdminVideos = () => {
     }
   });
 
-  // Update video mutation
   const updateVideoMutation = useMutation({
     mutationFn: async (videoData: VideoType) => {
       const { data, error } = await supabase
@@ -155,7 +151,6 @@ const AdminVideos = () => {
     }
   });
 
-  // Delete video mutation
   const deleteVideoMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -173,7 +168,6 @@ const AdminVideos = () => {
         description: "O vídeo foi removido com sucesso!",
       });
       
-      // Log audit trail
       logAuditAction('videos', id, 'delete');
     },
     onError: (error) => {
@@ -185,7 +179,6 @@ const AdminVideos = () => {
     }
   });
 
-  // Reset form after submission
   const resetVideoForm = () => {
     setNewVideo({
       title: "",
@@ -199,16 +192,19 @@ const AdminVideos = () => {
   };
 
   const handleAddVideo = () => {
-    // Get thumbnail from YouTube if possible
     let thumbnail = "https://via.placeholder.com/300x200";
     
     if (newVideo.source === "youtube") {
-      // Try to extract video ID from YouTube URL
       const youtubeIdMatch = newVideo.url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
       if (youtubeIdMatch && youtubeIdMatch[1]) {
         thumbnail = `https://img.youtube.com/vi/${youtubeIdMatch[1]}/0.jpg`;
       }
     }
+    
+    const getCurrentUserId = async () => {
+      const { data } = await supabase.auth.getSession();
+      return data.session?.user.id || null;
+    };
     
     const videoData = {
       title: newVideo.title,
@@ -218,10 +214,14 @@ const AdminVideos = () => {
       thumbnail: thumbnail,
       category: newVideo.category,
       learning_path: newVideo.learning_path,
-      duration: newVideo.duration
+      duration: newVideo.duration,
+      created_by: null,
     };
     
-    addVideoMutation.mutate(videoData);
+    getCurrentUserId().then(userId => {
+      videoData.created_by = userId;
+      addVideoMutation.mutate(videoData);
+    });
   };
 
   const handleEditVideo = (video: VideoType) => {
@@ -233,7 +233,6 @@ const AdminVideos = () => {
     if (!currentVideo) return;
     updateVideoMutation.mutate(currentVideo);
     
-    // Log audit trail
     logAuditAction('videos', currentVideo.id, 'update');
   };
 
@@ -243,7 +242,6 @@ const AdminVideos = () => {
     }
   };
 
-  // Log audit action for admin activities
   const logAuditAction = async (entityType: string, entityId: string, action: string, details?: any) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -447,7 +445,6 @@ const AdminVideos = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Edit Video Dialog */}
         {currentVideo && (
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent className="sm:max-w-[500px]">

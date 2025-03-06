@@ -46,6 +46,7 @@ const AdminMentors = () => {
     email: "",
     phone: "",
     cnpj: "",
+    photo: null as string | null,
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -233,7 +234,7 @@ const AdminMentors = () => {
       setMentors([...mentors, { ...newMentor, student_count: 0 }]);
       
       // Reset form
-      setFormData({ name: "", email: "", phone: "", cnpj: "" });
+      setFormData({ name: "", email: "", phone: "", cnpj: "", photo: null });
       setPhotoFile(null);
       setPhotoPreview(null);
     } catch (error) {
@@ -261,7 +262,7 @@ const AdminMentors = () => {
       if (photoFile) {
         const photoUrl = await uploadPhoto(activeMentor.id);
         if (photoUrl) {
-          updates.photo = photoUrl;
+          (updates as any).photo = photoUrl;
         }
       }
 
@@ -286,7 +287,7 @@ const AdminMentors = () => {
             ? {
                 ...m,
                 ...updates,
-                photo: updates.photo || m.photo,
+                photo: (updates as any).photo || m.photo,
               }
             : m
         )
@@ -294,7 +295,7 @@ const AdminMentors = () => {
       
       // Reset form
       setActiveMentor(null);
-      setFormData({ name: "", email: "", phone: "", cnpj: "" });
+      setFormData({ name: "", email: "", phone: "", cnpj: "", photo: null });
       setPhotoFile(null);
       setPhotoPreview(null);
     } catch (error) {
@@ -361,13 +362,14 @@ const AdminMentors = () => {
       email: mentor.email,
       phone: mentor.phone,
       cnpj: mentor.cnpj,
+      photo: mentor.photo,
     });
     setPhotoPreview(mentor.photo || null);
   };
 
   const resetForm = () => {
     setActiveMentor(null);
-    setFormData({ name: "", email: "", phone: "", cnpj: "" });
+    setFormData({ name: "", email: "", phone: "", cnpj: "", photo: null });
     setPhotoFile(null);
     setPhotoPreview(null);
   };
