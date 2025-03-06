@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,14 +62,17 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId, userId }) =>
                 .eq('user_id', userId)
                 .maybeSingle();
               
+              // Handle the case when user property might be an error object
+              const userData = post.user && !('error' in post.user) ? post.user : null;
+              
               return {
                 ...post,
-                user: post.user as Profile,
+                user: userData,
                 user_has_liked: !!likeData
-              };
+              } as Post;
             })
           );
-          setPosts(postsWithLikes as Post[]);
+          setPosts(postsWithLikes);
         } else {
           setPosts([]);
         }
