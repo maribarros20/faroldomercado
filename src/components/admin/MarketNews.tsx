@@ -1,20 +1,41 @@
 
 import React, { useState } from "react";
-import { fetchAllNews, NEWS_CATEGORIES, NewsItem, cleanTextContent } from "@/services/NewsService";
+import { 
+  fetchAllNews, NEWS_CATEGORIES, NewsItem, 
+  cleanTextContent, getValidImageUrl 
+} from "@/services/NewsService";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Search, RefreshCw, Calendar, User, ExternalLink } from "lucide-react";
+import { 
+  Search, RefreshCw, Calendar, User, ExternalLink, Filter 
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
+import { NewsCard } from "./news/NewsCard";
+
+// Categorias financeiras para filtro
+const FINANCE_CATEGORIES = [
+  "all",
+  "Mercado de Ações",
+  "Fundos de Investimento",
+  "Renda Fixa",
+  "Criptomoedas",
+  "Commodities",
+  "Economia",
+  "Negócios"
+];
 
 const MarketNews = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [showOnlyFinancialNews, setShowOnlyFinancialNews] = useState(true);
   const { toast } = useToast();
 
   // Buscar notícias usando React Query
@@ -24,8 +45,24 @@ const MarketNews = () => {
     isError,
     refetch
   } = useQuery({
-    queryKey: ['market-news', selectedCategory, searchTerm],
-    queryFn: () => fetchAllNews(selectedCategory || undefined, searchTerm || undefined),
+    queryKey: ['market-news', selectedCategory, searchTerm, showOnlyFinancialNews],
+    queryFn: async () => {
+      const allNews = await fetchAllNews(selectedCategory || undefined, searchTerm || undefined);
+      
+      // Se o filtro de notícias financeiras estiver ativo, filtrar apenas notícias financeiras
+      if (showOnlyFinancialNews) {
+        return allNews.filter(newsItem => 
+          FINANCE_CATEGORIES.includes(newsItem.category || "") || 
+          newsItem.source === "InfoMoney" ||
+          newsItem.source === "Valor Econômico" ||
+          newsItem.source === "Bloomberg" ||
+          newsItem.source === "CNN Money" ||
+          newsItem.source === "Alpha Vantage"
+        );
+      }
+      
+      return allNews;
+    },
     staleTime: 15 * 60 * 1000, // 15 minutos
     refetchInterval: 15 * 60 * 1000, // Atualizar a cada 15 minutos
   });
@@ -41,6 +78,10 @@ const MarketNews = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     refetch();
+  };
+
+  const toggleFinancialNewsFilter = () => {
+    setShowOnlyFinancialNews(!showOnlyFinancialNews);
   };
 
   if (isError) {
@@ -97,7 +138,7 @@ const MarketNews = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as categorias</SelectItem>
-              {NEWS_CATEGORIES.map((category) => (
+              {FINANCE_CATEGORIES.slice(1).map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
                 </SelectItem>
@@ -105,6 +146,15 @@ const MarketNews = () => {
             </SelectContent>
           </Select>
         </div>
+
+        <Button 
+          variant={showOnlyFinancialNews ? "default" : "outline"}
+          onClick={toggleFinancialNewsFilter}
+          className="flex items-center gap-2"
+        >
+          <Filter size={16} />
+          {showOnlyFinancialNews ? "Apenas Mercado Financeiro" : "Todas as Notícias"}
+        </Button>
       </div>
 
       {isLoading ? (
@@ -139,81 +189,6 @@ const MarketNews = () => {
         </Card>
       )}
     </div>
-  );
-};
-
-// Componente de card de notícia
-const NewsCard = ({ newsItem }: { newsItem: NewsItem }) => {
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "";
-    try {
-      return format(new Date(dateString), "dd 'de' MMMM, yyyy", { locale: ptBR });
-    } catch (e) {
-      console.error("Erro ao formatar data:", e);
-      return "";
-    }
-  };
-
-  return (
-    <Card className="overflow-hidden h-full flex flex-col">
-      {newsItem.image_url && (
-        <div className="h-48 overflow-hidden">
-          <img
-            src={newsItem.image_url}
-            alt={newsItem.title}
-            className="w-full h-full object-cover transition-transform hover:scale-105"
-            onError={(e) => {
-              // Substituir por imagem padrão em caso de erro
-              e.currentTarget.src = "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop";
-            }}
-          />
-        </div>
-      )}
-      <CardContent className="p-4 flex-grow flex flex-col">
-        <div className="mb-2 flex gap-2">
-          {newsItem.category && (
-            <Badge variant="secondary">{cleanTextContent(newsItem.category)}</Badge>
-          )}
-          {newsItem.source && newsItem.source !== "manual" && (
-            <Badge variant="outline">{cleanTextContent(newsItem.source)}</Badge>
-          )}
-        </div>
-        <h3 className="text-lg font-semibold mb-2">{cleanTextContent(newsItem.title)}</h3>
-        {newsItem.subtitle && (
-          <p className="text-muted-foreground text-sm mb-2">{cleanTextContent(newsItem.subtitle)}</p>
-        )}
-        <p className="line-clamp-3 text-sm mb-4">
-          {cleanTextContent(newsItem.content)}
-        </p>
-        <div className="mt-auto flex flex-col gap-1 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Calendar size={12} />
-            <span>
-              {formatDate(newsItem.publication_date || newsItem.created_at)}
-            </span>
-          </div>
-          {newsItem.author && (
-            <div className="flex items-center gap-1">
-              <User size={12} />
-              <span>{cleanTextContent(newsItem.author)}</span>
-            </div>
-          )}
-        </div>
-      </CardContent>
-      {newsItem.source_url && (
-        <CardFooter className="p-4 pt-0">
-          <a
-            href={newsItem.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs flex items-center gap-1 text-primary hover:underline"
-          >
-            <ExternalLink size={12} />
-            Ler notícia completa
-          </a>
-        </CardFooter>
-      )}
-    </Card>
   );
 };
 

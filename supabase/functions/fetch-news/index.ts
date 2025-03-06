@@ -96,6 +96,54 @@ async function fetchValorEconomicoRSS(): Promise<NewsItem[]> {
   }
 }
 
+// Função para buscar notícias do CNN Money
+async function fetchCNNMoneyRSS(): Promise<NewsItem[]> {
+  try {
+    const response = await fetch('https://money.cnn.com/services/rss/');
+    
+    if (!response.ok) {
+      console.error(`Erro ao buscar RSS da CNN Money: ${response.status}`);
+      return [];
+    }
+    
+    const xml = await response.text();
+    // Parsing manual simplificado para RSS
+    const news = parseRSS(xml, {
+      source: 'CNN Money',
+      defaultCategory: 'Mercado de Ações'
+    });
+    
+    return news;
+  } catch (error) {
+    console.error('Erro ao processar RSS da CNN Money:', error);
+    return [];
+  }
+}
+
+// Função para buscar notícias da Bloomberg
+async function fetchBloombergRSS(): Promise<NewsItem[]> {
+  try {
+    const response = await fetch('https://www.bloomberg.com/feed/podcast/etf-report');
+    
+    if (!response.ok) {
+      console.error(`Erro ao buscar RSS da Bloomberg: ${response.status}`);
+      return [];
+    }
+    
+    const xml = await response.text();
+    // Parsing manual simplificado para RSS
+    const news = parseRSS(xml, {
+      source: 'Bloomberg',
+      defaultCategory: 'Mercado de Ações'
+    });
+    
+    return news;
+  } catch (error) {
+    console.error('Erro ao processar RSS da Bloomberg:', error);
+    return [];
+  }
+}
+
 // Função simplificada para parse de RSS
 function parseRSS(xml: string, options: { source: string, defaultCategory: string }): NewsItem[] {
   try {
@@ -104,9 +152,12 @@ function parseRSS(xml: string, options: { source: string, defaultCategory: strin
     const titleRegex = /<title>([\s\S]*?)<\/title>/;
     const linkRegex = /<link>([\s\S]*?)<\/link>/;
     const descriptionRegex = /<description>([\s\S]*?)<\/description>/;
+    const contentRegex = /<content:encoded>([\s\S]*?)<\/content:encoded>/;
     const pubDateRegex = /<pubDate>([\s\S]*?)<\/pubDate>/;
     const creatorRegex = /<dc:creator>([\s\S]*?)<\/dc:creator>/;
     const categoryRegex = /<category>([\s\S]*?)<\/category>/;
+    const mediaContentRegex = /<media:content[^>]*url="([^"]*)"[^>]*>/;
+    const enclosureRegex = /<enclosure[^>]*url="([^"]*)"[^>]*>/;
     
     let match;
     while ((match = itemRegex.exec(xml)) !== null) {
@@ -115,32 +166,78 @@ function parseRSS(xml: string, options: { source: string, defaultCategory: strin
       // Extrair informações e limpar CDATA tags
       let title = (itemContent.match(titleRegex) || [])[1] || 'Sem título';
       let link = (itemContent.match(linkRegex) || [])[1] || '';
-      let description = (itemContent.match(descriptionRegex) || [])[1] || 'Sem conteúdo';
+      let description = (itemContent.match(descriptionRegex) || [])[1] || '';
+      let content = (itemContent.match(contentRegex) || [])[1] || description;
       const pubDate = (itemContent.match(pubDateRegex) || [])[1] || new Date().toISOString();
       let creator = (itemContent.match(creatorRegex) || [])[1] || options.source;
       let category = (itemContent.match(categoryRegex) || [])[1] || options.defaultCategory;
+      
+      // Extract image from multiple possible sources
+      let imageUrl = null;
+      
+      // Try media:content tag first
+      const mediaMatch = itemContent.match(mediaContentRegex);
+      if (mediaMatch && mediaMatch[1]) {
+        imageUrl = mediaMatch[1];
+      }
+      
+      // If no media:content, try enclosure tag
+      if (!imageUrl) {
+        const enclosureMatch = itemContent.match(enclosureRegex);
+        if (enclosureMatch && enclosureMatch[1]) {
+          imageUrl = enclosureMatch[1];
+        }
+      }
+      
+      // If still no image, try extracting from content or description
+      if (!imageUrl) {
+        imageUrl = extractImageFromContent(content) || extractImageFromContent(description);
+      }
+      
+      // Fallback image based on source
+      if (!imageUrl) {
+        switch (options.source) {
+          case 'InfoMoney':
+            imageUrl = 'https://www.infomoney.com.br/wp-content/themes/infomoney/assets/img/logo-infomoney.png';
+            break;
+          case 'Valor Econômico':
+            imageUrl = 'https://www.valor.com.br/sites/all/themes/valor_2016/logo.png';
+            break;
+          case 'CNN Money':
+            imageUrl = 'https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png';
+            break;
+          case 'Bloomberg':
+            imageUrl = 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
+            break;
+          default:
+            imageUrl = 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop';
+        }
+      }
       
       // Clean all content from CDATA and HTML tags
       title = cleanContent(title);
       link = cleanContent(link);
       description = cleanContent(description);
+      content = cleanContent(content || description);
       creator = cleanContent(creator);
       category = cleanContent(category);
       
-      // Extrair imagem do conteúdo
-      const imageUrl = extractImageFromContent(description);
+      // Filter for financial market news
+      const isFinancialNews = checkIfFinancialMarketNews(title, content, category);
       
-      items.push({
-        title: title,
-        subtitle: title,
-        content: description,
-        publication_date: new Date(pubDate).toISOString(),
-        author: creator,
-        category: category,
-        image_url: imageUrl,
-        source: options.source,
-        source_url: link
-      });
+      if (isFinancialNews) {
+        items.push({
+          title: title,
+          subtitle: description.substring(0, 120) + (description.length > 120 ? '...' : ''),
+          content: content || description,
+          publication_date: new Date(pubDate).toISOString(),
+          author: creator,
+          category: category,
+          image_url: imageUrl,
+          source: options.source,
+          source_url: link
+        });
+      }
     }
     
     return items;
@@ -148,6 +245,50 @@ function parseRSS(xml: string, options: { source: string, defaultCategory: strin
     console.error('Erro ao parsear RSS:', error);
     return [];
   }
+}
+
+// Função para verificar se a notícia é relacionada ao mercado financeiro
+function checkIfFinancialMarketNews(title: string, content: string, category: string): boolean {
+  const financialKeywords = [
+    'bolsa', 'ações', 'mercado', 'investimento', 'financeiro', 'finanças', 
+    'ibovespa', 'nasdaq', 'dow jones', 'S&P 500', 'taxa de juros', 'selic', 
+    'dólar', 'euro', 'economia', 'banco central', 'fed', 'petrobras', 'vale', 
+    'itaú', 'bradesco', 'santander', 'nubank', 'bitcoin', 'cripto', 
+    'commodities', 'balanço', 'lucro', 'prejuízo', 'dividendos', 'stock', 'market',
+    'finance', 'financial', 'investment', 'investor', 'trading', 'trader',
+    'wall street', 'treasury', 'bond', 'equity', 'fund', 'etf'
+  ];
+  
+  const lowerTitle = title.toLowerCase();
+  const lowerContent = content.toLowerCase();
+  const lowerCategory = category.toLowerCase();
+  
+  // Categorias financeiras
+  const isFinancialCategory = [
+    'mercado de ações', 'mercado financeiro', 'economia', 'finanças', 
+    'investimentos', 'negócios'
+  ].some(cat => lowerCategory.includes(cat));
+  
+  if (isFinancialCategory) {
+    return true;
+  }
+  
+  // Verifica palavras-chave no título (maior peso)
+  const titleHasKeywords = financialKeywords.some(keyword => 
+    lowerTitle.includes(keyword.toLowerCase())
+  );
+  
+  if (titleHasKeywords) {
+    return true;
+  }
+  
+  // Verifica palavras-chave no conteúdo (menor peso)
+  const contentKeywordCount = financialKeywords.filter(keyword => 
+    lowerContent.includes(keyword.toLowerCase())
+  ).length;
+  
+  // Se tiver pelo menos 2 palavras-chave no conteúdo
+  return contentKeywordCount >= 2;
 }
 
 // Função para buscar notícias da API Alpha Vantage (notícias financeiras)
@@ -258,14 +399,16 @@ function getBackupNews(): NewsItem[] {
 async function fetchAllExternalNews(category?: string): Promise<NewsItem[]> {
   try {
     // Buscar notícias de todas as fontes em paralelo
-    const [infoMoneyNews, valorEconomicoNews, alphaVantageNews] = await Promise.all([
+    const [infoMoneyNews, valorEconomicoNews, cnnMoneyNews, bloombergNews, alphaVantageNews] = await Promise.all([
       fetchInfoMoneyRSS(),
       fetchValorEconomicoRSS(),
+      fetchCNNMoneyRSS(),
+      fetchBloombergRSS(),
       fetchAlphaVantageNews()
     ]);
     
     // Combinar todas as notícias
-    let allNews = [...infoMoneyNews, ...valorEconomicoNews, ...alphaVantageNews];
+    let allNews = [...infoMoneyNews, ...valorEconomicoNews, ...cnnMoneyNews, ...bloombergNews, ...alphaVantageNews];
     
     // Se não houver notícias (por problemas nas APIs), usar backup
     if (allNews.length === 0) {
@@ -274,7 +417,7 @@ async function fetchAllExternalNews(category?: string): Promise<NewsItem[]> {
     }
     
     // Filtrar por categoria, se especificada
-    if (category) {
+    if (category && category !== 'all') {
       allNews = allNews.filter(news => 
         news.category?.toLowerCase().includes(category.toLowerCase())
       );

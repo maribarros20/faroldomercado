@@ -49,6 +49,32 @@ export const cleanTextContent = (text?: string): string => {
     .replace(/&nbsp;/g, ' ');
 };
 
+// Função para garantir que a URL da imagem seja válida
+export const getValidImageUrl = (url?: string): string => {
+  if (!url) return getDefaultNewsImage();
+  
+  // Verificar se a URL parece válida
+  try {
+    new URL(url);
+    return url;
+  } catch (e) {
+    // Se não for uma URL válida, retornar imagem padrão
+    return getDefaultNewsImage();
+  }
+};
+
+// Função para obter uma imagem padrão relacionada a finanças
+export const getDefaultNewsImage = (): string => {
+  const defaultImages = [
+    "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=2070&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1640340434855-6084b1f4901c?q=80&w=2064&auto=format&fit=crop"
+  ];
+  
+  // Selecionar uma imagem aleatória do array
+  return defaultImages[Math.floor(Math.random() * defaultImages.length)];
+};
+
 // Função para buscar notícias manuais do Supabase
 export const fetchManualNews = async (): Promise<NewsItem[]> => {
   try {
@@ -69,6 +95,7 @@ export const fetchManualNews = async (): Promise<NewsItem[]> => {
       content: cleanTextContent(item.content),
       author: cleanTextContent(item.author),
       category: cleanTextContent(item.category),
+      image_url: getValidImageUrl(item.image_url),
       source: 'manual'
     })) : [];
   } catch (error) {
@@ -91,13 +118,15 @@ export const fetchExternalNews = async (category?: string): Promise<NewsItem[]> 
     }
     
     // Garantir que todo o conteúdo esteja limpo de tags CDATA e HTML
+    // E que todas as notícias tenham imagens válidas
     return data ? data.map((item: NewsItem) => ({
       ...item,
       title: cleanTextContent(item.title),
       subtitle: cleanTextContent(item.subtitle),
       content: cleanTextContent(item.content),
       author: cleanTextContent(item.author),
-      category: cleanTextContent(item.category)
+      category: cleanTextContent(item.category),
+      image_url: getValidImageUrl(item.image_url)
     })) : [];
   } catch (error) {
     console.error("Erro ao buscar notícias externas:", error);
