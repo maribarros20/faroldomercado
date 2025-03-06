@@ -1,4 +1,3 @@
-
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
@@ -27,16 +26,13 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
-  // Check if current user is admin
   const { data: isAdmin, isLoading: isCheckingAdmin } = useQuery({
     queryKey: ['sidebar-check-admin'],
     queryFn: async () => {
-      // Get current session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) return false;
       
-      // Get user role from profiles
       const { data, error } = await supabase
         .from('profiles')
         .select('role')
@@ -50,22 +46,19 @@ const Sidebar = () => {
       
       return data?.role === 'admin';
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
   useEffect(() => {
-    // Close sidebar on mobile when route changes
     if (isMobile && isOpen) {
       setIsOpen(false);
     }
   }, [location.pathname, isMobile]);
 
-  // Keep sidebar expanded on desktop
   useEffect(() => {
     setIsOpen(!isMobile);
   }, [isMobile]);
 
-  // Base menu items that all users can see
   const baseMenuItems = [
     { 
       name: "Dashboard", 
@@ -93,36 +86,28 @@ const Sidebar = () => {
       path: "/community",
     },
   ];
-  
-  // Admin menu item
+
   const adminMenuItem = { 
     name: "Admin", 
     icon: <Shield size={20} />, 
     path: "/admin",
   };
-  
-  // Combine menu items based on user role
+
   const menuItems = isAdmin 
     ? [...baseMenuItems, adminMenuItem] 
     : baseMenuItems;
 
   const isActive = (path: string) => {
-    // For exact matches
     if (location.pathname === path) return true;
-    
-    // For nested routes (if we had them)
     if (path !== "/dashboard" && location.pathname.startsWith(path)) return true;
-    
     return false;
   };
 
-  // Handle logout
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
   };
 
-  // Hamburger button for mobile
   const MobileMenuButton = () => (
     <Button
       variant="ghost"
@@ -212,6 +197,25 @@ const Sidebar = () => {
             </li>
             <li>
               <Button
+                variant={isActive("/profile-settings") ? "default" : "ghost"}
+                onClick={() => navigate("/profile-settings")}
+                className={cn(
+                  "w-full justify-start sidebar-item",
+                  isActive("/profile-settings") && "bg-sidebar-accent text-sidebar-accent-foreground",
+                  !isOpen && "md:justify-center"
+                )}
+              >
+                <Settings size={20} />
+                <span className={cn(
+                  "ml-2 transition-all duration-300",
+                  !isOpen && "md:hidden md:w-0"
+                )}>
+                  Configurações
+                </span>
+              </Button>
+            </li>
+            <li>
+              <Button
                 variant="ghost"
                 onClick={handleLogout}
                 className={cn(
@@ -232,7 +236,6 @@ const Sidebar = () => {
         </div>
       </aside>
       
-      {/* Overlay for mobile */}
       {isOpen && isMobile && (
         <div 
           className="fixed inset-0 bg-black/50 z-10"

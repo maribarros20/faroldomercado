@@ -4,10 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import ProfileForm from "@/components/ProfileForm";
 import SubscriptionManager from "@/components/SubscriptionManager";
+import MentorSelector from "@/components/MentorSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Profile } from "@/types/community";
+import type { Profile } from "@/types/community";
 
 const ProfileSettingsPage = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -148,13 +149,18 @@ const ProfileSettingsPage = () => {
         </Card>
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="profile">Perfil</TabsTrigger>
+            <TabsTrigger value="mentor">Mentor</TabsTrigger>
             <TabsTrigger value="subscription">Assinatura</TabsTrigger>
           </TabsList>
           
           <TabsContent value="profile">
             <ProfileForm initialValues={initialValues} userId={profileData?.id} />
+          </TabsContent>
+          
+          <TabsContent value="mentor">
+            <MentorSelector userId={profileData?.id} currentMentorId={profileData?.mentor_id} />
           </TabsContent>
           
           <TabsContent value="subscription">

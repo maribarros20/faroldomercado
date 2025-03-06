@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import ProfilePictureUploader from "@/components/ProfilePictureUploader";
 import { supabase } from "@/integrations/supabase/client";

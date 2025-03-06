@@ -1,130 +1,57 @@
+import React from 'react';
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+} from "react-router-dom";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
+import Index from "@/pages/Index";
+import AuthPage from "@/pages/AuthPage";
+import DashboardPage from "@/pages/DashboardPage";
+import MaterialsPage from "@/pages/MaterialsPage";
+import VideosPage from "@/pages/VideosPage";
+import ProfilePage from "@/pages/Profile";
+import CommunityPage from "@/pages/CommunityPage";
+import ProgressPage from "@/pages/ProgressPage";
+import AdminPage from "@/pages/AdminPage";
+import PlansPage from "@/pages/PlansPage";
+import NotFound from "@/pages/NotFound";
+import { AppLayout } from '@/components/AppLayout';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ToastProvider } from "@/components/ui/use-toast"
+import ProfileSettingsPage from '@/pages/ProfileSettingsPage';
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import DashboardPage from "./pages/DashboardPage";
-import MaterialsPage from "./pages/MaterialsPage";
-import VideosPage from "./pages/VideosPage";
-import AdminPage from "./pages/AdminPage";
-import ProfileSettingsPage from "./pages/ProfileSettingsPage";
-import Profile from "./pages/Profile";
-import PlansPage from "./pages/PlansPage";
-import ProgressPage from "./pages/ProgressPage";
-import CommunityPage from "./pages/CommunityPage";
-import AppLayout from "./components/AppLayout";
-import { supabase } from "./integrations/supabase/client";
-
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 const App = () => {
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Check for an existing session
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      setSession(data.session);
-      setLoading(false);
-      
-      // Listen for auth changes
-      const { data: authListener } = supabase.auth.onAuthStateChange(
-        (event, session) => {
-          setSession(session);
-        }
-      );
-      
-      return () => {
-        authListener?.subscription.unsubscribe();
-      };
-    };
-    
-    checkSession();
-  }, []);
-  
-  // Protected route component
-  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-    if (loading) return <div>Loading...</div>;
-    if (!session) return <Navigate to="/" replace />;
-    return <>{children}</>;
-  };
-
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppLayout>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              
-              {/* Protected routes */}
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/materials" element={
-                <ProtectedRoute>
-                  <MaterialsPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/videos" element={
-                <ProtectedRoute>
-                  <VideosPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin" element={
-                <ProtectedRoute>
-                  <AdminPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile-settings" element={
-                <ProtectedRoute>
-                  <ProfileSettingsPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/plans" element={
-                <ProtectedRoute>
-                  <PlansPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/progress" element={
-                <ProtectedRoute>
-                  <ProgressPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/community" element={
-                <ProtectedRoute>
-                  <CommunityPage />
-                </ProtectedRoute>
-              } />
-              
-              {/* 404 route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AppLayout>
-        </BrowserRouter>
-      </TooltipProvider>
+      <ToastProvider>
+        <Router>
+          <div className="min-h-screen flex flex-col">
+            <SiteHeader />
+            <main className="flex-1">
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/register" element={<AuthPage register />} />
+                <Route path="/dashboard" element={<AppLayout><DashboardPage /></AppLayout>} />
+                <Route path="/materials" element={<AppLayout><MaterialsPage /></AppLayout>} />
+                <Route path="/videos" element={<AppLayout><VideosPage /></AppLayout>} />
+                <Route path="/profile" element={<AppLayout><ProfilePage /></AppLayout>} />
+                <Route path="/profile-settings" element={<AppLayout><ProfileSettingsPage /></AppLayout>} />
+                <Route path="/community" element={<AppLayout><CommunityPage /></AppLayout>} />
+                <Route path="/progress" element={<AppLayout><ProgressPage /></AppLayout>} />
+                <Route path="/admin" element={<AppLayout><AdminPage /></AppLayout>} />
+                <Route path="/plans" element={<PlansPage />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </main>
+            <SiteFooter />
+          </div>
+        </Router>
+      </ToastProvider>
     </QueryClientProvider>
   );
 };
