@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Props {
   userId: string;
@@ -15,10 +16,24 @@ export default function ProfilePictureUploader({
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(currentPhoto || "/placeholder.svg");
+  const { toast } = useToast();
+  
+  // Maximum file size: 2MB
+  const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB in bytes
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "O tamanho máximo permitido é de 2MB.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setUploading(true);
 
@@ -27,9 +42,12 @@ export default function ProfilePictureUploader({
       const { data: buckets } = await supabase.storage.listBuckets();
       const bucketExists = buckets?.some(bucket => bucket.name === 'profile_pictures');
       
-      // Create bucket if it doesn't exist (this will be done via SQL)
       if (!bucketExists) {
-        console.log("Bucket 'profile_pictures' not found. Please run the SQL migration to create it.");
+        toast({
+          title: "Erro",
+          description: "O bucket 'profile_pictures' não existe. Entre em contato com o suporte.",
+          variant: "destructive",
+        });
         setUploading(false);
         return;
       }
@@ -41,6 +59,11 @@ export default function ProfilePictureUploader({
 
       if (error) {
         console.error("Erro ao fazer upload da imagem:", error.message);
+        toast({
+          title: "Erro no upload",
+          description: error.message,
+          variant: "destructive",
+        });
         setUploading(false);
         return;
       }
@@ -51,7 +74,11 @@ export default function ProfilePictureUploader({
         .getPublicUrl(filePath);
 
       if (!publicUrlData?.publicUrl) {
-        console.error("Erro ao obter URL pública");
+        toast({
+          title: "Erro",
+          description: "Não foi possível obter a URL da imagem.",
+          variant: "destructive",
+        });
         setUploading(false);
         return;
       }
@@ -61,8 +88,17 @@ export default function ProfilePictureUploader({
 
       setPreview(publicUrlData.publicUrl);
       onUploadSuccess(publicUrlData.publicUrl);
+      toast({
+        title: "Sucesso",
+        description: "Foto de perfil atualizada com sucesso!",
+      });
     } catch (error) {
       console.error("Erro no upload:", error);
+      toast({
+        title: "Erro inesperado",
+        description: "Ocorreu um erro ao fazer o upload da imagem.",
+        variant: "destructive",
+      });
     } finally {
       setUploading(false);
     }
@@ -80,6 +116,7 @@ export default function ProfilePictureUploader({
         {uploading ? "Enviando..." : "Alterar Foto"}
         <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
       </label>
+      <p className="text-xs text-muted-foreground">Tamanho máximo: 2MB</p>
     </div>
   );
 }
