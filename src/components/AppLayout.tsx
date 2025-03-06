@@ -22,10 +22,10 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     }
   }, [location.pathname, isMobile]);
 
-  // These routes should not have the sidebar layout
-  const isAuthPage = location.pathname === "/auth" || location.pathname === "/";
+  // Only the index page should not have the sidebar layout
+  const isHomePage = location.pathname === "/";
   
-  if (isAuthPage) {
+  if (isHomePage) {
     return <div className="min-h-screen bg-white">{children}</div>;
   }
 

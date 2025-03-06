@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,12 +10,17 @@ import { useToast } from "@/hooks/use-toast";
 import Logo from "@/components/Logo";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { CreditCard } from "lucide-react";
+import { CreditCard, ArrowLeft, Mail, KeyRound, User, Building, Phone } from "lucide-react";
+import ForgotPassword from "@/components/ForgotPassword";
 
 const Index = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(
+    location.search.includes("forgot=true")
+  );
   const [loading, setLoading] = useState(false);
   const [loginData, setLoginData] = useState({
     email: "",
@@ -216,6 +221,45 @@ const Index = () => {
     }
   };
 
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen flex flex-col md:flex-row">
+        {/* Left Panel */}
+        <div className="w-full md:w-2/5 lg:w-1/3 bg-blue-400 p-8 flex flex-col">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold">Farol do Mercado</h2>
+          </div>
+          
+          <nav className="flex gap-8 mb-16">
+            <a href="https://painel.faroldomercado.com.br" className="text-gray-800 hover:text-black font-medium">Site</a>
+            <a href="https://painel.faroldomercado.com/farolito-blog" className="text-gray-800 hover:text-black font-medium">Blog</a>
+            <a href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" className="text-gray-800 hover:text-black font-medium">Falar com Luma</a>
+            <a href="#" className="text-gray-800 hover:text-black font-medium">Ajuda</a>
+          </nav>
+          
+          <div className="flex-grow flex flex-col justify-center">
+            <h2 className="text-2xl font-semibold mb-6">
+              Para recuperar sua senha
+            </h2>
+            <p className="text-gray-800">
+              siga as instruções para redefinir sua senha de acesso. Você receberá um código de verificação no e-mail associado à sua conta.
+            </p>
+          </div>
+        </div>
+        
+        {/* Right Panel */}
+        <div className="w-full md:w-3/5 lg:w-2/3 p-4 md:p-8 lg:p-12 flex items-center justify-center">
+          <ForgotPassword 
+            onBack={() => setShowForgotPassword(false)} 
+            onReset={() => {
+              setShowForgotPassword(false);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row w-full max-h-screen overflow-hidden">
       {/* Left Section - Login Form */}
@@ -225,7 +269,7 @@ const Index = () => {
             <Logo />
             <div>
               <span className="text-gray-600 text-sm">Já tem conta?</span>{" "}
-              <Button variant="link" className="text-trade-blue p-0 text-sm" onClick={() => navigate("/auth")}>
+              <Button variant="link" className="text-trade-blue p-0 text-sm" onClick={() => navigate("/dashboard")}>
                 Entrar
               </Button>
             </div>
@@ -278,7 +322,7 @@ const Index = () => {
                 <Button 
                   variant="link" 
                   className="text-gray-600 p-0 text-sm"
-                  onClick={() => navigate("/auth?forgot=true")}
+                  onClick={() => setShowForgotPassword(true)}
                 >
                   Esqueceu a senha?
                 </Button>
@@ -316,9 +360,10 @@ const Index = () => {
             {/* Left Section in Dialog - Blue Background */}
             <div className="bg-trade-blue w-full md:w-1/2 p-8 flex flex-col">
               <div className="flex space-x-6 mb-8 text-white">
-                <a href="#" className="text-base font-medium hover:underline">Site</a>
-                <a href="#" className="text-base font-medium hover:underline">Blog</a>
-                <a href="#" className="text-base font-medium hover:underline">Falar com Luma</a>
+                <a href="https://painel.faroldomercado.com.br" className="text-base font-medium hover:underline">Site</a>
+                <a href="https://painel.faroldomercado.com/farolito-blog" className="text-base font-medium hover:underline">Blog</a>
+                <a href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" className="text-base font-medium hover:underline">Falar com Luma</a>
+                <a href="#" className="text-base font-medium hover:underline">Ajuda</a>
               </div>
               
               <div className="flex-1 flex flex-col justify-center max-w-md">
@@ -342,13 +387,12 @@ const Index = () => {
                   className="mr-2" 
                   onClick={() => setShowRegisterDialog(false)}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                  <ArrowLeft size={20} />
                 </Button>
                 <div className="flex-1 text-right">
                   <span className="text-gray-600 text-sm">Já tem conta?</span>{" "}
                   <Button variant="link" className="text-trade-blue p-0 text-sm" onClick={() => {
                     setShowRegisterDialog(false);
-                    navigate("/auth");
                   }}>
                     Entrar
                   </Button>
@@ -364,37 +408,52 @@ const Index = () => {
               <form onSubmit={handleRegister} className="space-y-4 py-2">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Primeiro e último nome *</Label>
-                  <Input 
-                    id="fullName" 
-                    name="fullName" 
-                    value={registerData.fullName}
-                    onChange={handleRegisterChange}
-                    required
-                  />
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input 
+                      id="fullName" 
+                      name="fullName" 
+                      value={registerData.fullName}
+                      onChange={handleRegisterChange}
+                      className="pl-10"
+                      placeholder="Digite seu nome completo"
+                      required
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="registerEmail">E-mail *</Label>
-                  <Input 
-                    id="registerEmail" 
-                    name="email" 
-                    type="email" 
-                    value={registerData.email}
-                    onChange={handleRegisterChange}
-                    required
-                  />
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input 
+                      id="registerEmail" 
+                      name="email" 
+                      type="email" 
+                      value={registerData.email}
+                      onChange={handleRegisterChange}
+                      className="pl-10"
+                      placeholder="Digite seu e-mail"
+                      required
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="registerPassword">Senha *</Label>
-                  <Input 
-                    id="registerPassword" 
-                    name="password" 
-                    type="password" 
-                    value={registerData.password}
-                    onChange={handleRegisterChange}
-                    required
-                  />
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input 
+                      id="registerPassword" 
+                      name="password" 
+                      type="password" 
+                      value={registerData.password}
+                      onChange={handleRegisterChange}
+                      className="pl-10"
+                      placeholder="Digite sua senha"
+                      required
+                    />
+                  </div>
                   <p className="text-xs text-gray-500">
                     A senha deve ter pelo menos 8 caracteres, sendo 1 número, 1 letra maiúscula e 1 caractere especial
                   </p>
@@ -430,34 +489,48 @@ const Index = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="company">Empresa ou Mentor</Label>
-                  <Input 
-                    id="company" 
-                    name="company" 
-                    value={registerData.company}
-                    onChange={handleRegisterChange}
-                  />
+                  <div className="relative">
+                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input 
+                      id="company" 
+                      name="company" 
+                      value={registerData.company}
+                      onChange={handleRegisterChange}
+                      className="pl-10"
+                      placeholder="Digite o nome da empresa ou mentor"
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="cnpj">CNPJ da empresa ou do mentor</Label>
-                  <Input 
-                    id="cnpj" 
-                    name="cnpj" 
-                    value={registerData.cnpj}
-                    onChange={handleRegisterChange}
-                    placeholder="Digite o CNPJ da empresa ou do mentor"
-                  />
+                  <div className="relative">
+                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input 
+                      id="cnpj" 
+                      name="cnpj" 
+                      value={registerData.cnpj}
+                      onChange={handleRegisterChange}
+                      className="pl-10"
+                      placeholder="Digite o CNPJ da empresa ou do mentor"
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Celular *</Label>
-                  <Input 
-                    id="phone" 
-                    name="phone" 
-                    value={registerData.phone}
-                    onChange={handleRegisterChange}
-                    required
-                  />
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input 
+                      id="phone" 
+                      name="phone" 
+                      value={registerData.phone}
+                      onChange={handleRegisterChange}
+                      className="pl-10"
+                      placeholder="Digite seu celular"
+                      required
+                    />
+                  </div>
                 </div>
                 
                 <div className="flex items-center space-x-2 mt-4">

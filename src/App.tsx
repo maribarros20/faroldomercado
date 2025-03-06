@@ -11,7 +11,6 @@ import DashboardPage from "./pages/DashboardPage";
 import MaterialsPage from "./pages/MaterialsPage";
 import VideosPage from "./pages/VideosPage";
 import AdminPage from "./pages/AdminPage";
-import AuthPage from "./pages/AuthPage";
 import ProfileSettingsPage from "./pages/ProfileSettingsPage";
 import Profile from "./pages/Profile";
 import PlansPage from "./pages/PlansPage";
@@ -59,7 +58,7 @@ const App = () => {
   // Protected route component
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (loading) return <div>Loading...</div>;
-    if (!session) return <Navigate to="/auth" replace />;
+    if (!session) return <Navigate to="/" replace />;
     return <>{children}</>;
   };
 
@@ -72,7 +71,6 @@ const App = () => {
           <AppLayout>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<AuthPage />} />
               
               {/* Protected routes */}
               <Route path="/dashboard" element={

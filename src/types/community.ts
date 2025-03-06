@@ -25,6 +25,7 @@ export type Post = {
   comments_count: number;
   user?: Profile;
   user_has_liked?: boolean;
+  comments?: Comment[];
 };
 
 export type Comment = {
