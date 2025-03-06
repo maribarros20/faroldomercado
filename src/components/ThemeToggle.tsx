@@ -3,14 +3,14 @@ import React from "react";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "./ThemeProvider";
+import { SidebarMenuButton } from "@/components/ui/sidebar";
 
 export const ThemeToggle: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <Button
+    <SidebarMenuButton
       variant="ghost"
-      size="sm"
       className="w-full justify-start"
       onClick={toggleTheme}
       aria-label="Toggle theme"
@@ -26,6 +26,6 @@ export const ThemeToggle: React.FC = () => {
           <span>Modo Claro</span>
         </>
       )}
-    </Button>
+    </SidebarMenuButton>
   );
 };
