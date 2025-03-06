@@ -32,7 +32,9 @@ function App() {
         
         if (error) {
           console.error("Session check error:", error);
-          navigate("/auth");
+          if (location.pathname !== '/auth' && location.pathname !== '/' && location.pathname !== '/register') {
+            navigate("/auth");
+          }
           return;
         }
         
@@ -78,21 +80,11 @@ function App() {
             navigate('/dashboard');
           }
           
-          // Try to get user profile to check if it exists
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('id, role')
-            .eq('id', session.user.id)
-            .single();
-          
           // Display welcome toast on successful sign in
           toast({
             title: "Bem-vindo!",
             description: "Login realizado com sucesso.",
           });
-          
-          // Log profile result for debugging
-          console.log("Profile check result:", { profile, error });
         }
       }
     );

@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 
 export interface Video {
   id: string;
@@ -16,7 +17,7 @@ export interface Video {
   created_by: string;
 }
 
-export type VideoSource = 'youtube' | 'vimeo' | 'url';
+export type VideoSource = 'youtube' | 'vimeo' | 'url' | 'storage';
 
 class VideosService {
   async getVideos(): Promise<Video[]> {
@@ -31,7 +32,7 @@ class VideosService {
         throw new Error(error.message);
       }
 
-      return data || [];
+      return data as unknown as Video[] || [];
     } catch (error) {
       console.error('Error in getVideos service:', error);
       throw error;
@@ -43,7 +44,7 @@ class VideosService {
       const { data, error } = await supabase
         .from('videos')
         .select('*')
-        .eq('id', id)
+        .eq('id', id as any)
         .single();
 
       if (error) {
@@ -54,7 +55,7 @@ class VideosService {
       // Increment view count
       await this.incrementViews(id);
 
-      return data;
+      return data as unknown as Video;
     } catch (error) {
       console.error('Error in getVideoById service:', error);
       throw error;
@@ -65,7 +66,7 @@ class VideosService {
     try {
       // Use the RPC function to increment views safely
       const { error } = await supabase.rpc('increment_video_views', {
-        video_id: videoId
+        video_id: videoId as any
       });
 
       if (error) {
@@ -81,8 +82,8 @@ class VideosService {
       const { data, error } = await supabase
         .from('videos')
         .select('*')
-        .eq('category', category)
-        .neq('id', currentVideoId)
+        .eq('category', category as any)
+        .neq('id', currentVideoId as any)
         .limit(4);
 
       if (error) {
@@ -90,7 +91,7 @@ class VideosService {
         throw new Error(error.message);
       }
 
-      return data || [];
+      return data as unknown as Video[] || [];
     } catch (error) {
       console.error('Error in getRelatedVideos service:', error);
       throw error;
@@ -102,7 +103,7 @@ class VideosService {
       const { data, error } = await supabase
         .from('videos')
         .select('*')
-        .eq('category', category)
+        .eq('category', category as any)
         .order('date_added', { ascending: false });
 
       if (error) {
@@ -110,7 +111,7 @@ class VideosService {
         throw new Error(error.message);
       }
 
-      return data || [];
+      return data as unknown as Video[] || [];
     } catch (error) {
       console.error('Error in getVideosByCategory service:', error);
       throw error;
@@ -126,10 +127,17 @@ class VideosService {
       const { data, error } = await supabase
         .from('videos')
         .insert({
-          ...videoData,
-          created_by: userId, // Set the created_by field to the current user's ID
+          title: videoData.title,
+          description: videoData.description,
+          source: videoData.source,
+          url: videoData.url,
+          thumbnail: videoData.thumbnail,
+          category: videoData.category,
+          learning_path: videoData.learning_path,
+          duration: videoData.duration,
+          created_by: userId,
           views: 0
-        })
+        } as any)
         .select()
         .single();
 
@@ -138,7 +146,7 @@ class VideosService {
         throw new Error(error.message);
       }
 
-      return data;
+      return data as unknown as Video;
     } catch (error) {
       console.error('Error in createVideo service:', error);
       throw error;
@@ -149,8 +157,8 @@ class VideosService {
     try {
       const { data, error } = await supabase
         .from('videos')
-        .update(videoData)
-        .eq('id', id)
+        .update(videoData as any)
+        .eq('id', id as any)
         .select()
         .single();
 
@@ -159,7 +167,7 @@ class VideosService {
         throw new Error(error.message);
       }
 
-      return data;
+      return data as unknown as Video;
     } catch (error) {
       console.error('Error in updateVideo service:', error);
       throw error;
@@ -171,7 +179,7 @@ class VideosService {
       const { error } = await supabase
         .from('videos')
         .delete()
-        .eq('id', id);
+        .eq('id', id as any);
 
       if (error) {
         console.error('Error deleting video:', error);

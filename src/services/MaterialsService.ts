@@ -4,17 +4,16 @@ import { supabase } from '@/integrations/supabase/client';
 export interface Material {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   category: string;
   type: string;
   thumbnail_url: string | null;
   file_url: string | null;
-  date_added: string;
+  date_added: string | null;
+  updated_at: string | null;
+  downloads: number | null;
   created_by: string | null;
-  downloads: number;
 }
-
-export type MaterialType = 'pdf' | 'doc' | 'image' | 'spreadsheet' | 'presentation' | 'other';
 
 class MaterialsService {
   async getMaterials(): Promise<Material[]> {
@@ -29,7 +28,7 @@ class MaterialsService {
         throw new Error(error.message);
       }
 
-      return data || [];
+      return data as unknown as Material[] || [];
     } catch (error) {
       console.error('Error in getMaterials service:', error);
       throw error;
@@ -41,7 +40,7 @@ class MaterialsService {
       const { data, error } = await supabase
         .from('materials')
         .select('*')
-        .eq('id', id)
+        .eq('id', id as any)
         .single();
 
       if (error) {
@@ -49,7 +48,7 @@ class MaterialsService {
         throw new Error(error.message);
       }
 
-      return data;
+      return data as unknown as Material;
     } catch (error) {
       console.error('Error in getMaterialById service:', error);
       throw error;
@@ -61,7 +60,7 @@ class MaterialsService {
       const { data, error } = await supabase
         .from('materials')
         .select('*')
-        .eq('category', category)
+        .eq('category', category as any)
         .order('date_added', { ascending: false });
 
       if (error) {
@@ -69,93 +68,38 @@ class MaterialsService {
         throw new Error(error.message);
       }
 
-      return data || [];
+      return data as unknown as Material[] || [];
     } catch (error) {
       console.error('Error in getMaterialsByCategory service:', error);
       throw error;
     }
   }
 
-  async createMaterial(
-    materialData: Omit<Material, 'id' | 'date_added' | 'downloads'>,
-    file?: File,
-    thumbnail?: File
-  ): Promise<Material> {
+  async createMaterial(materialData: {
+    title: string;
+    description: string | null;
+    category: string;
+    type: string;
+    thumbnail_url: string | null;
+    file_url: string | null;
+  }): Promise<Material> {
     try {
-      // Get current user session
+      // Get the current user's session
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData.session?.user.id;
 
-      let fileUrl = materialData.file_url;
-      let thumbnailUrl = materialData.thumbnail_url;
-
-      // Check if materials bucket exists, if not create it
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const materialsBucket = buckets?.find(bucket => bucket.name === 'materials');
-      
-      if (!materialsBucket) {
-        await supabase.storage.createBucket('materials', {
-          public: true,
-          fileSizeLimit: 52428800 // 50MB
-        });
-      }
-
-      // Upload file if provided
-      if (file) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-        const filePath = `${materialData.type}/${fileName}`;
-
-        const { error: uploadError, data: uploadData } = await supabase.storage
-          .from('materials')
-          .upload(filePath, file);
-
-        if (uploadError) {
-          console.error('Error uploading file:', uploadError);
-          throw new Error(uploadError.message);
-        }
-
-        // Get public URL for the file
-        const { data: publicUrlData } = supabase.storage
-          .from('materials')
-          .getPublicUrl(filePath);
-
-        fileUrl = publicUrlData.publicUrl;
-      }
-
-      // Upload thumbnail if provided
-      if (thumbnail) {
-        const thumbExt = thumbnail.name.split('.').pop();
-        const thumbName = `thumb_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${thumbExt}`;
-        const thumbPath = `thumbnails/${thumbName}`;
-
-        const { error: thumbError } = await supabase.storage
-          .from('materials')
-          .upload(thumbPath, thumbnail);
-
-        if (thumbError) {
-          console.error('Error uploading thumbnail:', thumbError);
-          throw new Error(thumbError.message);
-        }
-
-        // Get public URL for the thumbnail
-        const { data: thumbUrlData } = supabase.storage
-          .from('materials')
-          .getPublicUrl(thumbPath);
-
-        thumbnailUrl = thumbUrlData.publicUrl;
-      }
-
-      // Create material record in the database
       const { data, error } = await supabase
         .from('materials')
         .insert({
-          ...materialData,
-          file_url: fileUrl,
-          thumbnail_url: thumbnailUrl,
-          created_by: userId,
-          downloads: 0
-        })
+          title: materialData.title,
+          description: materialData.description,
+          category: materialData.category,
+          type: materialData.type,
+          thumbnail_url: materialData.thumbnail_url,
+          file_url: materialData.file_url,
+          downloads: 0,
+          created_by: userId
+        } as any)
         .select()
         .single();
 
@@ -164,73 +108,19 @@ class MaterialsService {
         throw new Error(error.message);
       }
 
-      return data;
+      return data as unknown as Material;
     } catch (error) {
       console.error('Error in createMaterial service:', error);
       throw error;
     }
   }
 
-  async updateMaterial(
-    id: string, 
-    materialData: Partial<Material>,
-    file?: File,
-    thumbnail?: File
-  ): Promise<Material> {
+  async updateMaterial(id: string, materialData: Partial<Material>): Promise<Material> {
     try {
-      const updates: Partial<Material> = { ...materialData };
-
-      // Upload new file if provided
-      if (file) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-        const filePath = `${materialData.type || 'other'}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('materials')
-          .upload(filePath, file);
-
-        if (uploadError) {
-          console.error('Error uploading file:', uploadError);
-          throw new Error(uploadError.message);
-        }
-
-        // Get public URL for the file
-        const { data: publicUrlData } = supabase.storage
-          .from('materials')
-          .getPublicUrl(filePath);
-
-        updates.file_url = publicUrlData.publicUrl;
-      }
-
-      // Upload new thumbnail if provided
-      if (thumbnail) {
-        const thumbExt = thumbnail.name.split('.').pop();
-        const thumbName = `thumb_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${thumbExt}`;
-        const thumbPath = `thumbnails/${thumbName}`;
-
-        const { error: thumbError } = await supabase.storage
-          .from('materials')
-          .upload(thumbPath, thumbnail);
-
-        if (thumbError) {
-          console.error('Error uploading thumbnail:', thumbError);
-          throw new Error(thumbError.message);
-        }
-
-        // Get public URL for the thumbnail
-        const { data: thumbUrlData } = supabase.storage
-          .from('materials')
-          .getPublicUrl(thumbPath);
-
-        updates.thumbnail_url = thumbUrlData.publicUrl;
-      }
-
-      // Update material record in the database
       const { data, error } = await supabase
         .from('materials')
-        .update(updates)
-        .eq('id', id)
+        .update(materialData as any)
+        .eq('id', id as any)
         .select()
         .single();
 
@@ -239,7 +129,7 @@ class MaterialsService {
         throw new Error(error.message);
       }
 
-      return data;
+      return data as unknown as Material;
     } catch (error) {
       console.error('Error in updateMaterial service:', error);
       throw error;
@@ -248,42 +138,14 @@ class MaterialsService {
 
   async deleteMaterial(id: string): Promise<void> {
     try {
-      // Get material info first to delete associated files
-      const { data: material, error: getError } = await supabase
-        .from('materials')
-        .select('file_url, thumbnail_url')
-        .eq('id', id)
-        .single();
-
-      if (getError) {
-        console.error('Error fetching material for deletion:', getError);
-        throw new Error(getError.message);
-      }
-
-      // Delete the material record from the database
       const { error } = await supabase
         .from('materials')
         .delete()
-        .eq('id', id);
+        .eq('id', id as any);
 
       if (error) {
         console.error('Error deleting material:', error);
         throw new Error(error.message);
-      }
-
-      // Delete associated files if they exist
-      if (material) {
-        if (material.file_url) {
-          // Extract the path from the URL
-          const filePath = material.file_url.split('/').slice(-2).join('/');
-          await supabase.storage.from('materials').remove([filePath]);
-        }
-        
-        if (material.thumbnail_url) {
-          // Extract the path from the URL
-          const thumbPath = material.thumbnail_url.split('/').slice(-2).join('/');
-          await supabase.storage.from('materials').remove([thumbPath]);
-        }
       }
     } catch (error) {
       console.error('Error in deleteMaterial service:', error);
@@ -291,11 +153,68 @@ class MaterialsService {
     }
   }
 
+  async downloadMaterial(id: string): Promise<{ url: string | null; filename: string | null }> {
+    try {
+      // First get the material to get file URL
+      const { data, error } = await supabase
+        .from('materials')
+        .select('file_url, thumbnail_url')
+        .eq('id', id as any)
+        .single();
+
+      if (error || !data) {
+        console.error('Error getting material for download:', error);
+        return { url: null, filename: null };
+      }
+      
+      // If file_url is a Supabase storage URL, get a public URL
+      if (data.file_url && data.file_url.includes('storage')) {
+        // Extract path from storage URL
+        const path = data.file_url.split('/').slice(-2).join('/');
+        const filename = path.split('/').pop() || 'download';
+        
+        return { url: data.file_url, filename };
+      }
+      
+      // If thumbnail_url is a Supabase storage URL, get a public URL
+      if (data.thumbnail_url && data.thumbnail_url.includes('storage')) {
+        // Extract path from storage URL
+        const path = data.thumbnail_url.split('/').slice(-2).join('/');
+        const filename = path.split('/').pop() || 'download';
+        
+        return { url: data.thumbnail_url, filename };
+      }
+
+      return { 
+        url: data.file_url || data.thumbnail_url || null, 
+        filename: 'download' 
+      };
+    } catch (error) {
+      console.error('Error in downloadMaterial service:', error);
+      return { url: null, filename: null };
+    }
+  }
+
   async incrementDownloads(id: string): Promise<void> {
     try {
-      await supabase.rpc('increment_material_downloads', { material_id: id });
+      const { data: material } = await supabase
+        .from('materials')
+        .select('downloads')
+        .eq('id', id as any)
+        .single();
+      
+      const currentDownloads = material ? (material.downloads || 0) : 0;
+      
+      const { error } = await supabase
+        .from('materials')
+        .update({ downloads: currentDownloads + 1 } as any)
+        .eq('id', id as any);
+
+      if (error) {
+        console.error('Error incrementing downloads:', error);
+      }
     } catch (error) {
-      console.error('Error incrementing downloads:', error);
+      console.error('Error in incrementDownloads service:', error);
     }
   }
 }

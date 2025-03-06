@@ -1,284 +1,234 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ThumbsUp, MessageSquare, Share2, Bookmark, Clock, Calendar } from "lucide-react";
-import { getVideoById, getRelatedVideos, incrementVideoViews } from "@/services/VideosService";
-import { Spinner } from "@/components/ui/spinner";
-import { useToast } from "@/hooks/use-toast";
-
-const VideoPlayer = ({ url, source }: { url: string; source: string }) => {
-  const renderPlayer = () => {
-    if (source === 'youtube') {
-      const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
-      if (videoId) {
-        return (
-          <iframe
-            width="100%"
-            height="100%"
-            src={`https://www.youtube.com/embed/${videoId}`}
-            title="YouTube video player"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          ></iframe>
-        );
-      }
-    }
-    
-    if (source === 'vimeo') {
-      const videoId = url.match(/vimeo\.com\/([0-9]+)/)?.[1];
-      if (videoId) {
-        return (
-          <iframe
-            width="100%"
-            height="100%"
-            src={`https://player.vimeo.com/video/${videoId}`}
-            title="Vimeo video player"
-            frameBorder="0"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-          ></iframe>
-        );
-      }
-    }
-    
-    return (
-      <video
-        controls
-        width="100%"
-        height="100%"
-        src={url}
-        className="w-full h-full"
-      >
-        Seu navegador não suporta o elemento de vídeo.
-      </video>
-    );
-  };
-
-  return (
-    <div className="aspect-video bg-black rounded-lg overflow-hidden">
-      {renderPlayer()}
-    </div>
-  );
-};
+import { ArrowLeft, Calendar, Clock, Eye, Share2 } from 'lucide-react';
+import { Skeleton } from "@/components/ui/skeleton";
+import VideosService, { Video } from '@/services/VideosService';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const VideoDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [video, setVideo] = useState<any>(null);
-  const [relatedVideos, setRelatedVideos] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("sobre");
   const { toast } = useToast();
-  const [viewIncremented, setViewIncremented] = useState(false);
+  const [video, setVideo] = useState<Video | null>(null);
+  const [relatedVideos, setRelatedVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchVideo = async () => {
       if (!id) return;
       
-      setIsLoading(true);
+      setLoading(true);
       try {
-        const videoData = await getVideoById(id);
+        // Get current user
+        const { data: sessionData } = await supabase.auth.getSession();
+        setUserId(sessionData.session?.user.id || null);
         
-        if (!videoData) {
-          throw new Error("Vídeo não encontrado");
-        }
-        
+        // Get video details
+        const videoData = await VideosService.getVideoById(id);
         setVideo(videoData);
         
-        const related = await getRelatedVideos(id, videoData.category);
+        // Get related videos
+        const related = await VideosService.getRelatedVideos(videoData.category, id);
         setRelatedVideos(related);
         
-        if (!viewIncremented) {
-          const success = await incrementVideoViews(id);
-          if (!success) {
-            console.warn("Failed to increment video views");
-          }
-          setViewIncremented(true);
+        // Log activity
+        if (sessionData.session?.user.id) {
+          await supabase.from('user_activities').insert({
+            user_id: sessionData.session.user.id,
+            activity_type: 'watch_video',
+            content_id: id,
+            metadata: { video_id: id, title: videoData.title }
+          } as any);
         }
-      } catch (err) {
-        console.error("Error fetching video:", err);
-        setError(err instanceof Error ? err.message : "Erro ao carregar o vídeo");
+      } catch (error) {
+        console.error('Error loading video:', error);
         toast({
-          title: "Erro",
-          description: "Não foi possível carregar os detalhes do vídeo.",
+          title: "Erro ao carregar vídeo",
+          description: "Não foi possível carregar o vídeo solicitado.",
           variant: "destructive"
         });
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
-    
-    fetchVideo();
-  }, [id, toast, viewIncremented]);
 
-  const handleBackClick = () => {
-    navigate('/videos');
+    fetchVideo();
+  }, [id, toast]);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
   };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="flex justify-center items-center h-64">
-          <Spinner size="lg" />
-          <span className="ml-3">Carregando vídeo...</span>
+  const renderVideoPlayer = () => {
+    if (!video) return null;
+    
+    if (video.source === 'youtube') {
+      // Extract YouTube video ID
+      const videoId = video.url.includes('v=') 
+        ? new URLSearchParams(new URL(video.url).search).get('v')
+        : video.url.split('/').pop();
+      
+      return (
+        <div className="aspect-video w-full">
+          <iframe 
+            src={`https://www.youtube.com/embed/${videoId}`} 
+            className="w-full h-full" 
+            frameBorder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowFullScreen
+          />
         </div>
-      </div>
-    );
-  }
-
-  if (error || !video) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="text-center py-12">
-          <h2 className="text-xl font-semibold mb-2">Erro</h2>
-          <p className="text-gray-500 mb-4">{error || "Vídeo não encontrado"}</p>
-          <Button onClick={handleBackClick}>Voltar para lista de vídeos</Button>
+      );
+    } else if (video.source === 'vimeo') {
+      // Extract Vimeo video ID
+      const videoId = video.url.split('/').pop();
+      
+      return (
+        <div className="aspect-video w-full">
+          <iframe 
+            src={`https://player.vimeo.com/video/${videoId}`} 
+            className="w-full h-full" 
+            frameBorder="0" 
+            allow="autoplay; fullscreen; picture-in-picture" 
+            allowFullScreen
+          />
         </div>
-      </div>
-    );
-  }
+      );
+    } else if (video.source === 'storage') {
+      // Render direct video file from storage
+      return (
+        <div className="aspect-video w-full">
+          <video 
+            src={video.url} 
+            className="w-full h-full" 
+            controls
+            poster={video.thumbnail}
+          />
+        </div>
+      );
+    } else {
+      // Default URL video
+      return (
+        <div className="aspect-video w-full">
+          <video 
+            src={video.url} 
+            className="w-full h-full" 
+            controls
+            poster={video.thumbnail}
+          />
+        </div>
+      );
+    }
+  };
 
   return (
     <div className="container mx-auto py-6 px-4">
       <Button 
         variant="ghost" 
-        className="mb-4 pl-0"
-        onClick={handleBackClick}
+        onClick={() => navigate('/videos')} 
+        className="mb-4"
       >
-        <ChevronLeft size={18} className="mr-1" />
-        Voltar para lista de vídeos
+        <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para vídeos
       </Button>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <VideoPlayer url={video.url} source={video.source} />
+      {loading ? (
+        <>
+          <Skeleton className="w-full h-[400px] mb-4" />
+          <Skeleton className="w-2/3 h-8 mb-2" />
+          <Skeleton className="w-1/3 h-6 mb-4" />
+          <Skeleton className="w-full h-24" />
+        </>
+      ) : video ? (
+        <>
+          {renderVideoPlayer()}
           
-          <div className="mt-4">
-            <h1 className="text-2xl font-bold mb-2">{video.title}</h1>
+          <div className="mt-6">
+            <h1 className="text-2xl font-bold">{video.title}</h1>
             
-            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 mb-4">
-              <Badge variant="outline" className="bg-gray-100">
-                {video.category}
-              </Badge>
-              <div className="flex items-center">
-                <Clock size={14} className="mr-1" />
+            <div className="flex flex-wrap gap-2 mt-2 mb-4 text-sm text-gray-600">
+              <div className="flex items-center mr-4">
+                <Calendar className="w-4 h-4 mr-1" />
+                {formatDate(video.date_added)}
+              </div>
+              <div className="flex items-center mr-4">
+                <Clock className="w-4 h-4 mr-1" />
                 {video.duration}
               </div>
               <div className="flex items-center">
-                <Calendar size={14} className="mr-1" />
-                {new Date(video.date_added).toLocaleDateString()}
+                <Eye className="w-4 h-4 mr-1" />
+                {video.views} visualizações
               </div>
-              <div>{video.views} visualizações</div>
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="ml-auto"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast({
+                    title: "Link copiado",
+                    description: "Link do vídeo copiado para a área de transferência."
+                  });
+                }}
+              >
+                <Share2 className="w-4 h-4 mr-1" /> Compartilhar
+              </Button>
             </div>
             
-            <div className="flex flex-wrap gap-2 mb-6">
-              <Button variant="outline" size="sm">
-                <ThumbsUp size={16} className="mr-1" />
-                Curtir
-              </Button>
-              <Button variant="outline" size="sm">
-                <Bookmark size={16} className="mr-1" />
-                Salvar
-              </Button>
-              <Button variant="outline" size="sm">
-                <Share2 size={16} className="mr-1" />
-                Compartilhar
-              </Button>
+            <div className="mt-4 text-gray-700">
+              <h3 className="font-semibold mb-2">Descrição</h3>
+              <p className="whitespace-pre-line">{video.description}</p>
             </div>
-            
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="sobre">Sobre</TabsTrigger>
-                <TabsTrigger value="discussao">Discussão</TabsTrigger>
-                <TabsTrigger value="recursos">Recursos</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="sobre" className="mt-0">
-                <Card>
-                  <CardContent className="p-4">
-                    <p className="text-gray-700 whitespace-pre-line">{video.description}</p>
-                    
-                    <div className="mt-4 pt-4 border-t">
-                      <h3 className="font-semibold mb-2">Trilha de Aprendizado</h3>
-                      <p className="text-gray-600">{video.learning_path}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="discussao" className="mt-0">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="border-b pb-4 mb-4">
-                      <h3 className="font-semibold mb-3">Comentários (0)</h3>
-                      <textarea
-                        placeholder="Deixe seu comentário sobre este vídeo..."
-                        className="w-full p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        rows={3}
-                      ></textarea>
-                      <div className="mt-2 flex justify-end">
-                        <Button size="sm">Comentar</Button>
-                      </div>
-                    </div>
-                    
-                    <div className="text-center py-4 text-gray-500">
-                      Ainda não há comentários para este vídeo. Seja o primeiro a comentar!
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="recursos" className="mt-0">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-center py-4 text-gray-500">
-                      Não há recursos adicionais disponíveis para este vídeo.
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
           </div>
-        </div>
-        
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Vídeos Relacionados</h2>
-          {relatedVideos.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 border rounded-lg">
-              Não há vídeos relacionados
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {relatedVideos.map((relatedVideo) => (
-                <Card 
-                  key={relatedVideo.id} 
-                  className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => {
-                    navigate(`/videos/${relatedVideo.id}`);
-                  }}
-                >
-                  <div className="flex">
-                    <img
-                      src={relatedVideo.thumbnail || "https://via.placeholder.com/300x200"}
-                      alt={relatedVideo.title}
-                      className="w-24 h-20 object-cover"
-                    />
-                    <CardContent className="p-3">
-                      <h3 className="font-medium text-sm line-clamp-2 mb-1">{relatedVideo.title}</h3>
-                      <div className="text-xs text-gray-500">{relatedVideo.duration} • {relatedVideo.views} visualizações</div>
+          
+          {relatedVideos.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-xl font-bold mb-4">Vídeos relacionados</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {relatedVideos.map(related => (
+                  <Card 
+                    key={related.id} 
+                    className="h-full cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => navigate(`/videos/${related.id}`)}
+                  >
+                    <div className="aspect-video w-full overflow-hidden">
+                      <img 
+                        src={related.thumbnail || '/placeholder.svg'} 
+                        alt={related.title} 
+                        className="w-full h-full object-cover transition-transform hover:scale-105"
+                      />
+                    </div>
+                    <CardContent className="p-4">
+                      <h3 className="font-medium line-clamp-2">{related.title}</h3>
+                      <div className="flex justify-between text-sm text-gray-500 mt-2">
+                        <span>{formatDate(related.date_added)}</span>
+                        <span>{related.duration}</span>
+                      </div>
                     </CardContent>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                ))}
+              </div>
             </div>
           )}
+        </>
+      ) : (
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold">Vídeo não encontrado</h2>
+          <p className="mt-2 text-gray-600">O vídeo que você está procurando não está disponível.</p>
+          <Button 
+            className="mt-4" 
+            onClick={() => navigate('/videos')}
+          >
+            Voltar para lista de vídeos
+          </Button>
         </div>
-      </div>
+      )}
     </div>
   );
 };
