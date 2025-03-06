@@ -249,41 +249,42 @@ const Sidebar = () => {
       </Content>
       
       <Footer className="border-t p-4">
-        <div className="flex flex-col space-y-4">
-          {expanded && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
+              ) : (
+                <User size={20} className="text-gray-500" />
+              )}
+            </div>
+            {expanded && (
+              <div className="flex flex-col">
+                <span className="text-sm font-medium truncate max-w-32">
+                  {userName || "Usuário"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {userRole === "admin" ? "Administrador" : "Usuário"}
+                </span>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center">
             <NotificationPopover>
-              <button className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
-                <BellRing className="w-5 h-5 mr-3" />
-                <span className="flex-1">Notificações</span>
+              <button 
+                className="p-2 mr-2 rounded-full hover:bg-gray-100 relative"
+                title="Notificações"
+              >
+                <BellRing size={20} className="text-gray-500" />
                 {unreadCount > 0 && (
-                  <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full">
-                    {unreadCount}
+                  <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                    {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
             </NotificationPopover>
-          )}
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
-                ) : (
-                  <User size={20} className="text-gray-500" />
-                )}
-              </div>
-              {expanded && (
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium truncate max-w-32">
-                    {userName || "Usuário"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {userRole === "admin" ? "Administrador" : "Usuário"}
-                  </span>
-                </div>
-              )}
-            </div>
+            
             <button
               onClick={handleLogout}
               className="p-2 rounded-full hover:bg-gray-100"
