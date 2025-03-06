@@ -10,13 +10,14 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface NotificationPopoverProps {
   children: React.ReactNode;
 }
 
 const NotificationPopover = ({ children }: NotificationPopoverProps) => {
-  const { notifications, markAsRead } = useNotifications();
+  const { notifications, markAsRead, markAllAsRead, unreadCount } = useNotifications();
 
   return (
     <Popover>
@@ -24,8 +25,22 @@ const NotificationPopover = ({ children }: NotificationPopoverProps) => {
         {children}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
-        <div className="p-4 border-b">
+        <div className="flex items-center justify-between p-4 border-b">
           <h4 className="text-sm font-medium">Notificações</h4>
+          {unreadCount > 0 && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                markAllAsRead();
+              }}
+              className="text-xs"
+            >
+              Marcar todas como lidas
+            </Button>
+          )}
         </div>
         <ScrollArea className="h-[300px]">
           {notifications.length === 0 ? (
