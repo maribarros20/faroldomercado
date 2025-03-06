@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
 import { UserCircle, Settings, LogOut } from "lucide-react";
 import { useUser } from "./SidebarUserContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const SidebarFooterMenu: React.FC = () => {
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ export const SidebarFooterMenu: React.FC = () => {
           </Link>
         </Button>
       ))}
+      <ThemeToggle />
       <Button
         variant="ghost"
         size="sm"
