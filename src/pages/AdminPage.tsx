@@ -11,7 +11,7 @@ import AdminVideos from "@/components/admin/AdminVideos";
 import AdminPlans from "@/components/admin/AdminPlans";
 import AdminAuditLogs from "@/components/admin/AdminAuditLogs";
 import { useToast } from "@/hooks/use-toast";
-import MarketNews from "@/components/admin/MarketNews";
+import AdminNewsManager from "@/components/admin/AdminNewsManager";
 import AdminFinanceIframes from "@/components/admin/AdminFinanceIframes";
 import { Shield, AlertCircle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -188,7 +188,7 @@ const AdminPage = () => {
             </TabsContent>
 
             <TabsContent value="market-news" className="mt-0">
-              <MarketNews />
+              <AdminNewsManager />
             </TabsContent>
 
             <TabsContent value="finance-spreadsheet" className="mt-0">
