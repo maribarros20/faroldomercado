@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,15 +10,16 @@ import { useToast } from "@/hooks/use-toast";
 import Logo from "@/components/Logo";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { CreditCard, ArrowLeft, Mail, KeyRound, User, Building, Phone } from "lucide-react";
+import { CreditCard, ArrowLeft, Mail, KeyRound, User, Phone } from "lucide-react";
 import ForgotPassword from "@/components/ForgotPassword";
+import TermsAndConditions from "@/components/TermsAndConditions";
 
 const Index = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const [showForgotPasswordDialog, setShowForgotPasswordDialog] = useState(false);
+  const [showTermsDialog, setShowTermsDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loginData, setLoginData] = useState({
     email: "",
@@ -28,7 +29,6 @@ const Index = () => {
     fullName: "",
     email: "",
     password: "",
-    cnpj: "",
     phone: "",
     cpf: "",
     date_of_birth: "",
@@ -178,7 +178,7 @@ const Index = () => {
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
       
-      // Register with Supabase - modified to match database schema
+      // Register with Supabase - Modified to remove the CNPJ field
       const { error } = await supabase.auth.signUp({
         email: registerData.email,
         password: registerData.password,
@@ -186,11 +186,9 @@ const Index = () => {
           data: {
             first_name: firstName,
             last_name: lastName,
-            cnpj: registerData.cnpj,
             phone: registerData.phone,
             cpf: registerData.cpf,
             date_of_birth: registerData.date_of_birth
-            // Removed company field as it doesn't exist in the database
           }
         }
       });
@@ -326,7 +324,7 @@ const Index = () => {
                 <a href="https://painel.faroldomercado.com.br" className="text-base font-medium hover:underline">Site</a>
                 <a href="https://painel.faroldomercado.com/farolito-blog" className="text-base font-medium hover:underline">Blog</a>
                 <a href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" className="text-base font-medium hover:underline">Falar com Luma</a>
-                <a href="#" className="text-base font-medium hover:underline">Ajuda</a>
+                <a href="https://wa.me/5585996282222" className="text-base font-medium hover:underline">Ajuda</a>
               </div>
               
               <div className="flex-1 flex flex-col justify-center max-w-md">
@@ -451,21 +449,6 @@ const Index = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="cnpj">CNPJ da empresa ou do mentor</Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                    <Input 
-                      id="cnpj" 
-                      name="cnpj" 
-                      value={registerData.cnpj}
-                      onChange={handleRegisterChange}
-                      className="pl-10"
-                      placeholder="Digite o CNPJ da empresa ou do mentor"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
                   <Label htmlFor="phone">Celular *</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -489,7 +472,16 @@ const Index = () => {
                     required
                   />
                   <label htmlFor="terms" className="text-sm text-gray-700">
-                    Eu aceito os <Button variant="link" className="h-auto p-0 text-trade-blue text-sm">Termos e Condições</Button>
+                    Eu aceito os <Button 
+                      variant="link" 
+                      className="h-auto p-0 text-trade-blue text-sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowTermsDialog(true);
+                      }}
+                    >
+                      Termos e Condições
+                    </Button>
                   </label>
                 </div>
                 
@@ -517,7 +509,7 @@ const Index = () => {
                 <a href="https://painel.faroldomercado.com.br" className="text-base font-medium hover:underline">Site</a>
                 <a href="https://painel.faroldomercado.com/farolito-blog" className="text-base font-medium hover:underline">Blog</a>
                 <a href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" className="text-base font-medium hover:underline">Falar com Luma</a>
-                <a href="#" className="text-base font-medium hover:underline">Ajuda</a>
+                <a href="https://wa.me/5585996282222" className="text-base font-medium hover:underline">Ajuda</a>
               </div>
               
               <div className="flex-1 flex flex-col justify-center max-w-md">
@@ -571,9 +563,14 @@ const Index = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Terms and Conditions Dialog */}
+      <TermsAndConditions 
+        isOpen={showTermsDialog} 
+        onClose={() => setShowTermsDialog(false)} 
+      />
     </div>
   );
 };
 
 export default Index;
-
