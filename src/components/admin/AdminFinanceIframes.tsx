@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,12 +9,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { Plus } from "lucide-react";
+import { Plus, AlertCircle, RefreshCw } from "lucide-react";
 import { useFinanceIframes } from "@/hooks/useFinanceIframes";
 import FinanceIframeForm from "./finance/FinanceIframeForm";
 import FinanceIframeList from "./finance/FinanceIframeList";
 import EmptyState from "./finance/EmptyState";
 import { useToast } from "@/hooks/use-toast";
+import { Card } from "@/components/ui/card";
 
 const AdminFinanceIframes = () => {
   const {
@@ -33,9 +34,30 @@ const AdminFinanceIframes = () => {
     handleSubmit,
     handleCancel,
     handlePreview,
+    refetch
   } = useFinanceIframes();
 
   const { toast } = useToast();
+
+  // Verificar sessão quando o componente é montado
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data } = await fetch('/auth/session').then(res => res.json());
+        if (!data || !data.session) {
+          toast({
+            title: "Sessão expirada",
+            description: "Sua sessão expirou. Por favor, faça login novamente.",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao verificar sessão:", error);
+      }
+    };
+
+    checkSession();
+  }, [toast]);
 
   if (isLoading) {
     return (
@@ -47,9 +69,19 @@ const AdminFinanceIframes = () => {
 
   if (isError) {
     return (
-      <div className="p-4 bg-red-50 text-red-500 rounded-md">
-        Erro ao carregar iframes financeiros. Por favor, tente novamente.
-      </div>
+      <Card className="p-6">
+        <div className="flex flex-col items-center justify-center text-center space-y-4">
+          <AlertCircle className="h-12 w-12 text-red-500" />
+          <h3 className="text-lg font-medium">Erro ao carregar iframes financeiros</h3>
+          <p className="text-muted-foreground">
+            Ocorreu um erro ao carregar as planilhas financeiras. Isso pode ser devido a um problema de permissão.
+          </p>
+          <Button onClick={() => refetch()} variant="outline" className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Tentar novamente
+          </Button>
+        </div>
+      </Card>
     );
   }
 

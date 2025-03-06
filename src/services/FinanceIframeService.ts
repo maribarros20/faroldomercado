@@ -7,21 +7,21 @@ export type FinanceIframe = {
   title: string;
   description?: string;
   iframe_url: string;
-  plan_id?: string;
-  mentor_id?: string;
+  plan_id?: string | null;
+  mentor_id?: string | null;
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
-  plans?: { id: string; name: string };
-  mentors?: { id: string; name: string };
+  plans?: { id: string; name: string } | null;
+  mentors?: { id: string; name: string } | null;
 };
 
 export type FinanceIframeInput = {
   title: string;
   description?: string;
   iframe_url: string;
-  plan_id?: string;
-  mentor_id?: string;
+  plan_id?: string | null;
+  mentor_id?: string | null;
   is_active?: boolean;
 };
 
@@ -63,66 +63,111 @@ export const getFinanceIframeById = async (id: string): Promise<FinanceIframe> =
 };
 
 export const createFinanceIframe = async (iframe: FinanceIframeInput): Promise<FinanceIframe> => {
-  const { data, error } = await supabase
-    .from('finance_iframes')
-    .insert([
-      { ...iframe, id: uuidv4() }
-    ])
-    .select()
-    .single();
+  try {
+    const { data: userSession } = await supabase.auth.getSession();
+    
+    if (!userSession.session) {
+      throw new Error("Usuário não autenticado");
+    }
+    
+    const { data, error } = await supabase
+      .from('finance_iframes')
+      .insert([
+        { 
+          ...iframe, 
+          id: uuidv4(),
+          created_by: userSession.session.user.id
+        }
+      ])
+      .select()
+      .single();
 
-  if (error) {
+    if (error) {
+      console.error('Erro ao criar iframe financeiro:', error);
+      
+      if (error.code === 'PGRST301') {
+        throw new Error("Permissão negada: Apenas administradores podem gerenciar iframes financeiros");
+      }
+      
+      throw new Error(`Erro ao criar iframe financeiro: ${error.message}`);
+    }
+
+    return data;
+  } catch (error: any) {
     console.error('Erro ao criar iframe financeiro:', error);
-    throw new Error(`Erro ao criar iframe financeiro: ${error.message}`);
+    throw new Error(error.message || "Erro ao criar iframe financeiro");
   }
-
-  return data;
 };
 
 export const updateFinanceIframe = async (id: string, iframe: Partial<FinanceIframeInput>): Promise<FinanceIframe> => {
-  const { data, error } = await supabase
-    .from('finance_iframes')
-    .update({ ...iframe, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('finance_iframes')
+      .update({ ...iframe, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
 
-  if (error) {
+    if (error) {
+      console.error(`Erro ao atualizar iframe financeiro com ID ${id}:`, error);
+      
+      if (error.code === 'PGRST301') {
+        throw new Error("Permissão negada: Apenas administradores podem gerenciar iframes financeiros");
+      }
+      
+      throw new Error(`Erro ao atualizar iframe financeiro: ${error.message}`);
+    }
+
+    return data;
+  } catch (error: any) {
     console.error(`Erro ao atualizar iframe financeiro com ID ${id}:`, error);
-    throw new Error(`Erro ao atualizar iframe financeiro: ${error.message}`);
+    throw new Error(error.message || `Erro ao atualizar iframe financeiro com ID ${id}`);
   }
-
-  return data;
 };
 
 export const deleteFinanceIframe = async (id: string): Promise<void> => {
-  const { error } = await supabase
-    .from('finance_iframes')
-    .delete()
-    .eq('id', id);
+  try {
+    const { error } = await supabase
+      .from('finance_iframes')
+      .delete()
+      .eq('id', id);
 
-  if (error) {
+    if (error) {
+      console.error(`Erro ao excluir iframe financeiro com ID ${id}:`, error);
+      
+      if (error.code === 'PGRST301') {
+        throw new Error("Permissão negada: Apenas administradores podem excluir iframes financeiros");
+      }
+      
+      throw new Error(`Erro ao excluir iframe financeiro: ${error.message}`);
+    }
+  } catch (error: any) {
     console.error(`Erro ao excluir iframe financeiro com ID ${id}:`, error);
-    throw new Error(`Erro ao excluir iframe financeiro: ${error.message}`);
+    throw new Error(error.message || `Erro ao excluir iframe financeiro com ID ${id}`);
   }
 };
 
 export const getFinanceIframesByPlanId = async (planId: string): Promise<FinanceIframe[]> => {
-  const { data, error } = await supabase
-    .from('finance_iframes')
-    .select(`
-      *,
-      plans(id, name),
-      mentors(id, name)
-    `)
-    .eq('plan_id', planId)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('finance_iframes')
+      .select(`
+        *,
+        plans(id, name),
+        mentors(id, name)
+      `)
+      .eq('plan_id', planId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
 
-  if (error) {
+    if (error) {
+      console.error(`Erro ao buscar iframes financeiros para o plano ${planId}:`, error);
+      throw new Error(`Erro ao buscar iframes financeiros: ${error.message}`);
+    }
+
+    return data || [];
+  } catch (error: any) {
     console.error(`Erro ao buscar iframes financeiros para o plano ${planId}:`, error);
-    throw new Error(`Erro ao buscar iframes financeiros: ${error.message}`);
+    throw new Error(error.message || `Erro ao buscar iframes financeiros para o plano ${planId}`);
   }
-
-  return data || [];
 };

@@ -20,13 +20,14 @@ export const useFinanceIframes = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch plans
+  // Fetch plans with error handling
   useEffect(() => {
     const fetchPlans = async () => {
       try {
         const { data, error } = await supabase
           .from('plans')
           .select('id, name')
+          .eq('is_active', true)
           .order('name');
         
         if (error) throw error;
@@ -44,7 +45,7 @@ export const useFinanceIframes = () => {
     fetchPlans();
   }, [toast]);
 
-  // Fetch mentors
+  // Fetch mentors with error handling
   useEffect(() => {
     const fetchMentors = async () => {
       try {
@@ -69,19 +70,30 @@ export const useFinanceIframes = () => {
   }, [toast]);
 
   // Query to fetch iframes
-  const { data: iframes, isLoading, isError } = useQuery({
+  const { data: iframes, isLoading, isError, refetch } = useQuery({
     queryKey: ['finance-iframes'],
-    queryFn: getFinanceIframes
+    queryFn: getFinanceIframes,
+    meta: {
+      onError: (error: Error) => {
+        console.error('Erro ao buscar iframes:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar os iframes financeiros. Verifique suas permissões.",
+          variant: "destructive"
+        });
+      }
+    }
   });
 
   // Mutations
   const createMutation = useMutation({
     mutationFn: (data: FinanceIframeInput) => {
-      // Convert "null" string to undefined for optional fields
+      // Processar valores nulos/undefined para campos opcionais
       const processedData = {
         ...data,
-        plan_id: data.plan_id === "null" ? undefined : data.plan_id,
-        mentor_id: data.mentor_id === "null" ? undefined : data.mentor_id
+        plan_id: data.plan_id === "null" ? null : data.plan_id,
+        mentor_id: data.mentor_id === "null" ? null : data.mentor_id,
+        is_active: data.is_active !== undefined ? data.is_active : true
       };
       return createFinanceIframe(processedData);
     },
@@ -94,9 +106,10 @@ export const useFinanceIframes = () => {
       setIsDialogOpen(false);
     },
     onError: (error: Error) => {
+      console.error('Erro ao criar iframe:', error);
       toast({
         title: "Erro",
-        description: error.message,
+        description: error.message || "Não foi possível criar o iframe. Verifique suas permissões.",
         variant: "destructive"
       });
     }
@@ -104,11 +117,11 @@ export const useFinanceIframes = () => {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<FinanceIframeInput> }) => {
-      // Convert "null" string to undefined for optional fields
+      // Processar valores nulos/undefined para campos opcionais
       const processedData = {
         ...data,
-        plan_id: data.plan_id === "null" ? undefined : data.plan_id,
-        mentor_id: data.mentor_id === "null" ? undefined : data.mentor_id
+        plan_id: data.plan_id === "null" ? null : data.plan_id,
+        mentor_id: data.mentor_id === "null" ? null : data.mentor_id
       };
       return updateFinanceIframe(id, processedData);
     },
@@ -122,9 +135,10 @@ export const useFinanceIframes = () => {
       setSelectedIframe(null);
     },
     onError: (error: Error) => {
+      console.error('Erro ao atualizar iframe:', error);
       toast({
         title: "Erro",
-        description: error.message,
+        description: error.message || "Não foi possível atualizar o iframe. Verifique suas permissões.",
         variant: "destructive"
       });
     }
@@ -140,9 +154,10 @@ export const useFinanceIframes = () => {
       });
     },
     onError: (error: Error) => {
+      console.error('Erro ao excluir iframe:', error);
       toast({
         title: "Erro",
-        description: error.message,
+        description: error.message || "Não foi possível excluir o iframe. Verifique suas permissões.",
         variant: "destructive"
       });
     }
@@ -201,5 +216,6 @@ export const useFinanceIframes = () => {
     handleSubmit,
     handleCancel,
     handlePreview,
+    refetch
   };
 };
