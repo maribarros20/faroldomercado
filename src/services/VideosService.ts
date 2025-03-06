@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
+import { useQuery } from '@tanstack/react-query';
 
 export interface Video {
   id: string;
@@ -18,6 +18,50 @@ export interface Video {
 }
 
 export type VideoSource = 'youtube' | 'vimeo' | 'url' | 'storage';
+
+// Custom hook to fetch videos with optional filtering
+export const useVideos = (categoryFilter?: string, learningPathFilter?: string) => {
+  return useQuery({
+    queryKey: ['videos', categoryFilter, learningPathFilter],
+    queryFn: async () => {
+      let query = supabase.from('videos').select('*');
+      
+      if (categoryFilter) {
+        query = query.eq('category', categoryFilter);
+      }
+      
+      if (learningPathFilter) {
+        query = query.eq('learning_path', learningPathFilter);
+      }
+      
+      query = query.order('date_added', { ascending: false });
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching videos:', error);
+        throw new Error(error.message);
+      }
+      
+      return data as Video[];
+    }
+  });
+};
+
+// Function to increment video views
+export const incrementVideoViews = async (videoId: string): Promise<void> => {
+  try {
+    const { error } = await supabase.rpc('increment_video_views', {
+      video_id: videoId
+    });
+
+    if (error) {
+      console.error('Error incrementing video views:', error);
+    }
+  } catch (error) {
+    console.error('Error in incrementVideoViews:', error);
+  }
+};
 
 class VideosService {
   async getVideos(): Promise<Video[]> {

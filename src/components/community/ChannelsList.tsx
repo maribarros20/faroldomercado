@@ -3,17 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
-
-type Channel = {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-  created_by: string | null;
-  is_company_specific: boolean;
-  company_id: string | null;
-};
+import { Channel } from "@/types/community";
 
 interface ChannelsListProps {
   channels: Channel[];

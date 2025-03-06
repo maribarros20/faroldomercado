@@ -9,13 +9,7 @@ import CommunityPosts from "@/components/community/CommunityPosts";
 import CreatePostDialog from "@/components/community/CreatePostDialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Channel {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-}
+import { Channel } from "@/types/community"; // Import Channel type from common types
 
 const CommunityPage = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -60,7 +54,18 @@ const CommunityPage = () => {
           throw error;
         }
         
-        const typedChannels = channelsData as unknown as Channel[];
+        // Transform the data to match the Channel type
+        const typedChannels = channelsData.map((channel: any) => ({
+          id: channel.id,
+          name: channel.name,
+          description: channel.description,
+          created_at: channel.created_at,
+          updated_at: channel.updated_at,
+          created_by: channel.created_by,
+          is_company_specific: channel.is_company_specific,
+          company_id: channel.company_id
+        })) as Channel[];
+        
         setChannels(typedChannels);
         
         // Select first channel if none selected
@@ -135,16 +140,16 @@ const CommunityPage = () => {
               <div className="md:col-span-1">
                 <ChannelsList 
                   channels={channels} 
+                  activeChannel={selectedChannelId}
                   onSelectChannel={handleSelectChannel}
-                  selectedChannelId={selectedChannelId}
                 />
               </div>
               
               <div className="md:col-span-3">
-                {selectedChannelId && (
+                {selectedChannelId && userProfile?.id && (
                   <CommunityPosts 
                     channelId={selectedChannelId}
-                    userId={userProfile?.id}
+                    userId={userProfile.id}
                   />
                 )}
               </div>
@@ -164,7 +169,6 @@ const CommunityPage = () => {
         onOpenChange={setIsCreatePostOpen}
         onPostCreated={handleCreatePostSuccess}
         channelId={selectedChannelId}
-        userId={userProfile?.id}
       />
     </div>
   );
