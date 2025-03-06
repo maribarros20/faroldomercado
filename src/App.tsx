@@ -16,6 +16,7 @@ import PlansPage from "@/pages/PlansPage";
 import ProfileSettingsPage from "@/pages/ProfileSettingsPage";
 import AdminPage from "@/pages/AdminPage";
 import { supabase } from "@/integrations/supabase/client";
+import VideoDetail from "@/components/videos/VideoDetail";
 
 function App() {
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/materials" element={<MaterialsPage />} />
           <Route path="/videos" element={<VideosPage />} />
+          <Route path="/videos/:id" element={<VideoDetail />} />
           <Route path="/community" element={<CommunityPage />} />
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="/profile" element={<ProfilePage />} />
