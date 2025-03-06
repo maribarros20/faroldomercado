@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -29,6 +28,7 @@ const Index = () => {
     cnpj: "",
     phone: "",
     cpf: "",
+    date_of_birth: "",
     acceptTerms: false
   });
 
@@ -133,13 +133,15 @@ const Index = () => {
     setLoading(true);
     
     try {
-      // Validate required fields
-      if (!registerData.fullName || !registerData.email || !registerData.password || !registerData.cpf) {
+      // Validate required fields based on profiles table requirements
+      if (!registerData.fullName || !registerData.email || !registerData.password || 
+          !registerData.cpf || !registerData.phone || !registerData.date_of_birth) {
         toast({
           title: "Campos obrigatórios",
           description: "Por favor, preencha todos os campos obrigatórios.",
           variant: "destructive"
         });
+        setLoading(false);
         return;
       }
       
@@ -153,6 +155,7 @@ const Index = () => {
           description: "A senha deve ter pelo menos 8 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.",
           variant: "destructive"
         });
+        setLoading(false);
         return;
       }
       
@@ -163,6 +166,7 @@ const Index = () => {
           description: "Você precisa aceitar os termos e condições para se cadastrar.",
           variant: "destructive"
         });
+        setLoading(false);
         return;
       }
       
@@ -174,10 +178,10 @@ const Index = () => {
           data: {
             first_name: registerData.fullName.split(" ")[0] || "",
             last_name: registerData.fullName.split(" ").slice(1).join(" ") || "",
-            company: registerData.company,
             cnpj: registerData.cnpj,
             phone: registerData.phone,
-            cpf: registerData.cpf
+            cpf: registerData.cpf,
+            date_of_birth: registerData.date_of_birth
           }
         }
       });
@@ -188,6 +192,7 @@ const Index = () => {
           description: error.message,
           variant: "destructive"
         });
+        setLoading(false);
         return;
       }
       
@@ -356,7 +361,7 @@ const Index = () => {
               
               <form onSubmit={handleRegister} className="space-y-4 py-2">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Primeiro e último nome</Label>
+                  <Label htmlFor="fullName">Primeiro e último nome *</Label>
                   <Input 
                     id="fullName" 
                     name="fullName" 
@@ -367,7 +372,7 @@ const Index = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="registerEmail">E-mail</Label>
+                  <Label htmlFor="registerEmail">E-mail *</Label>
                   <Input 
                     id="registerEmail" 
                     name="email" 
@@ -379,7 +384,7 @@ const Index = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="registerPassword">Senha</Label>
+                  <Label htmlFor="registerPassword">Senha *</Label>
                   <Input 
                     id="registerPassword" 
                     name="password" 
@@ -394,7 +399,19 @@ const Index = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="cpf">CPF</Label>
+                  <Label htmlFor="date_of_birth">Data de Nascimento *</Label>
+                  <Input 
+                    id="date_of_birth" 
+                    name="date_of_birth" 
+                    type="date" 
+                    value={registerData.date_of_birth}
+                    onChange={handleRegisterChange}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cpf">CPF *</Label>
                   <div className="relative">
                     <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <Input 
@@ -430,12 +447,13 @@ const Index = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Celular</Label>
+                  <Label htmlFor="phone">Celular *</Label>
                   <Input 
                     id="phone" 
                     name="phone" 
                     value={registerData.phone}
                     onChange={handleRegisterChange}
+                    required
                   />
                 </div>
                 
@@ -444,6 +462,7 @@ const Index = () => {
                     id="terms" 
                     checked={registerData.acceptTerms}
                     onCheckedChange={handleRegisterCheckboxChange}
+                    required
                   />
                   <label htmlFor="terms" className="text-sm text-gray-700">
                     Eu aceito os <Button variant="link" className="h-auto p-0 text-trade-blue text-sm">Termos e Condições</Button>

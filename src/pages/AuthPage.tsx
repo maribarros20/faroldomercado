@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,7 @@ const AuthPage = () => {
   const [cnpj, setCnpj] = useState("");
   const [cpf, setCpf] = useState("");
   const [phone, setPhone] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -83,8 +83,8 @@ const AuthPage = () => {
         // Navigate to dashboard after login
         navigate("/dashboard");
       } else {
-        // Registration validation
-        if (!name || !email || !password || !phone || !cpf || !acceptTerms) {
+        // Registration validation for required fields based on profiles table
+        if (!name || !email || !password || !phone || !cpf || !dateOfBirth || !acceptTerms) {
           toast({
             title: "Campos obrigatórios",
             description: "Por favor, preencha todos os campos obrigatórios",
@@ -112,10 +112,10 @@ const AuthPage = () => {
             data: {
               first_name: name.split(" ")[0] || "",
               last_name: name.split(" ").slice(1).join(" ") || "",
-              company,
               cnpj,
               phone,
-              cpf
+              cpf,
+              date_of_birth: dateOfBirth
             }
           }
         });
@@ -252,23 +252,40 @@ const AuthPage = () => {
           {/* Auth Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="name">Primeiro e último nome</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                  <Input 
-                    id="name" 
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Digite seu nome completo"
-                    className="pl-10"
-                  />
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Primeiro e último nome *</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input 
+                      id="name" 
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Digite seu nome completo"
+                      className="pl-10"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="dateOfBirth">Data de Nascimento *</Label>
+                  <div className="relative">
+                    <Input 
+                      id="dateOfBirth" 
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      className="pl-3"
+                      required
+                    />
+                  </div>
+                </div>
+              </>
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="email">E-mail *</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <Input 
@@ -278,6 +295,7 @@ const AuthPage = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Digite seu e-mail"
                   className="pl-10"
+                  required
                 />
               </div>
             </div>
@@ -305,7 +323,7 @@ const AuthPage = () => {
             {!isLogin && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="cpf">CPF</Label>
+                  <Label htmlFor="cpf">CPF *</Label>
                   <div className="relative">
                     <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <Input 
@@ -314,6 +332,7 @@ const AuthPage = () => {
                       onChange={(e) => setCpf(e.target.value)}
                       placeholder="Digite seu CPF"
                       className="pl-10"
+                      required
                     />
                   </div>
                 </div>
@@ -347,7 +366,7 @@ const AuthPage = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Celular</Label>
+                  <Label htmlFor="phone">Celular *</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <Input 
@@ -356,6 +375,7 @@ const AuthPage = () => {
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="Digite seu celular"
                       className="pl-10"
+                      required
                     />
                   </div>
                 </div>
@@ -367,6 +387,7 @@ const AuthPage = () => {
                     className="rounded border-gray-300 text-primary focus:ring-primary"
                     checked={acceptTerms}
                     onChange={(e) => setAcceptTerms(e.target.checked)}
+                    required
                   />
                   <label htmlFor="terms" className="text-sm text-gray-700">
                     Eu aceito os <a href="#" className="text-primary">Termos e Condições</a>

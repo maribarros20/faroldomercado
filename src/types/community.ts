@@ -1,4 +1,3 @@
-
 export type Profile = {
   id: string;
   first_name: string;
@@ -7,6 +6,10 @@ export type Profile = {
   photo?: string | null;
   role: string;
   username?: string | null;
+  phone?: string | null;
+  cpf?: string | null;
+  cnpj?: string | null;
+  date_of_birth: string;
 };
 
 export type Post = {
