@@ -56,6 +56,8 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ initialValues, userId }) => {
         throw new Error("User ID is missing.");
       }
 
+      console.log("Updating profile for user ID:", userId);
+
       // Update profile data
       const { error: profileError } = await supabase
         .from("profiles")
@@ -81,6 +83,21 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ initialValues, userId }) => {
         return;
       }
 
+      // Update user metadata to keep it in sync with profile
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          cnpj: cnpj,
+          phone: phone,
+          cpf: cpf,
+        }
+      });
+
+      if (metadataError) {
+        console.error("Error updating user metadata:", metadataError);
+      }
+
       // Update password if provided
       if (newPassword && currentPassword) {
         if (newPassword !== confirmPassword) {
@@ -94,10 +111,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ initialValues, userId }) => {
         }
 
         const { error: passwordError } = await supabase.auth.updateUser({
-          password: newPassword,
-          data: {
-            email: email
-          }
+          password: newPassword
         });
 
         if (passwordError) {
@@ -116,6 +130,11 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ initialValues, userId }) => {
           title: "Senha atualizada com sucesso",
           description: "Sua senha foi alterada com sucesso.",
         });
+        
+        // Clear password fields after successful update
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
       }
 
       toast({

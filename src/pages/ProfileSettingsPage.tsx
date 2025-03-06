@@ -32,7 +32,7 @@ const ProfileSettingsPage = () => {
           return;
         }
         
-        console.log("Sessão atual:", session.user.id);
+        console.log("Session active, user ID:", session.user.id);
         
         // Fetch profile data
         const { data: profile, error } = await supabase
@@ -52,7 +52,7 @@ const ProfileSettingsPage = () => {
         }
         
         if (!profile) {
-          console.warn("Profile not found, trying to create it");
+          console.warn("Profile not found for user ID:", session.user.id);
           // Try to create profile based on auth data
           const { user } = session;
           const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -63,6 +63,7 @@ const ProfileSettingsPage = () => {
           }
           
           const userMetadata = userData.user?.user_metadata;
+          console.log("User metadata available:", userMetadata);
           
           if (userMetadata) {
             const newProfile = {
@@ -75,6 +76,8 @@ const ProfileSettingsPage = () => {
               date_of_birth: userMetadata.date_of_birth || new Date().toISOString().split('T')[0],
               role: "user"
             };
+            
+            console.log("Creating new profile with data:", newProfile);
             
             const { error: insertError } = await supabase
               .from("profiles")
@@ -90,10 +93,15 @@ const ProfileSettingsPage = () => {
               return;
             }
             
+            toast({
+              title: "Perfil criado",
+              description: "Seu perfil foi criado com sucesso.",
+            });
+            
             setProfileData(newProfile as Profile);
           }
         } else {
-          console.log("Profile found:", profile);
+          console.log("Profile retrieved successfully:", profile);
           setProfileData(profile as Profile);
         }
       } catch (error) {

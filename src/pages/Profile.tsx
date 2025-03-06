@@ -16,6 +16,8 @@ export default function Profile() {
         const { data: userData } = await supabase.auth.getUser();
         
         if (userData?.user) {
+          console.log("Fetching profile data for user ID:", userData.user.id);
+          
           const { data: profile, error } = await supabase
             .from("profiles")
             .select("id, first_name, last_name, phone, email, photo")
@@ -23,13 +25,51 @@ export default function Profile() {
             .single();
             
           if (error) {
-            console.error("Erro ao carregar perfil:", error);
-            toast({
-              title: "Erro",
-              description: "Não foi possível carregar seu perfil.",
-              variant: "destructive",
-            });
+            console.error("Error loading profile:", error);
+            
+            // If profile not found, check if we need to create one
+            if (error.code === 'PGRST116') {
+              console.log("Profile not found, attempting to create one");
+              
+              const userMeta = userData.user.user_metadata;
+              const newProfile = {
+                id: userData.user.id,
+                first_name: userMeta?.first_name || "",
+                last_name: userMeta?.last_name || "",
+                email: userData.user.email,
+                phone: userMeta?.phone || null,
+                cpf: userMeta?.cpf || null,
+                date_of_birth: userMeta?.date_of_birth || new Date().toISOString().split('T')[0],
+                role: "user"
+              };
+              
+              const { error: insertError } = await supabase
+                .from("profiles")
+                .insert(newProfile);
+                
+              if (insertError) {
+                console.error("Error creating profile:", insertError);
+                toast({
+                  title: "Erro",
+                  description: "Não foi possível criar seu perfil.",
+                  variant: "destructive",
+                });
+              } else {
+                console.log("Profile created successfully");
+                setUser({
+                  ...newProfile,
+                  username: `${newProfile.first_name || ''} ${newProfile.last_name || ''}`.trim(),
+                });
+              }
+            } else {
+              toast({
+                title: "Erro",
+                description: "Não foi possível carregar seu perfil.",
+                variant: "destructive",
+              });
+            }
           } else {
+            console.log("Profile loaded successfully:", profile);
             setUser({
               ...profile,
               username: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
@@ -37,7 +77,7 @@ export default function Profile() {
           }
         }
       } catch (error) {
-        console.error("Erro:", error);
+        console.error("Error:", error);
       } finally {
         setLoading(false);
       }
