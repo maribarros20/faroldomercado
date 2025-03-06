@@ -52,6 +52,10 @@ function App() {
         if (event === 'SIGNED_OUT') {
           // Always redirect to auth page on sign out
           navigate('/auth');
+          toast({
+            title: "Sessão encerrada",
+            description: "Você foi desconectado com sucesso.",
+          });
         } else if (event === 'SIGNED_IN' && session) {
           // Redirect to dashboard on sign in if on a public page
           const publicPaths = ['/', '/auth', '/register'];
