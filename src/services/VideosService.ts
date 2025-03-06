@@ -49,9 +49,13 @@ export const useVideos = (categoryFilter?: string, learningPathFilter?: string) 
 
 export const incrementVideoViews = async (videoId: string) => {
   try {
-    const { data, error } = await supabase.rpc('increment_video_views', {
-      video_id: videoId
-    });
+    // Using rpc with explicit type assertion for the function name
+    const { data, error } = await supabase.rpc(
+      'increment_video_views' as any, 
+      {
+        video_id: videoId
+      }
+    );
     
     if (error) {
       console.error("Error incrementing views:", error);

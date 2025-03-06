@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +28,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Video as VideoType, VideoSource } from "@/services/VideosService";
 
 // Video type
 type VideoSource = "youtube" | "vimeo" | "storage";
@@ -97,13 +97,13 @@ const AdminVideos = () => {
       }
       
       console.log("Videos fetched:", data);
-      return data as Video[];
+      return data as VideoType[];
     }
   });
 
   // Add video mutation
   const addVideoMutation = useMutation({
-    mutationFn: async (videoData: Omit<Video, 'id' | 'date_added' | 'views'>) => {
+    mutationFn: async (videoData: Omit<VideoType, 'id' | 'date_added' | 'views'>) => {
       const { data, error } = await supabase
         .from('videos')
         .insert({
@@ -114,7 +114,7 @@ const AdminVideos = () => {
         .select();
       
       if (error) throw new Error(error.message);
-      return data[0];
+      return data[0] as VideoType;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-videos'] });
@@ -136,7 +136,7 @@ const AdminVideos = () => {
 
   // Update video mutation
   const updateVideoMutation = useMutation({
-    mutationFn: async (videoData: Video) => {
+    mutationFn: async (videoData: VideoType) => {
       const { data, error } = await supabase
         .from('videos')
         .update({
@@ -153,7 +153,7 @@ const AdminVideos = () => {
         .select();
       
       if (error) throw new Error(error.message);
-      return data[0];
+      return data[0] as VideoType;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-videos'] });

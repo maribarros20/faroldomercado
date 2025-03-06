@@ -97,14 +97,15 @@ const VideoDetail = () => {
           throw new Error("Vídeo não encontrado");
         }
         
-        setVideo(data as Video);
+        // Type assertion to handle the temporary type mismatch
+        setVideo(data as unknown as Video);
         
         // Increment views
         await incrementVideoViews(id);
         
         // Fetch related videos
-        if (data.category) {
-          const related = await getRelatedVideos(id, data.category);
+        if ((data as any).category) {
+          const related = await getRelatedVideos(id, (data as any).category);
           setRelatedVideos(related);
         }
         
