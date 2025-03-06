@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface NewsItem {
@@ -122,7 +123,7 @@ export const fetchAllNews = async (
     });
     
     // Filtrar por categoria se especificada
-    if (category) {
+    if (category && category !== 'all') {
       allNews = allNews.filter(news => 
         news.category?.toLowerCase().includes(category.toLowerCase())
       );

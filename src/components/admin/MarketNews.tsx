@@ -96,7 +96,7 @@ const MarketNews = () => {
               <SelectValue placeholder="Filtrar por categoria" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas as categorias</SelectItem>
+              <SelectItem value="all">Todas as categorias</SelectItem>
               {NEWS_CATEGORIES.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
