@@ -23,10 +23,11 @@ const DashboardPage = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Check user plan
+  // Check user plan and admin status
   useEffect(() => {
     const checkUserPlan = async () => {
       setIsLoading(true);
@@ -34,7 +35,26 @@ const DashboardPage = () => {
         // Check if user is authenticated and get their plan
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          // Get the user's subscription
+          // Get the user's profile to check if they're an admin
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (profileData && profileData.role === 'admin') {
+            setIsAdmin(true);
+            // Admins have access to all features
+            setUserPlan({
+              id: "admin",
+              name: "Administrador",
+              features: ["dashboard", "notícias do mercado", "planilha financeira"]
+            });
+            setIsLoading(false);
+            return;
+          }
+          
+          // Get the user's subscription for non-admin users
           const { data: subscriptionData, error: subscriptionError } = await supabase
             .from('subscriptions')
             .select(`
@@ -109,6 +129,7 @@ const DashboardPage = () => {
 
   // Check access to a specific tab
   const hasAccessToTab = (tabId: string) => {
+    if (isAdmin) return true; // Admins have access to all tabs
     if (!userPlan) return false;
 
     // Convert tab id to feature name format that would be in plan_features

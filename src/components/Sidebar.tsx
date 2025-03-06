@@ -126,7 +126,7 @@ const Sidebar = () => {
           <NavItem
             to="/dashboard"
             icon={<LayoutDashboard size={20} />}
-            text="Dashboard"
+            text="Painéis"
             active={isActive("/dashboard")}
             expanded={expanded}
           />
@@ -148,18 +148,18 @@ const Sidebar = () => {
           />
           
           <NavItem
-            to="/community"
-            icon={<Users size={20} />}
-            text="Comunidade"
-            active={isActive("/community")}
-            expanded={expanded}
-          />
-          
-          <NavItem
             to="/progress"
             icon={<TrendingUp size={20} />}
             text="Progresso"
             active={isActive("/progress")}
+            expanded={expanded}
+          />
+          
+          <NavItem
+            to="/community"
+            icon={<Users size={20} />}
+            text="Comunidade"
+            active={isActive("/community")}
             expanded={expanded}
           />
           
