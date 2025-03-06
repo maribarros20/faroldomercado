@@ -153,7 +153,7 @@ const Sidebar = () => {
     <SidebarContainer>
       <SidebarHeader className="border-b border-border p-4">
         <div className="flex items-center">
-          <Logo className="h-6 w-6" />
+          <Logo />
         </div>
       </SidebarHeader>
       <SidebarContent>
