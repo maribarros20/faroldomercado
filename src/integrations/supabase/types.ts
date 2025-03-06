@@ -116,6 +116,102 @@ export type Database = {
           },
         ]
       }
+      finance_iframes: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          iframe_url: string
+          is_active: boolean | null
+          mentor_id: string | null
+          plan_id: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          iframe_url: string
+          is_active?: boolean | null
+          mentor_id?: string | null
+          plan_id?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          iframe_url?: string
+          is_active?: boolean | null
+          mentor_id?: string | null
+          plan_id?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_iframes_mentor_id_fkey"
+            columns: ["mentor_id"]
+            isOneToOne: false
+            referencedRelation: "mentors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_iframes_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_news: {
+        Row: {
+          author: string | null
+          category: string | null
+          content: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          image_url: string | null
+          publication_date: string | null
+          subtitle: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          author?: string | null
+          category?: string | null
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          publication_date?: string | null
+          subtitle?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          author?: string | null
+          category?: string | null
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          publication_date?: string | null
+          subtitle?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       materials: {
         Row: {
           category: string
@@ -125,6 +221,8 @@ export type Database = {
           downloads: number | null
           file_url: string | null
           id: string
+          mentor_id: string | null
+          plan_id: string | null
           thumbnail_url: string | null
           title: string
           type: string
@@ -138,6 +236,8 @@ export type Database = {
           downloads?: number | null
           file_url?: string | null
           id?: string
+          mentor_id?: string | null
+          plan_id?: string | null
           thumbnail_url?: string | null
           title: string
           type: string
@@ -151,12 +251,29 @@ export type Database = {
           downloads?: number | null
           file_url?: string | null
           id?: string
+          mentor_id?: string | null
+          plan_id?: string | null
           thumbnail_url?: string | null
           title?: string
           type?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "materials_mentor_id_fkey"
+            columns: ["mentor_id"]
+            isOneToOne: false
+            referencedRelation: "mentors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materials_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mentors: {
         Row: {

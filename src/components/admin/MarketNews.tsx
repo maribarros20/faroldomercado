@@ -3,89 +3,95 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Loader2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { 
+  RefreshCw, Loader2, Plus, Pencil, Trash2, 
+  Calendar, User, Tag, FileImage, Search 
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  NewsItem,
+  NEWS_CATEGORIES,
+  fetchManualNews,
+  createNews,
+  updateNews,
+  deleteNews,
+  getNewsById
+} from "@/services/NewsService";
 
-// Interface for news items
-interface NewsItem {
-  title: string;
-  description: string;
-  url: string;
-  source: string;
-  publishedAt: string;
-  imageUrl?: string;
-}
+// Schema de validação para o formulário de notícias
+const newsFormSchema = z.object({
+  title: z.string().min(3, { message: "O título deve ter pelo menos 3 caracteres" }),
+  subtitle: z.string().optional(),
+  content: z.string().min(10, { message: "O conteúdo deve ter pelo menos 10 caracteres" }),
+  publication_date: z.string().optional(),
+  author: z.string().optional(),
+  category: z.string().optional(),
+  image_url: z.string().url({ message: "URL da imagem inválida" }).optional().or(z.literal('')),
+});
 
-// Financial market RSS feeds
-const RSS_FEEDS = [
-  "https://www.infomoney.com.br/feed/",
-  "https://valorinveste.globo.com/rss/valor-investe/",
-  "https://www.investnews.com.br/feed/",
-  "https://br.investing.com/rss/news.rss",
-  "https://www.seudinheiro.com/feed/"
-];
+type NewsFormValues = z.infer<typeof newsFormSchema>;
 
 const MarketNews = () => {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [newsToDelete, setNewsToDelete] = useState<NewsItem | null>(null);
+  
   const { toast } = useToast();
+  
+  const form = useForm<NewsFormValues>({
+    resolver: zodResolver(newsFormSchema),
+    defaultValues: {
+      title: "",
+      subtitle: "",
+      content: "",
+      publication_date: new Date().toISOString().slice(0, 16),
+      author: "",
+      category: "",
+      image_url: "",
+    }
+  });
 
-  // Function to fetch news from RSS feeds (simulated for now)
+  // Função para buscar as notícias
   const fetchNews = async () => {
     setIsLoading(true);
-    
     try {
-      // In a real app, we would use a backend function to fetch and parse RSS feeds
-      // For now, we'll use simulated data
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simulated news data (in a real implementation, this would come from the RSS feeds)
-      const mockNews: NewsItem[] = [
-        {
-          title: "Ibovespa fecha em alta de 1,2% com impulso das commodities",
-          description: "Índice atingiu 130.156 pontos, maior patamar em três meses, impulsionado por ações de mineradoras e petroleiras",
-          url: "https://www.infomoney.com.br/mercados/ibovespa-hoje-31-05-2024/",
-          source: "InfoMoney",
-          publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          imageUrl: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=2070&auto=format&fit=crop"
-        },
-        {
-          title: "Banco Central mantém taxa Selic em 10,5% ao ano",
-          description: "Decisão unânime do Copom surpreendeu analistas que esperavam corte de 0,25 ponto percentual",
-          url: "https://valorinveste.globo.com/mercados/renda-variavel/noticia/2024/05/30/copom-decide-manter-taxa-selic-em-105percent.ghtml",
-          source: "Valor Investe",
-          publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          title: "Dólar cai para R$ 5,10 após dados de inflação nos EUA",
-          description: "Moeda americana recuou 0,8% com sinais de desaceleração da inflação americana e possível corte de juros pelo Fed",
-          url: "https://www.investnews.com.br/economia/dolar-hoje-31-05-cai-apos-divulgacao-de-pce-nos-eua/",
-          source: "InvestNews",
-          publishedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-          imageUrl: "https://images.unsplash.com/photo-1591033594798-33227a05780d?q=80&w=2069&auto=format&fit=crop"
-        },
-        {
-          title: "Petrobras anuncia novo plano de investimentos de R$ 380 bilhões",
-          description: "Estatal pretende ampliar produção no pré-sal e investir em energia renovável nos próximos cinco anos",
-          url: "https://www.seudinheiro.com/2024/empresas/petrobras-anuncia-novo-plano-de-investimentos/",
-          source: "Seu Dinheiro",
-          publishedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          title: "PIB brasileiro cresce 0,7% no segundo trimestre, acima das expectativas",
-          description: "Resultado supera previsão de 0,5% e foi impulsionado pelo setor de serviços e consumo das famílias",
-          url: "https://br.investing.com/news/economy/pib-do-brasil-cresce-07-no-2-tri-acima-do-esperado-mostra-ibge-1071354",
-          source: "Investing.com",
-          publishedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          imageUrl: "https://images.unsplash.com/photo-1616803140344-7862904e6f2b?q=80&w=2070&auto=format&fit=crop"
-        },
-      ];
-      
-      setNews(mockNews);
+      const newsData = await fetchManualNews();
+      setNews(newsData);
       toast({
         title: "Notícias atualizadas",
-        description: "As últimas notícias do mercado foram carregadas",
+        description: "As notícias foram carregadas com sucesso",
       });
     } catch (error) {
       console.error("Erro ao buscar notícias:", error);
@@ -99,107 +105,282 @@ const MarketNews = () => {
     }
   };
 
-  // Load news when component mounts
+  // Carregar notícias quando o componente montar
   useEffect(() => {
     fetchNews();
-    
-    // Set up automatic refresh every 15 minutes
-    const interval = setInterval(() => {
-      fetchNews();
-    }, 15 * 60 * 1000);
-    
-    return () => clearInterval(interval);
   }, []);
 
-  // Filter news based on search term
+  // Abrir diálogo para criar nova notícia
+  const handleCreate = () => {
+    form.reset({
+      title: "",
+      subtitle: "",
+      content: "",
+      publication_date: new Date().toISOString().slice(0, 16),
+      author: "",
+      category: "",
+      image_url: "",
+    });
+    setEditingNewsId(null);
+    setIsDialogOpen(true);
+  };
+
+  // Abrir diálogo para editar notícia existente
+  const handleEdit = async (newsId: string) => {
+    try {
+      setIsLoading(true);
+      const newsItem = await getNewsById(newsId);
+      
+      if (newsItem) {
+        form.reset({
+          title: newsItem.title,
+          subtitle: newsItem.subtitle || "",
+          content: newsItem.content,
+          publication_date: newsItem.publication_date ? 
+            new Date(newsItem.publication_date).toISOString().slice(0, 16) : 
+            new Date().toISOString().slice(0, 16),
+          author: newsItem.author || "",
+          category: newsItem.category || "",
+          image_url: newsItem.image_url || "",
+        });
+        setEditingNewsId(newsId);
+        setIsDialogOpen(true);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar notícia para edição:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar a notícia para edição",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Confirmar exclusão de uma notícia
+  const handleDeleteConfirm = async () => {
+    if (!newsToDelete?.id) return;
+    
+    try {
+      setIsSubmitting(true);
+      await deleteNews(newsToDelete.id);
+      
+      // Atualizar a lista de notícias
+      setNews(news.filter(item => item.id !== newsToDelete.id));
+      
+      toast({
+        title: "Notícia excluída",
+        description: "A notícia foi excluída com sucesso",
+      });
+      
+      setIsDeleteDialogOpen(false);
+      setNewsToDelete(null);
+    } catch (error) {
+      console.error("Erro ao excluir notícia:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir a notícia",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Mostrar diálogo de confirmação de exclusão
+  const handleDelete = (newsItem: NewsItem) => {
+    setNewsToDelete(newsItem);
+    setIsDeleteDialogOpen(true);
+  };
+
+  // Enviar formulário (criar ou atualizar notícia)
+  const onSubmit = async (values: NewsFormValues) => {
+    try {
+      setIsSubmitting(true);
+      
+      if (editingNewsId) {
+        // Atualizar notícia existente
+        await updateNews(editingNewsId, {
+          ...values,
+          publication_date: values.publication_date ? new Date(values.publication_date).toISOString() : undefined
+        });
+        
+        toast({
+          title: "Notícia atualizada",
+          description: "A notícia foi atualizada com sucesso",
+        });
+      } else {
+        // Criar nova notícia
+        const newNews = await createNews({
+          ...values,
+          publication_date: values.publication_date ? new Date(values.publication_date).toISOString() : undefined
+        });
+        
+        // Adicionar à lista
+        setNews([newNews, ...news]);
+        
+        toast({
+          title: "Notícia criada",
+          description: "A notícia foi criada com sucesso",
+        });
+      }
+      
+      setIsDialogOpen(false);
+      form.reset();
+      
+      // Recarregar a lista para garantir dados atualizados
+      fetchNews();
+    } catch (error) {
+      console.error("Erro ao salvar notícia:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar a notícia",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Filtrar notícias com base no termo de busca
   const filteredNews = news.filter(item => 
     item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    item.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (item.content && item.content.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (item.author && item.author.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (item.category && item.category.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Format relative time
-  const getRelativeTime = (dateString: string) => {
+  // Formatar data relativa
+  const formatDate = (dateString: string | undefined): string => {
+    if (!dateString) return "Data não disponível";
+    
     const date = new Date(dateString);
     const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
     
-    if (diffMins < 60) {
-      return `${diffMins} min atrás`;
-    } else if (diffHours < 24) {
-      return `${diffHours} ${diffHours === 1 ? 'hora' : 'horas'} atrás`;
-    } else {
-      return `${diffDays} ${diffDays === 1 ? 'dia' : 'dias'} atrás`;
+    // Verificar se a data é válida
+    if (isNaN(date.getTime())) {
+      return "Data inválida";
     }
+    
+    // Formatação básica de data
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Notícias do Mercado</h2>
+          <h2 className="text-2xl font-bold">Gerenciamento de Notícias</h2>
           <p className="text-muted-foreground">
-            Acompanhe as últimas atualizações do mercado financeiro
+            Adicione e gerencie notícias do mercado financeiro
           </p>
         </div>
-        <Button 
-          onClick={fetchNews} 
-          variant="outline" 
-          disabled={isLoading}
-          className="flex items-center gap-2 sm:self-start"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Atualizando...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="h-4 w-4" />
-              Atualizar Notícias
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={fetchNews} 
+            variant="outline" 
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Atualizando...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4" />
+                Atualizar
+              </>
+            )}
+          </Button>
+          <Button 
+            onClick={handleCreate}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Nova Notícia
+          </Button>
+        </div>
       </div>
       
-      <Input
-        placeholder="Pesquisar notícias..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="max-w-md"
-      />
+      <div className="flex items-center gap-2">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Pesquisar notícias..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-md"
+        />
+      </div>
       
       <div className="grid gap-6">
         {filteredNews.length > 0 ? (
-          filteredNews.map((item, index) => (
-            <Card key={index} className="overflow-hidden">
-              <CardContent className="p-0">
-                <div className="p-6 grid md:grid-cols-[1fr_auto] gap-6">
-                  <div className="space-y-3">
+          filteredNews.map((item) => (
+            <Card key={item.id} className="overflow-hidden">
+              <CardContent className="p-6">
+                <div className="grid md:grid-cols-[1fr_auto] gap-6">
+                  <div className="space-y-4">
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="font-medium text-primary">{item.source}</span>
+                      {item.category && (
+                        <span className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">
+                          {item.category}
+                        </span>
+                      )}
                       <span className="text-muted-foreground">•</span>
-                      <span className="text-muted-foreground">{getRelativeTime(item.publishedAt)}</span>
+                      <span className="text-muted-foreground">
+                        {formatDate(item.publication_date || item.created_at)}
+                      </span>
+                      {item.author && (
+                        <>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="text-muted-foreground">{item.author}</span>
+                        </>
+                      )}
                     </div>
                     
                     <h3 className="text-xl font-bold leading-tight">{item.title}</h3>
-                    <p className="text-muted-foreground">{item.description}</p>
+                    {item.subtitle && (
+                      <p className="text-muted-foreground font-medium">{item.subtitle}</p>
+                    )}
                     
-                    <Button 
-                      variant="link" 
-                      className="p-0 h-auto text-primary font-semibold"
-                      onClick={() => window.open(item.url, '_blank')}
-                    >
-                      Ler mais
-                    </Button>
+                    <div className="line-clamp-3 text-muted-foreground">
+                      {item.content}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleEdit(item.id!)}
+                        className="flex items-center gap-2"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Editar
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDelete(item)}
+                        className="flex items-center gap-2 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Excluir
+                      </Button>
+                    </div>
                   </div>
                   
-                  {item.imageUrl && (
+                  {item.image_url && (
                     <div className="relative w-full md:w-48 h-32 rounded-lg overflow-hidden">
                       <img 
-                        src={item.imageUrl} 
+                        src={item.image_url} 
                         alt={item.title} 
                         className="absolute inset-0 w-full h-full object-cover"
                       />
@@ -216,14 +397,217 @@ const MarketNews = () => {
           </div>
         ) : (
           <div className="text-center py-10">
-            <p className="text-muted-foreground">Nenhuma notícia encontrada com o termo "{searchTerm}"</p>
+            <p className="text-muted-foreground">
+              {searchTerm ? `Nenhuma notícia encontrada com o termo "${searchTerm}"` : "Nenhuma notícia cadastrada"}
+            </p>
           </div>
         )}
       </div>
       
-      <div className="text-sm text-muted-foreground text-center">
-        As notícias são atualizadas automaticamente a cada 15 minutos
-      </div>
+      {/* Diálogo para criar/editar notícia */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingNewsId ? "Editar Notícia" : "Nova Notícia"}
+            </DialogTitle>
+            <DialogDescription>
+              Preencha os detalhes da notícia que será exibida no dashboard.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Título</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Título da notícia" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="subtitle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subtítulo</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Subtítulo ou descrição breve" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="publication_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Data de Publicação
+                      </FormLabel>
+                      <FormControl>
+                        <Input type="datetime-local" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="author"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Autor
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome do autor" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Tag className="h-4 w-4" />
+                        Categoria
+                      </FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma categoria" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {NEWS_CATEGORIES.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="image_url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <FileImage className="h-4 w-4" />
+                        URL da Imagem
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="https://exemplo.com/imagem.jpg" 
+                          {...field} 
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="content"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Conteúdo</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Conteúdo da notícia" 
+                        className="min-h-[200px]"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="flex items-center gap-2"
+                >
+                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {editingNewsId ? "Atualizar" : "Publicar"} Notícia
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Diálogo de confirmação de exclusão */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir a notícia "{newsToDelete?.title}"? 
+              Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <DialogFooter className="mt-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="button" 
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isSubmitting}
+              className="flex items-center gap-2"
+            >
+              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
