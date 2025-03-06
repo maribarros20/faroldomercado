@@ -65,6 +65,7 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId, userId }) =>
               
               return {
                 ...post,
+                user: post.user as Profile,
                 user_has_liked: !!likeData
               };
             })

@@ -23,7 +23,7 @@ export type Post = {
   updated_at: string;
   likes_count: number;
   comments_count: number;
-  user?: Profile;
+  user?: Profile | null;
   user_has_liked?: boolean;
   comments?: Comment[];
 };
@@ -36,7 +36,7 @@ export type Comment = {
   created_at: string;
   updated_at: string;
   likes_count: number;
-  user?: Profile;
+  user?: Profile | null;
   user_has_liked?: boolean;
 };
 
