@@ -17,6 +17,8 @@ const Materials = {
   deleteMaterial: MaterialsService.deleteMaterial.bind(MaterialsService),
   downloadMaterial: MaterialsService.downloadMaterial.bind(MaterialsService),
   incrementDownloads: MaterialsService.incrementDownloads.bind(MaterialsService),
+  likeMaterial: MaterialsService.likeMaterial.bind(MaterialsService),
+  getUserLikedMaterials: MaterialsService.getUserLikedMaterials.bind(MaterialsService),
   
   // Categories
   getMaterialCategories: CategoryService.getMaterialCategories.bind(CategoryService),

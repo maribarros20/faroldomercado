@@ -1,3 +1,4 @@
+
 import React from "react";
 import { FileText } from "lucide-react";
 import MaterialCard from "./MaterialCard";
@@ -8,13 +9,15 @@ interface MaterialsListProps {
   isLoading: boolean;
   formats: MaterialFormat[];
   navigations: KnowledgeNavigation[];
+  onMaterialLikeToggle?: (materialId: string) => void;
 }
 
 const MaterialsList: React.FC<MaterialsListProps> = ({ 
   materials, 
   isLoading,
   formats,
-  navigations
+  navigations,
+  onMaterialLikeToggle
 }) => {
   if (isLoading) {
     return (
@@ -45,6 +48,7 @@ const MaterialsList: React.FC<MaterialsListProps> = ({
           material={material} 
           formats={formats}
           navigations={navigations}
+          onLikeToggle={onMaterialLikeToggle}
         />
       ))}
     </div>

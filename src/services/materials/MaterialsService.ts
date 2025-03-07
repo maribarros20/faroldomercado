@@ -1,10 +1,13 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Material } from './types';
 
 class MaterialsService {
   async getMaterials(): Promise<Material[]> {
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+
+      // First get all materials
       const { data, error } = await supabase
         .from('materials')
         .select('*, material_theme_relations(theme_id, material_themes(id, name))')
@@ -25,12 +28,29 @@ class MaterialsService {
         
         const result = {
           ...material,
-          themes
+          themes,
+          is_liked_by_user: false
         };
         
         delete result.material_theme_relations;
         return result;
       });
+
+      // If user is logged in, check which materials are liked by the user
+      if (userId) {
+        const { data: likedMaterials, error: likesError } = await supabase
+          .from('material_likes')
+          .select('material_id')
+          .eq('user_id', userId);
+
+        if (!likesError && likedMaterials) {
+          const likedMaterialIds = new Set(likedMaterials.map(like => like.material_id));
+          
+          processedData.forEach(material => {
+            material.is_liked_by_user = likedMaterialIds.has(material.id);
+          });
+        }
+      }
 
       return processedData as unknown as Material[] || [];
     } catch (error) {
@@ -41,6 +61,9 @@ class MaterialsService {
 
   async getMaterialById(id: string): Promise<Material> {
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+
       const { data, error } = await supabase
         .from('materials')
         .select('*, material_theme_relations(theme_id, material_themes(id, name))')
@@ -61,10 +84,23 @@ class MaterialsService {
       
       const result = {
         ...data,
-        themes
+        themes,
+        is_liked_by_user: false
       };
       
       delete result.material_theme_relations;
+
+      // Check if material is liked by the user
+      if (userId) {
+        const { data: likeData, error: likeError } = await supabase
+          .from('material_likes')
+          .select('id')
+          .eq('material_id', id)
+          .eq('user_id', userId)
+          .single();
+        
+        result.is_liked_by_user = !likeError && !!likeData;
+      }
 
       return result as unknown as Material;
     } catch (error) {
@@ -75,6 +111,9 @@ class MaterialsService {
 
   async getMaterialsByCategory(category: string): Promise<Material[]> {
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+
       const { data, error } = await supabase
         .from('materials')
         .select('*, material_theme_relations(theme_id, material_themes(id, name))')
@@ -96,12 +135,29 @@ class MaterialsService {
         
         const result = {
           ...material,
-          themes
+          themes,
+          is_liked_by_user: false
         };
         
         delete result.material_theme_relations;
         return result;
       });
+
+      // If user is logged in, check which materials are liked by the user
+      if (userId) {
+        const { data: likedMaterials, error: likesError } = await supabase
+          .from('material_likes')
+          .select('material_id')
+          .eq('user_id', userId);
+
+        if (!likesError && likedMaterials) {
+          const likedMaterialIds = new Set(likedMaterials.map(like => like.material_id));
+          
+          processedData.forEach(material => {
+            material.is_liked_by_user = likedMaterialIds.has(material.id);
+          });
+        }
+      }
 
       return processedData as unknown as Material[] || [];
     } catch (error) {
@@ -321,6 +377,127 @@ class MaterialsService {
       }
     } catch (error) {
       console.error('Error in incrementDownloads service:', error);
+    }
+  }
+
+  async likeMaterial(id: string): Promise<void> {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+
+      if (!userId) {
+        throw new Error('You must be logged in to like materials');
+      }
+
+      // Check if the user already liked this material
+      const { data: existingLike } = await supabase
+        .from('material_likes')
+        .select('id')
+        .eq('material_id', id)
+        .eq('user_id', userId)
+        .single();
+
+      if (existingLike) {
+        // If already liked, remove the like
+        const { error } = await supabase
+          .from('material_likes')
+          .delete()
+          .eq('material_id', id)
+          .eq('user_id', userId);
+
+        if (error) {
+          console.error('Error removing material like:', error);
+          throw new Error(error.message);
+        }
+      } else {
+        // If not liked, add a like
+        const { error } = await supabase
+          .from('material_likes')
+          .insert({ 
+            material_id: id, 
+            user_id: userId 
+          });
+
+        if (error) {
+          console.error('Error adding material like:', error);
+          throw new Error(error.message);
+        }
+      }
+
+      // Track this activity
+      await supabase.from("user_activities").insert({
+        user_id: userId,
+        activity_type: existingLike ? "unlike_material" : "like_material",
+        content_id: id,
+        metadata: { material_id: id }
+      } as any);
+
+    } catch (error) {
+      console.error('Error in likeMaterial service:', error);
+      throw error;
+    }
+  }
+
+  async getUserLikedMaterials(): Promise<Material[]> {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+
+      if (!userId) {
+        throw new Error('You must be logged in to see your liked materials');
+      }
+
+      // Get material IDs that the user has liked
+      const { data: likedMaterialData, error: likedError } = await supabase
+        .from('material_likes')
+        .select('material_id')
+        .eq('user_id', userId);
+
+      if (likedError) {
+        console.error('Error fetching liked materials:', likedError);
+        throw new Error(likedError.message);
+      }
+
+      if (!likedMaterialData || likedMaterialData.length === 0) {
+        return [];
+      }
+
+      // Get the full material details for all liked materials
+      const materialIds = likedMaterialData.map(like => like.material_id);
+      
+      const { data, error } = await supabase
+        .from('materials')
+        .select('*, material_theme_relations(theme_id, material_themes(id, name))')
+        .in('id', materialIds)
+        .order('date_added', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching liked materials details:', error);
+        throw new Error(error.message);
+      }
+
+      // Process the data to match our interface
+      const processedData = data.map(material => {
+        const themes = material.material_theme_relations 
+          ? material.material_theme_relations
+            .filter(relation => relation.material_themes)
+            .map(relation => relation.material_themes) 
+          : [];
+        
+        const result = {
+          ...material,
+          themes,
+          is_liked_by_user: true
+        };
+        
+        delete result.material_theme_relations;
+        return result;
+      });
+
+      return processedData as unknown as Material[] || [];
+    } catch (error) {
+      console.error('Error in getUserLikedMaterials service:', error);
+      throw error;
     }
   }
 }

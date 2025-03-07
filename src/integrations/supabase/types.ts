@@ -275,6 +275,35 @@ export type Database = {
         }
         Relationships: []
       }
+      material_likes: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_likes_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_theme_relations: {
         Row: {
           created_at: string
@@ -342,6 +371,7 @@ export type Database = {
           file_url: string | null
           format_id: string | null
           id: string
+          likes_count: number | null
           mentor_id: string | null
           navigation_id: string | null
           plan_id: string | null
@@ -359,6 +389,7 @@ export type Database = {
           file_url?: string | null
           format_id?: string | null
           id?: string
+          likes_count?: number | null
           mentor_id?: string | null
           navigation_id?: string | null
           plan_id?: string | null
@@ -376,6 +407,7 @@ export type Database = {
           file_url?: string | null
           format_id?: string | null
           id?: string
+          likes_count?: number | null
           mentor_id?: string | null
           navigation_id?: string | null
           plan_id?: string | null

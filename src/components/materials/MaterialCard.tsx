@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { 
   Card, 
   CardContent, 
@@ -20,21 +20,32 @@ import {
   Hash,
   Presentation,
   FileBarChart2,
-  Book
+  Book,
+  Heart
 } from "lucide-react";
 import { Material, MaterialFormat, MaterialTheme, KnowledgeNavigation } from "@/services/materials/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MaterialsService from "@/services/MaterialsService";
+import { motion } from "framer-motion";
 
 interface MaterialCardProps {
   material: Material;
   formats: MaterialFormat[];
   navigations: KnowledgeNavigation[];
+  onLikeToggle?: (materialId: string) => void;
 }
 
-const MaterialCard: React.FC<MaterialCardProps> = ({ material, formats, navigations }) => {
+const MaterialCard: React.FC<MaterialCardProps> = ({ 
+  material, 
+  formats, 
+  navigations,
+  onLikeToggle 
+}) => {
   const { toast } = useToast();
+  const [isLiked, setIsLiked] = useState(material.is_liked_by_user);
+  const [likesCount, setLikesCount] = useState(material.likes_count || 0);
+  const [isLikeProcessing, setIsLikeProcessing] = useState(false);
 
   const getMaterialIcon = (material: Material) => {
     if (material.format_id) {
@@ -127,6 +138,45 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, formats, navigati
     }
   };
 
+  const handleLikeToggle = async () => {
+    try {
+      setIsLikeProcessing(true);
+      
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast({
+          title: "Acesso não autorizado",
+          description: "Você precisa estar logado para curtir materiais.",
+          variant: "destructive"
+        });
+        setIsLikeProcessing(false);
+        return;
+      }
+
+      // Toggle like in the backend
+      await MaterialsService.likeMaterial(material.id);
+      
+      // Update local state
+      setIsLiked(!isLiked);
+      setLikesCount(prev => isLiked ? Math.max(prev - 1, 0) : prev + 1);
+      
+      // Notify parent component if callback provided
+      if (onLikeToggle) {
+        onLikeToggle(material.id);
+      }
+      
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      toast({
+        title: "Erro ao curtir material",
+        description: "Ocorreu um erro ao tentar curtir este material.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLikeProcessing(false);
+    }
+  };
+
   return (
     <Card key={material.id} className="h-full flex flex-col">
       <CardHeader className="pb-3">
@@ -134,7 +184,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, formats, navigati
           <div className="bg-blue-100 p-2 rounded-lg">
             {getMaterialIcon(material)}
           </div>
-          <div>
+          <div className="flex-grow">
             <CardTitle className="text-lg">{material.title}</CardTitle>
             <CardDescription className="text-xs flex items-center">
               <span className="capitalize">{material.type}</span>
@@ -145,6 +195,18 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, formats, navigati
               )}
             </CardDescription>
           </div>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            className={`flex items-center ${isLikeProcessing ? 'opacity-50' : ''}`}
+            onClick={handleLikeToggle}
+            disabled={isLikeProcessing}
+          >
+            <Heart 
+              className={`h-5 w-5 cursor-pointer transition-colors ${isLiked ? 'fill-[#0066FF] text-[#0066FF]' : 'text-gray-400'}`} 
+            />
+            <span className="ml-1 text-xs">{likesCount > 0 ? likesCount : ''}</span>
+          </motion.button>
         </div>
       </CardHeader>
       

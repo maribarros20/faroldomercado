@@ -10,6 +10,8 @@ export interface Material {
   date_added: string | null;
   updated_at: string | null;
   downloads: number | null;
+  likes_count: number | null;
+  is_liked_by_user: boolean;
   created_by: string | null;
   navigation_id: string | null;
   format_id: string | null;
@@ -42,4 +44,11 @@ export interface MaterialTheme {
   name: string;
   created_at: string;
   created_by: string | null;
+}
+
+export interface MaterialLike {
+  id: string;
+  material_id: string;
+  user_id: string;
+  created_at: string;
 }
