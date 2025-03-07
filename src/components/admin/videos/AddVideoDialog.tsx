@@ -201,7 +201,7 @@ const AddVideoDialog = ({
                 <SelectValue placeholder="Selecione uma navegação" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma</SelectItem>
+                <SelectItem value="none">Nenhuma</SelectItem>
                 {navigations.map((navigation) => (
                   <SelectItem key={navigation.id} value={navigation.id}>{navigation.name}</SelectItem>
                 ))}
@@ -218,7 +218,7 @@ const AddVideoDialog = ({
                 <SelectValue placeholder="Selecione um formato" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
+                <SelectItem value="none">Nenhum</SelectItem>
                 {formats.map((format) => (
                   <SelectItem key={format.id} value={format.id}>{format.name}</SelectItem>
                 ))}
