@@ -11,7 +11,7 @@ interface NotificationPopoverProps {
 }
 
 const NotificationPopover = ({ onClose }: NotificationPopoverProps) => {
-  const { notifications, refreshNotifications, markAllAsRead } = useNotifications();
+  const { notifications, refresh, markAllAsRead } = useNotifications();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleMarkAllAsRead = async () => {
@@ -44,8 +44,8 @@ const NotificationPopover = ({ onClose }: NotificationPopoverProps) => {
   };
 
   useEffect(() => {
-    refreshNotifications();
-  }, [refreshNotifications]);
+    refresh();
+  }, [refresh]);
 
   return (
     <div className="w-full">

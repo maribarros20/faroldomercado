@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -13,15 +12,10 @@ interface Tab {
   icon: LucideIcon;
   to?: string;
   onClick?: () => void;
-  type?: never;
 }
 
 interface Separator {
   type: "separator";
-  title?: never;
-  icon?: never;
-  to?: never;
-  onClick?: never;
 }
 
 type TabItem = Tab | Separator;
@@ -70,26 +64,29 @@ export function ExpandableTabs({
 
   const handleSelect = (index: number) => {
     const tab = tabs[index];
-    if (tab.type !== "separator") {
-      setSelected(index);
-      onChange?.(index);
-      
-      // If the tab has an onClick handler, call it
-      if ('onClick' in tab && tab.onClick) {
-        tab.onClick();
-      }
-      
-      // If it's not a link (doesn't have 'to' property), keep it selected
-      if (!('to' in tab) || !tab.to) {
-        return;
-      }
-      
-      // If it's a link, we'll navigate so close the menu
-      setTimeout(() => {
-        setSelected(null);
-        onChange?.(null);
-      }, 300);
+    
+    if ('type' in tab && tab.type === "separator") {
+      return;
     }
+    
+    setSelected(index);
+    onChange?.(index);
+    
+    // If the tab has an onClick handler, call it
+    if ('onClick' in tab && tab.onClick) {
+      tab.onClick();
+    }
+    
+    // If it's not a link (doesn't have 'to' property), keep it selected
+    if (!('to' in tab) || !tab.to) {
+      return;
+    }
+    
+    // If it's a link, we'll navigate so close the menu
+    setTimeout(() => {
+      setSelected(null);
+      onChange?.(null);
+    }, 300);
   };
 
   const Separator = () => (
@@ -105,10 +102,11 @@ export function ExpandableTabs({
       )}
     >
       {tabs.map((tab, index) => {
-        if (tab.type === "separator") {
+        if ('type' in tab && tab.type === "separator") {
           return <Separator key={`separator-${index}`} />;
         }
 
+        // Now we know it's a Tab type
         const tabItem = tab as Tab;
         const Icon = tabItem.icon;
         
