@@ -16,6 +16,7 @@ export interface Material {
   navigation_id: string | null;
   format_id: string | null;
   themes?: MaterialTheme[];
+  icon?: string;
 }
 
 export interface MaterialCategory {

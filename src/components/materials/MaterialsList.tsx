@@ -1,3 +1,4 @@
+
 import React from "react";
 import { FileText, BookOpen } from "lucide-react";
 import MaterialCard from "./MaterialCard";
@@ -76,21 +77,22 @@ const MaterialsList: React.FC<MaterialsListProps> = ({
     return (
       <div className="space-y-6">
         {materials.map((material, index) => {
-          const { data: progress } = useQuery({
+          // Use proper query keys for caching
+          const { data: progress = 0, isLoading: isProgressLoading } = useQuery({
             queryKey: ['materialProgress', material.id],
             queryFn: () => MaterialsProgressService.getMaterialProgress(material.id),
             refetchOnWindowFocus: false,
           });
           
-          const { data: navProgress } = useQuery({
+          const { data: navProgress = { total: 0, completed: 0 }, isLoading: isNavProgressLoading } = useQuery({
             queryKey: ['navigationProgress', material.navigation_id],
             queryFn: () => getNavigationProgress(material.navigation_id),
             refetchOnWindowFocus: false,
           });
           
-          const progressValue = progress || 0;
-          const navTotal = navProgress?.total || 0;
-          const navCompleted = navProgress?.completed || 0;
+          const progressValue = progress;
+          const navTotal = navProgress.total;
+          const navCompleted = navProgress.completed;
           
           return (
             <motion.div 
