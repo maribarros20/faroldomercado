@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useGreeting } from "@/hooks/use-greeting";
 import QuickActions from "./QuickActions";
+import Footer from "./Footer";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -19,8 +20,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { greeting } = useGreeting(null);
-
-  // Removida a criação de notificação de exemplo que causava erro
 
   // Only the index page should not have the sidebar layout
   const isHomePage = location.pathname === "/";
@@ -34,7 +33,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       <div className="flex min-h-screen flex-col w-full">
         <div className="flex flex-1 w-full">
           <Sidebar />
-          <main className="flex-1 flex flex-col max-w-full overflow-x-hidden">
+          <main className="flex-1 flex flex-col max-w-full overflow-x-hidden ml-20 md:ml-20 lg:ml-20">
             <div className="flex justify-end p-4">
               <QuickActions />
             </div>
@@ -43,6 +42,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             </div>
           </main>
         </div>
+        <Footer className="ml-20 md:ml-20 lg:ml-20" />
       </div>
     </SidebarProvider>
   );

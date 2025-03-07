@@ -3,11 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Clock, Eye, Share2 } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Eye, Heart } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import VideosService, { Video } from '@/services/VideosService';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { likeVideo, hasUserLikedVideo } from '@/services/videos/utils';
+import VideoComments from './VideoComments';
 
 const VideoDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +19,7 @@ const VideoDetail = () => {
   const [relatedVideos, setRelatedVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [hasLiked, setHasLiked] = useState(false);
 
   useEffect(() => {
     const fetchVideo = async () => {
@@ -36,14 +39,22 @@ const VideoDetail = () => {
         const related = await VideosService.getRelatedVideos(videoData.category, id);
         setRelatedVideos(related);
         
+        // Check if user has liked this video
+        const liked = await hasUserLikedVideo(id);
+        setHasLiked(liked);
+        
         // Log activity
         if (sessionData.session?.user.id) {
-          await supabase.from('user_activities').insert({
-            user_id: sessionData.session.user.id,
-            activity_type: 'watch_video',
-            content_id: id,
-            metadata: { video_id: id, title: videoData.title }
-          } as any);
+          try {
+            await supabase.from('user_activities').insert({
+              user_id: sessionData.session.user.id,
+              activity_type: 'watch_video',
+              content_id: id,
+              metadata: { video_id: id, title: videoData.title }
+            });
+          } catch (activityError) {
+            console.error('Error logging activity:', activityError);
+          }
         }
       } catch (error) {
         console.error('Error loading video:', error);
@@ -65,6 +76,37 @@ const VideoDetail = () => {
     return date.toLocaleDateString('pt-BR');
   };
 
+  const handleLikeVideo = async () => {
+    if (!id || !userId) {
+      toast({
+        title: "Ação não permitida",
+        description: "Você precisa estar logado para curtir vídeos.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      await likeVideo(id);
+      setHasLiked(!hasLiked);
+      
+      // Update the video likes count in the UI
+      if (video) {
+        setVideo({
+          ...video,
+          likes: (video.likes || 0) + (hasLiked ? -1 : 1)
+        });
+      }
+    } catch (error) {
+      console.error('Error liking video:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível registrar sua curtida.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const renderVideoPlayer = () => {
     if (!video) return null;
     
@@ -75,7 +117,7 @@ const VideoDetail = () => {
         : video.url.split('/').pop();
       
       return (
-        <div className="aspect-video w-full">
+        <div className="aspect-video w-full rounded-xl overflow-hidden">
           <iframe 
             src={`https://www.youtube.com/embed/${videoId}`} 
             className="w-full h-full" 
@@ -90,7 +132,7 @@ const VideoDetail = () => {
       const videoId = video.url.split('/').pop();
       
       return (
-        <div className="aspect-video w-full">
+        <div className="aspect-video w-full rounded-xl overflow-hidden">
           <iframe 
             src={`https://player.vimeo.com/video/${videoId}`} 
             className="w-full h-full" 
@@ -103,7 +145,7 @@ const VideoDetail = () => {
     } else if (video.source === 'storage') {
       // Render direct video file from storage
       return (
-        <div className="aspect-video w-full">
+        <div className="aspect-video w-full rounded-xl overflow-hidden">
           <video 
             src={video.url} 
             className="w-full h-full" 
@@ -115,7 +157,7 @@ const VideoDetail = () => {
     } else {
       // Default URL video
       return (
-        <div className="aspect-video w-full">
+        <div className="aspect-video w-full rounded-xl overflow-hidden">
           <video 
             src={video.url} 
             className="w-full h-full" 
@@ -139,7 +181,7 @@ const VideoDetail = () => {
       
       {loading ? (
         <>
-          <Skeleton className="w-full h-[400px] mb-4" />
+          <Skeleton className="w-full h-[400px] rounded-xl mb-4" />
           <Skeleton className="w-2/3 h-8 mb-2" />
           <Skeleton className="w-1/3 h-6 mb-4" />
           <Skeleton className="w-full h-24" />
@@ -166,18 +208,13 @@ const VideoDetail = () => {
               </div>
               
               <Button 
-                variant="ghost" 
+                variant={hasLiked ? "default" : "outline"}
                 size="sm" 
-                className="ml-auto"
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  toast({
-                    title: "Link copiado",
-                    description: "Link do vídeo copiado para a área de transferência."
-                  });
-                }}
+                className={`ml-auto ${hasLiked ? "bg-primary text-white" : ""}`}
+                onClick={handleLikeVideo}
               >
-                <Share2 className="w-4 h-4 mr-1" /> Compartilhar
+                <Heart className={`w-4 h-4 mr-1 ${hasLiked ? "fill-current" : ""}`} /> 
+                {video.likes ? video.likes : 0} {video.likes === 1 ? "curtida" : "curtidas"}
               </Button>
             </div>
             
@@ -185,6 +222,9 @@ const VideoDetail = () => {
               <h3 className="font-semibold mb-2">Descrição</h3>
               <p className="whitespace-pre-line">{video.description}</p>
             </div>
+            
+            {/* Video Comments */}
+            {id && <VideoComments videoId={id} />}
           </div>
           
           {relatedVideos.length > 0 && (
@@ -194,7 +234,7 @@ const VideoDetail = () => {
                 {relatedVideos.map(related => (
                   <Card 
                     key={related.id} 
-                    className="h-full cursor-pointer hover:shadow-md transition-shadow"
+                    className="h-full cursor-pointer hover:shadow-md transition-shadow rounded-xl overflow-hidden"
                     onClick={() => navigate(`/videos/${related.id}`)}
                   >
                     <div className="aspect-video w-full overflow-hidden">

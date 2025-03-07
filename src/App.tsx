@@ -18,7 +18,6 @@ import AdminPage from "@/pages/AdminPage";
 import { supabase } from "@/integrations/supabase/client";
 import VideoDetail from "@/components/videos/VideoDetail";
 import { useToast } from "@/hooks/use-toast";
-import Footer from "@/components/Footer";
 
 function App() {
   const navigate = useNavigate();
@@ -116,7 +115,6 @@ function App() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-        <Footer />
       </AppLayout>
       <Toaster />
     </>

@@ -16,6 +16,18 @@ export interface Video {
   navigation_id?: string | null;
   format_id?: string | null;
   themes?: MaterialTheme[];
+  likes?: number;
 }
 
 export type VideoSource = 'youtube' | 'vimeo' | 'storage';
+
+export interface VideoComment {
+  id: string;
+  video_id: string;
+  user_id: string;
+  user_name: string;
+  user_avatar?: string;
+  content: string;
+  created_at: string;
+  likes_count: number;
+}
