@@ -22,19 +22,19 @@ const MaterialsList: React.FC<MaterialsListProps> = ({
   if (isLoading) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-        <p className="text-gray-500">Carregando materiais...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900 mx-auto mb-4"></div>
+        <p>Carregando materiais...</p>
       </div>
     );
   }
 
   if (materials.length === 0) {
     return (
-      <div className="text-center py-12 bg-gray-50 rounded-lg">
+      <div className="text-center py-12">
         <FileText className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-        <h3 className="text-lg font-medium text-gray-900">Nenhum material encontrado</h3>
+        <h3 className="text-lg font-medium">Nenhum material encontrado</h3>
         <p className="text-gray-500 mt-2">
-          Não há materiais disponíveis com os filtros selecionados.
+          Não há materiais disponíveis nesta categoria no momento.
         </p>
       </div>
     );
