@@ -85,7 +85,6 @@ const VideosList = ({
             <TableHead className="hidden md:table-cell">Categoria</TableHead>
             <TableHead className="hidden md:table-cell">Navegação</TableHead>
             <TableHead className="hidden md:table-cell">Temas</TableHead>
-            <TableHead className="hidden md:table-cell">Trilha</TableHead>
             <TableHead className="hidden md:table-cell">Duração</TableHead>
             <TableHead className="hidden md:table-cell text-right">Visualizações</TableHead>
             <TableHead className="w-[100px] text-right">Ações</TableHead>
@@ -97,7 +96,7 @@ const VideosList = ({
               <TableCell className="font-medium">{index + 1}</TableCell>
               <TableCell>
                 <div className="font-medium">{video.title}</div>
-                <div className="text-sm text-gray-500 md:hidden">{video.category} • {video.learning_path}</div>
+                <div className="text-sm text-gray-500 md:hidden">{video.category}</div>
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 {getSourceBadge(video.source)}
@@ -132,7 +131,6 @@ const VideosList = ({
                   )}
                 </div>
               </TableCell>
-              <TableCell className="hidden md:table-cell">{video.learning_path}</TableCell>
               <TableCell className="hidden md:table-cell">{video.duration}</TableCell>
               <TableCell className="hidden md:table-cell text-right">{video.views}</TableCell>
               <TableCell className="text-right">

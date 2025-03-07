@@ -390,8 +390,7 @@ class VideosService {
           ...videoFields,
           created_by: userId || videoFields.created_by,
           views: 0,
-          duration,
-          learning_path: '' // Campo mantido vazio, será removido futuramente
+          duration
         })
         .select()
         .single();

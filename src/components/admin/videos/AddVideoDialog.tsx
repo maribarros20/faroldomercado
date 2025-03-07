@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -118,8 +117,7 @@ const AddVideoDialog = ({
       // A duração será calculada automaticamente no backend
       onSubmit({
         ...newVideo,
-        thumbnail,
-        learning_path: "" // Valor vazio, já que removemos este campo
+        thumbnail
       });
     } catch (error) {
       console.error("Erro ao enviar vídeo:", error);
