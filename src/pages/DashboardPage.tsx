@@ -12,7 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useGreeting } from "@/hooks/use-greeting";
-import QuickActions from "@/components/QuickActions";
 
 // Type for user plans
 type UserPlan = {
@@ -172,7 +171,7 @@ const DashboardPage = () => {
               {greeting}
             </span>
           )}
-          <QuickActions />
+          {/* Removed the duplicate QuickActions component here */}
         </div>
       </div>
       

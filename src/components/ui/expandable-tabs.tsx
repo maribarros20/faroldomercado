@@ -72,8 +72,8 @@ export const ExpandableTabs: React.FC<ExpandableTabsProps> = ({
             <div
               key={index}
               className={cn(
-                "flex items-center rounded-md px-2 py-1 cursor-pointer transition-all hover:bg-primary/10 hover:text-primary",
-                isActive && "bg-primary/10"
+                "flex items-center rounded-md px-2 py-1 cursor-pointer transition-all hover:bg-primary/20 hover:text-primary",
+                isActive && "bg-primary/20"
               )}
               onMouseEnter={() => handleTabHover(index)}
               onClick={() => handleTabClick(index)}
