@@ -1,8 +1,7 @@
-
 import React from "react";
 import { FileText } from "lucide-react";
 import MaterialCard from "./MaterialCard";
-import { Material, MaterialFormat, KnowledgeNavigation } from "@/services/MaterialsService";
+import { Material, MaterialFormat, KnowledgeNavigation } from "@/services/materials/types";
 
 interface MaterialsListProps {
   materials: Material[];

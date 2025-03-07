@@ -22,7 +22,7 @@ import {
   FileBarChart2,
   Book
 } from "lucide-react";
-import { Material, MaterialFormat, MaterialTheme, KnowledgeNavigation } from "@/services/MaterialsService";
+import { Material, MaterialFormat, MaterialTheme, KnowledgeNavigation } from "@/services/materials/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MaterialsService from "@/services/MaterialsService";

@@ -1,7 +1,6 @@
-
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MaterialCategory } from "@/services/MaterialsService";
+import { MaterialCategory } from "@/services/materials/types";
 
 interface CategoryTabsProps {
   categories: MaterialCategory[];
