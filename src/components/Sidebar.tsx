@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -41,15 +40,12 @@ const Sidebar = () => {
   const { expanded, setExpanded } = useSidebar();
   const { unreadCount } = useNotifications();
 
-  // Fetch user details
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        // Get session
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session) {
-          // Get user profile
           const { data: profile, error } = await supabase
             .from('profiles')
             .select('*')
@@ -94,7 +90,6 @@ const Sidebar = () => {
         description: "Você foi desconectado com sucesso.",
       });
       
-      // Force navigation to auth page
       navigate("/auth");
     } catch (error) {
       console.error("Error signing out:", error);
@@ -109,7 +104,6 @@ const Sidebar = () => {
   const isActive = (path: string) => location.pathname === path;
 
   useEffect(() => {
-    // Close sidebar on mobile when path changes
     if (isMobile) {
       setExpanded(false);
     }
@@ -198,7 +192,6 @@ const Sidebar = () => {
           )}
         </Section>
 
-        {/* External Links Section */}
         {expanded && (
           <Section className="mt-6 px-3 space-y-1">
             <div className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-3">
@@ -270,29 +263,13 @@ const Sidebar = () => {
             )}
           </div>
           
-          <div className="flex items-center">
-            <NotificationPopover>
-              <button 
-                className="p-2 mr-2 rounded-full hover:bg-gray-100 relative"
-                title="Notificações"
-              >
-                <BellRing size={20} className="text-gray-500" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-            </NotificationPopover>
-            
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-full hover:bg-gray-100"
-              title="Sair"
-            >
-              <LogOut size={20} className="text-gray-500" />
-            </button>
-          </div>
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-full hover:bg-gray-100"
+            title="Sair"
+          >
+            <LogOut size={20} className="text-gray-500" />
+          </button>
         </div>
       </Footer>
     </UISidebar>
