@@ -15,7 +15,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-[#02tdfb] text-white dark:bg-[#02tdfb] border-t border-gray-200 dark:border-gray-800 mt-auto py-8">
+    <footer className="bg-[#02ddfb] text-white dark:bg-[#02ddfb] border-t border-gray-200 dark:border-gray-800 mt-auto py-8">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Company Info */}
@@ -29,7 +29,7 @@ const Footer = () => {
                 href="https://instagram.com/faroldomercado" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="bg-white text-[#02tdfb] p-2 rounded-full hover:bg-white/90 transition-colors"
+                className="bg-white text-[#02ddfb] p-2 rounded-full hover:bg-white/90 transition-colors"
                 aria-label="Instagram"
               >
                 <Instagram size={18} />
@@ -38,7 +38,7 @@ const Footer = () => {
                 href="https://api.whatsapp.com/send/?phone=5585996282222" 
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white text-[#02tdfb] p-2 rounded-full hover:bg-white/90 transition-colors"
+                className="bg-white text-[#02ddfb] p-2 rounded-full hover:bg-white/90 transition-colors"
                 aria-label="WhatsApp"
               >
                 <MessageCircle size={18} />
@@ -83,7 +83,7 @@ const Footer = () => {
               href="https://api.whatsapp.com/send/?phone=5585996282222&text&type=phone_number&app_absent=0" 
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center text-sm bg-white text-[#02tdfb] px-4 py-2 rounded-md hover:bg-white/90 transition-colors"
+              className="inline-flex items-center text-sm bg-white text-[#02ddfb] px-4 py-2 rounded-md hover:bg-white/90 transition-colors"
             >
               Falar com Suporte
             </a>
@@ -98,7 +98,7 @@ const Footer = () => {
           <Button 
             onClick={scrollToTop} 
             size="sm" 
-            className="mt-4 sm:mt-0 bg-white hover:bg-white/90 text-[#02tdfb] rounded-full p-2 h-10 w-10"
+            className="mt-4 sm:mt-0 bg-white hover:bg-white/90 text-[#02ddfb] rounded-full p-2 h-10 w-10"
             aria-label="Voltar ao topo"
           >
             <ChevronUp className="h-5 w-5" />

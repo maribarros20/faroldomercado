@@ -25,8 +25,8 @@ const NavItem = ({ to, icon, text, active, expanded, onClick }: NavItemProps) =>
         onClick={onClick}
         className={`flex items-center px-3 py-2 rounded-md transition-colors ${
           active
-            ? "bg-[#02tdfb]/10 text-[#02tdfb]"
-            : "text-gray-700 hover:bg-[#02tdfb]/10 hover:text-[#02tdfb]"
+            ? "bg-[#02ddfb]/10 text-[#02ddfb]"
+            : "text-gray-700 hover:bg-[#02ddfb]/10 hover:text-[#02ddfb]"
         } ${expanded ? "justify-start" : "justify-center"} w-full text-left`}
       >
         {content}
@@ -39,8 +39,8 @@ const NavItem = ({ to, icon, text, active, expanded, onClick }: NavItemProps) =>
       to={to}
       className={`flex items-center px-3 py-2 rounded-md transition-colors ${
         active
-          ? "bg-[#02tdfb]/10 text-[#02tdfb]"
-          : "text-gray-700 hover:bg-[#02tdfb]/10 hover:text-[#02tdfb]"
+          ? "bg-[#02ddfb]/10 text-[#02ddfb]"
+          : "text-gray-700 hover:bg-[#02ddfb]/10 hover:text-[#02ddfb]"
       } ${expanded ? "justify-start" : "justify-center"}`}
     >
       {content}
