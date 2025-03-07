@@ -1,8 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import ProfileForm from "@/components/ProfileForm";
 import SubscriptionManager from "@/components/SubscriptionManager";
 import MentorSelector from "@/components/MentorSelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import type { Profile } from "@/types/community";
 
 const ProfileSettingsPage = () => {
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState("mentor");
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<Profile | null>(null);
   const { toast } = useToast();
@@ -75,7 +73,7 @@ const ProfileSettingsPage = () => {
               phone: userMetadata.phone || null,
               cpf: userMetadata.cpf || null,
               date_of_birth: userMetadata.date_of_birth || new Date().toISOString().split('T')[0],
-              role: "user" as "user" | "admin" // Fixed: explicit type cast to enum type
+              role: "user" as "user" | "admin"
             };
             
             console.log("Creating new profile with data:", newProfile);
@@ -115,31 +113,9 @@ const ProfileSettingsPage = () => {
     checkSession();
   }, [navigate, toast]);
 
-  const initialValues = profileData ? {
-    firstName: profileData.first_name || "",
-    lastName: profileData.last_name || "",
-    email: profileData.email || "",
-    cnpj: profileData.cnpj || "",
-    phone: profileData.phone || "",
-    cpf: profileData.cpf || "",
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
-  } : {
-    firstName: "",
-    lastName: "",
-    email: "",
-    cnpj: "",
-    phone: "",
-    cpf: "",
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
-  };
-
   return (
     <div className="container mx-auto py-6 px-4">
-      <h1 className="text-2xl font-bold mb-6">Configurações do Perfil</h1>
+      <h1 className="text-2xl font-bold mb-6">Configurações da Conta</h1>
       
       {isLoading ? (
         <Card>
@@ -149,15 +125,10 @@ const ProfileSettingsPage = () => {
         </Card>
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="profile">Perfil</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="mentor">Mentor</TabsTrigger>
             <TabsTrigger value="subscription">Assinatura</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="profile">
-            <ProfileForm initialValues={initialValues} userId={profileData?.id} />
-          </TabsContent>
           
           <TabsContent value="mentor">
             <MentorSelector userId={profileData?.id} currentMentorId={profileData?.mentor_id} />

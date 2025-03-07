@@ -42,7 +42,6 @@ const QuickActions = () => {
   const { unreadCount } = useNotifications();
   const { userRole } = useUserProfile();
   const [showNotifications, setShowNotifications] = React.useState(false);
-  const [showProfileOptions, setShowProfileOptions] = React.useState(false);
   
   // Check if user is admin
   const isAdmin = userRole === 'admin';
@@ -71,7 +70,7 @@ const QuickActions = () => {
       {
         title: "Perfil",
         icon: UserCog,
-        to: "/profile"  // Mudança aqui: redirecionamento direto para a página de perfil
+        to: "/profile"
       },
       {
         title: "Notificações",
