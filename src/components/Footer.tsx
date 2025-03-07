@@ -15,13 +15,13 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-auto py-8">
+    <footer className="bg-[#02tdfb] text-white dark:bg-[#02tdfb] border-t border-gray-200 dark:border-gray-800 mt-auto py-8">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Farol do Mercado</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
+            <h3 className="text-lg font-semibold text-white dark:text-white">Farol do Mercado</h3>
+            <p className="text-white/80 dark:text-white/80 text-sm">
               CNPJ: 40.085.415/0001-20
             </p>
             <div className="flex space-x-3">
@@ -29,7 +29,7 @@ const Footer = () => {
                 href="https://instagram.com/faroldomercado" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="bg-[#02tdfb] text-white p-2 rounded-full hover:bg-[#02tdfb]/80 transition-colors"
+                className="bg-white text-[#02tdfb] p-2 rounded-full hover:bg-white/90 transition-colors"
                 aria-label="Instagram"
               >
                 <Instagram size={18} />
@@ -38,7 +38,7 @@ const Footer = () => {
                 href="https://api.whatsapp.com/send/?phone=5585996282222" 
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-[#02tdfb] text-white p-2 rounded-full hover:bg-[#02tdfb]/80 transition-colors"
+                className="bg-white text-[#02tdfb] p-2 rounded-full hover:bg-white/90 transition-colors"
                 aria-label="WhatsApp"
               >
                 <MessageCircle size={18} />
@@ -48,25 +48,25 @@ const Footer = () => {
           
           {/* Quick Links */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Links Rápidos</h3>
+            <h3 className="text-lg font-semibold text-white dark:text-white">Links Rápidos</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/dashboard" className="text-gray-600 dark:text-gray-400 hover:text-[#02tdfb] dark:hover:text-[#02tdfb] transition-colors text-sm">
+                <Link to="/dashboard" className="text-white/80 dark:text-white/80 hover:text-white dark:hover:text-white transition-colors text-sm">
                   Dashboard
                 </Link>
               </li>
               <li>
-                <Link to="/materials" className="text-gray-600 dark:text-gray-400 hover:text-[#02tdfb] dark:hover:text-[#02tdfb] transition-colors text-sm">
+                <Link to="/materials" className="text-white/80 dark:text-white/80 hover:text-white dark:hover:text-white transition-colors text-sm">
                   Materiais
                 </Link>
               </li>
               <li>
-                <Link to="/videos" className="text-gray-600 dark:text-gray-400 hover:text-[#02tdfb] dark:hover:text-[#02tdfb] transition-colors text-sm">
+                <Link to="/videos" className="text-white/80 dark:text-white/80 hover:text-white dark:hover:text-white transition-colors text-sm">
                   Vídeos
                 </Link>
               </li>
               <li>
-                <Link to="/community" className="text-gray-600 dark:text-gray-400 hover:text-[#02tdfb] dark:hover:text-[#02tdfb] transition-colors text-sm">
+                <Link to="/community" className="text-white/80 dark:text-white/80 hover:text-white dark:hover:text-white transition-colors text-sm">
                   Comunidade
                 </Link>
               </li>
@@ -75,30 +75,30 @@ const Footer = () => {
           
           {/* Contact/Support */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Suporte</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
+            <h3 className="text-lg font-semibold text-white dark:text-white">Suporte</h3>
+            <p className="text-white/80 dark:text-white/80 text-sm">
               Precisa de ajuda? Entre em contato!
             </p>
             <a 
               href="https://api.whatsapp.com/send/?phone=5585996282222&text&type=phone_number&app_absent=0" 
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center text-sm bg-[#02tdfb] text-white px-4 py-2 rounded-md hover:bg-[#02tdfb]/80 transition-colors"
+              className="inline-flex items-center text-sm bg-white text-[#02tdfb] px-4 py-2 rounded-md hover:bg-white/90 transition-colors"
             >
               Falar com Suporte
             </a>
           </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row justify-between items-center mt-12 pt-6 border-t border-gray-200 dark:border-gray-800">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex flex-col sm:flex-row justify-between items-center mt-12 pt-6 border-t border-white/20 dark:border-white/20">
+          <p className="text-sm text-white/80 dark:text-white/80">
             © {currentYear} Farol do Mercado. Todos os direitos reservados.
           </p>
           
           <Button 
             onClick={scrollToTop} 
             size="sm" 
-            className="mt-4 sm:mt-0 bg-[#02tdfb] hover:bg-[#02tdfb]/80 text-white rounded-full p-2 h-10 w-10"
+            className="mt-4 sm:mt-0 bg-white hover:bg-white/90 text-[#02tdfb] rounded-full p-2 h-10 w-10"
             aria-label="Voltar ao topo"
           >
             <ChevronUp className="h-5 w-5" />
