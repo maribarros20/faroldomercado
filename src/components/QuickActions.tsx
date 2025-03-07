@@ -71,9 +71,7 @@ const QuickActions = () => {
       {
         title: "Perfil",
         icon: UserCog,
-        onClick: () => {
-          setShowProfileOptions(true);
-        }
+        to: "/profile"  // Mudança aqui: redirecionamento direto para a página de perfil
       },
       {
         title: "Notificações",
@@ -85,11 +83,6 @@ const QuickActions = () => {
     );
     
     return baseTabs;
-  };
-
-  const handleProfileOption = (path: string) => {
-    setShowProfileOptions(false);
-    navigate(path);
   };
 
   return (
@@ -117,41 +110,6 @@ const QuickActions = () => {
           </span>
         )}
       </div>
-
-      {/* Profile Options Dialog */}
-      <Dialog open={showProfileOptions} onOpenChange={setShowProfileOptions}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Opções de Perfil</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <Button
-              variant="outline"
-              className="flex items-center justify-start gap-2"
-              onClick={() => handleProfileOption("/profile")}
-            >
-              <User className="h-4 w-4" />
-              Configurar perfil do usuário
-            </Button>
-            <Button
-              variant="outline"
-              className="flex items-center justify-start gap-2"
-              onClick={() => handleProfileOption("/notifications-settings")}
-            >
-              <BellRing className="h-4 w-4" />
-              Configurar notificações
-            </Button>
-            <Button
-              variant="outline"
-              className="flex items-center justify-start gap-2"
-              onClick={() => handleProfileOption("/security-settings")}
-            >
-              <Lock className="h-4 w-4" />
-              Configurar segurança
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

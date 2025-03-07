@@ -42,8 +42,14 @@ export const ExpandableTabs: React.FC<ExpandableTabsProps> = ({
   const handleTabClick = (index: number) => {
     setActiveTab(index);
     
-    // If the tab has an onClick handler, call it
+    // If the tab has a direct route, navigate to it
     const tab = tabs[index];
+    if (tab.to) {
+      navigate(tab.to);
+      return;
+    }
+    
+    // If the tab has an onClick handler, call it
     if (tab.onClick) {
       tab.onClick();
     }
@@ -68,7 +74,7 @@ export const ExpandableTabs: React.FC<ExpandableTabsProps> = ({
           const Icon = tab.icon;
           const isActive = activeTab === index;
 
-          const tabContent = (
+          return (
             <div
               key={index}
               className={cn(
@@ -95,15 +101,6 @@ export const ExpandableTabs: React.FC<ExpandableTabsProps> = ({
                 </span>
               )}
             </div>
-          );
-
-          // If it has a 'to' property, wrap in Link, otherwise use the div directly
-          return tab.to ? (
-            <Link key={index} to={tab.to}>
-              {tabContent}
-            </Link>
-          ) : (
-            <div key={index}>{tabContent}</div>
           );
         })}
       </div>
