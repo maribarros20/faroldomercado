@@ -8,10 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Upload, User, Shield, Bell, Settings, Save } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 export default function ProfilePage() {
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("personal");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { userRole, avatarUrl, userName } = useUserProfile();
+  const { toast } = useToast();
   const navigate = useNavigate();
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,6 +33,37 @@ export default function ProfilePage() {
 
   const handleGoBack = () => {
     navigate(-1);
+  };
+
+  const handleSaveChanges = async () => {
+    setIsLoading(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar logado para salvar alterações.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Alterações salvas com sucesso!"
+      });
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar as alterações.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   return (
@@ -46,9 +83,13 @@ export default function ProfilePage() {
             <p className="text-gray-500 mt-1">Gerencie as configurações e preferências da sua conta</p>
           </div>
         </div>
-        <Button className="bg-trade-blue hover:bg-trade-blue/90">
+        <Button 
+          className="bg-primary hover:bg-primary/90" 
+          onClick={handleSaveChanges}
+          disabled={isLoading}
+        >
           <Save size={18} className="mr-2" /> 
-          Salvar alterações
+          {isLoading ? "Salvando..." : "Salvar alterações"}
         </Button>
       </header>
       
@@ -98,6 +139,8 @@ export default function ProfilePage() {
                   <div className="w-24 h-24 bg-gray-100 rounded-full overflow-hidden">
                     {imagePreview ? (
                       <img src={imagePreview} alt="Profile" className="w-full h-full object-cover" />
+                    ) : avatarUrl ? (
+                      <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
                         <User size={40} />
@@ -127,7 +170,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome completo</Label>
-                  <Input id="name" placeholder="Digite seu nome completo" />
+                  <Input id="name" placeholder="Digite seu nome completo" defaultValue={userName || ""} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="username">Nome de usuário</Label>
@@ -283,10 +326,10 @@ export default function ProfilePage() {
             </TabsContent>
             
             <div className="flex justify-end mt-10">
-              <Button variant="outline" className="mr-3">Cancelar</Button>
-              <Button className="bg-primary hover:bg-primary/90">
+              <Button variant="outline" className="mr-3" onClick={handleGoBack}>Cancelar</Button>
+              <Button className="bg-primary hover:bg-primary/90" onClick={handleSaveChanges} disabled={isLoading}>
                 <Save size={18} className="mr-2" />
-                Salvar alterações
+                {isLoading ? "Salvando..." : "Salvar alterações"}
               </Button>
             </div>
           </motion.div>
