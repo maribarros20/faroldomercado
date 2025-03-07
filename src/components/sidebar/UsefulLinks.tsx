@@ -57,12 +57,12 @@ const UsefulLinks = ({ expanded }: UsefulLinksProps) => {
   ];
   
   return (
-    <div className="bg-[#02tdfb] rounded-lg px-3 py-3">
+    <div className="bg-primary rounded-lg px-3 py-3">
       {links.map((link, index) => (
         <LinkItem 
           key={index}
           href={link.href}
-          icon={<link.icon className="w-5 h-5 text-white" />}
+          icon={<link.icon className="w-5 h-5" />}
           label={link.label}
         />
       ))}

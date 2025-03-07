@@ -68,14 +68,14 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
         trade: {
-          blue: '#02tdfb', // Updated primary color
-          'light-blue': '#38b6ff', // Updated secondary color
-          'dark-blue': '#0085c7', // Darker version of primary
+          blue: '#0066FF',
+          'light-blue': '#E6F0FF',
+          'dark-blue': '#003380',
           green: '#00C48C',
           red: '#FF3B30',
-          gray: '#323232', // Updated gray
+          gray: '#8E8E93',
           'light-gray': '#F2F2F7',
-          'dark-gray': '#323232', // Updated dark gray
+          'dark-gray': '#1C1C1E',
           background: '#FFFFFF',
           'card-bg': '#F9F9F9',
         }
