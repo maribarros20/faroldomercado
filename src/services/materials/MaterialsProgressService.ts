@@ -26,8 +26,9 @@ class MaterialsProgressService {
         return [];
       }
       
-      // Process the data to match Material interface if needed
-      // Here we assume the database function returns data in the correct format already
+      if (!data) {
+        return [];
+      }
       
       // If user is logged in, check which materials are liked by the user
       const { data: likedMaterials, error: likesError } = await supabase
@@ -35,15 +36,17 @@ class MaterialsProgressService {
         .select('material_id')
         .eq('user_id', userId);
 
-      if (!likesError && likedMaterials && data) {
-        const likedMaterialIds = new Set(likedMaterials.map(like => like.material_id));
-        
-        data.forEach((material: any) => {
-          material.is_liked_by_user = likedMaterialIds.has(material.id);
-        });
-      }
+      // Add the is_liked_by_user property to each material
+      const materialsWithLikes = data.map((material: any) => {
+        return {
+          ...material,
+          is_liked_by_user: likedMaterials ? 
+            likedMaterials.some(like => like.material_id === material.id) : 
+            false
+        };
+      });
       
-      return data as Material[] || [];
+      return materialsWithLikes as Material[];
     } catch (error) {
       console.error('Error in getUserInProgressMaterials service:', error);
       return [];
@@ -73,8 +76,9 @@ class MaterialsProgressService {
         return [];
       }
       
-      // Process the data to match Material interface if needed
-      // Here we assume the database function returns data in the correct format already
+      if (!data) {
+        return [];
+      }
       
       // If user is logged in, check which materials are liked by the user
       const { data: likedMaterials, error: likesError } = await supabase
@@ -82,15 +86,17 @@ class MaterialsProgressService {
         .select('material_id')
         .eq('user_id', userId);
 
-      if (!likesError && likedMaterials && data) {
-        const likedMaterialIds = new Set(likedMaterials.map(like => like.material_id));
-        
-        data.forEach((material: any) => {
-          material.is_liked_by_user = likedMaterialIds.has(material.id);
-        });
-      }
+      // Add the is_liked_by_user property to each material
+      const materialsWithLikes = data.map((material: any) => {
+        return {
+          ...material,
+          is_liked_by_user: likedMaterials ? 
+            likedMaterials.some(like => like.material_id === material.id) : 
+            false
+        };
+      });
       
-      return data as Material[] || [];
+      return materialsWithLikes as Material[];
     } catch (error) {
       console.error('Error in getUserCompletedMaterials service:', error);
       return [];
@@ -126,7 +132,7 @@ class MaterialsProgressService {
       // Check if there's already a progress record
       const { data: existingProgress, error: progressError } = await supabase
         .from('user_material_progress')
-        .select('id, progress_percentage')
+        .select('*')  // Select all columns to get the full record
         .eq('user_id', userId)
         .eq('material_id', materialId)
         .maybeSingle();
