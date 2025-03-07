@@ -1,4 +1,4 @@
-<lov-code>
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -877,4 +877,251 @@ const AdminMaterials = () => {
               }}
             >
               Cancelar
-            </Button
+            </Button>
+            <Button 
+              onClick={handleAddMaterial}
+              disabled={addMaterialMutation.isPending}
+            >
+              {addMaterialMutation.isPending ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" />
+                  Adicionando...
+                </>
+              ) : "Adicionar Material"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Material Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Material</DialogTitle>
+          </DialogHeader>
+          {selectedMaterial && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-title">Título</Label>
+                <Input 
+                  id="edit-title" 
+                  value={selectedMaterial.title} 
+                  onChange={(e) => setSelectedMaterial({...selectedMaterial, title: e.target.value})} 
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-description">Descrição</Label>
+                <Textarea 
+                  id="edit-description" 
+                  value={selectedMaterial.description || ''} 
+                  onChange={(e) => setSelectedMaterial({...selectedMaterial, description: e.target.value})} 
+                  className="min-h-[120px]"
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-category">Categoria</Label>
+                  <Select 
+                    value={selectedMaterial.category} 
+                    onValueChange={(value) => setSelectedMaterial({...selectedMaterial, category: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.name}>
+                          <div className="flex items-center">
+                            {getCategoryIcon(category.name)}
+                            <span className="ml-2">{category.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-type">Tipo</Label>
+                  <Select 
+                    value={selectedMaterial.type} 
+                    onValueChange={(value) => setSelectedMaterial({...selectedMaterial, type: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdf">PDF</SelectItem>
+                      <SelectItem value="excel">Excel</SelectItem>
+                      <SelectItem value="doc">Documento</SelectItem>
+                      <SelectItem value="presentation">Apresentação</SelectItem>
+                      <SelectItem value="ebook">eBook</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-navigation">Navegação do Conhecimento</Label>
+                  <Select 
+                    value={selectedMaterial.navigation_id || ''} 
+                    onValueChange={(value) => setSelectedMaterial({...selectedMaterial, navigation_id: value || null})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um nível" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Não especificado</SelectItem>
+                      {navigations.map((navigation) => (
+                        <SelectItem key={navigation.id} value={navigation.id}>
+                          {navigation.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-format">Formato</Label>
+                  <Select 
+                    value={selectedMaterial.format_id || ''} 
+                    onValueChange={(value) => setSelectedMaterial({...selectedMaterial, format_id: value || null})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um formato" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Não especificado</SelectItem>
+                      {formats.map((format) => (
+                        <SelectItem key={format.id} value={format.id}>
+                          {format.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-icon">Ícone</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                    >
+                      {getTypeIcon("", selectedMaterial.icon)} 
+                      <span className="ml-2">Selecionar Ícone</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-2">
+                    <div className="grid grid-cols-3 gap-2">
+                      {availableIcons.map((icon) => (
+                        <Button 
+                          key={icon.name}
+                          variant="outline"
+                          className={`p-2 ${selectedMaterial.icon === icon.name ? 'ring-2 ring-blue-500' : ''}`}
+                          onClick={() => setSelectedMaterial({...selectedMaterial, icon: icon.name})}
+                        >
+                          {React.cloneElement(icon.component as React.ReactElement)}
+                        </Button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="grid gap-2">
+                <Label>Temas/Assuntos (Hashtags)</Label>
+                <div className="flex flex-wrap gap-2 border p-2 rounded-md min-h-[100px]">
+                  {themes.length === 0 ? (
+                    <div className="text-gray-500 text-sm p-2">
+                      Nenhum tema disponível. Adicione temas nas configurações.
+                    </div>
+                  ) : (
+                    themes.map((theme) => {
+                      const isSelected = selectedMaterial.themes?.some(t => t.id === theme.id) || false;
+                      return (
+                        <Badge 
+                          key={theme.id} 
+                          variant={isSelected ? "default" : "outline"}
+                          className="cursor-pointer"
+                          onClick={() => handleThemeToggle(theme.id, isSelected, false)}
+                        >
+                          <Hash size={12} className="mr-1" /> 
+                          {theme.name}
+                        </Badge>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-file">Arquivo</Label>
+                <div className="flex flex-col gap-2">
+                  {selectedMaterial.file_url && (
+                    <div className="flex items-center justify-between p-2 border rounded-md bg-gray-50">
+                      <div className="flex items-center">
+                        {getTypeIcon(selectedMaterial.type, selectedMaterial.icon)}
+                        <span className="ml-2 text-sm">Arquivo atual</span>
+                      </div>
+                      <a 
+                        href={selectedMaterial.file_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline text-sm"
+                      >
+                        Visualizar
+                      </a>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-center w-full">
+                    <label htmlFor="edit-file-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-8 h-8 mb-3 text-gray-400" />
+                        <p className="mb-2 text-sm text-gray-500">
+                          <span className="font-semibold">Clique para trocar o arquivo</span> ou arraste e solte
+                        </p>
+                        <p className="text-xs text-gray-500">PDF, Excel, Doc (MAX. 10MB)</p>
+                        {fileToUpload && (
+                          <p className="mt-2 text-sm text-green-600 font-medium">{fileToUpload.name}</p>
+                        )}
+                      </div>
+                      <input 
+                        id="edit-file-upload" 
+                        type="file" 
+                        className="hidden" 
+                        onChange={handleFileChange} 
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsEditDialogOpen(false);
+                setFileToUpload(null);
+                setSelectedMaterial(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleUpdateMaterial}
+              disabled={updateMaterialMutation.isPending}
+            >
+              {updateMaterialMutation.isPending ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" />
+                  Atualizando...
+                </>
+              ) : "Salvar Alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default AdminMaterials;
