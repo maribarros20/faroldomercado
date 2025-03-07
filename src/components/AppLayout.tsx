@@ -20,33 +20,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   const { toast } = useToast();
   const { greeting } = useGreeting(null);
 
-  // Create a sample notification when component mounts
-  useEffect(() => {
-    const createSampleNotification = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { error } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: session.user.id,
-          title: "Bem-vindo ao novo sistema de notificações",
-          message: "Agora você pode receber notificações em tempo real no canto superior direito.",
-          read: false
-        });
-
-      if (error) {
-        console.error("Error creating notification:", error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível criar a notificação de exemplo.",
-          variant: "destructive",
-        });
-      }
-    };
-
-    createSampleNotification();
-  }, [toast]);
+  // Removida a criação de notificação de exemplo que causava erro
 
   // Only the index page should not have the sidebar layout
   const isHomePage = location.pathname === "/";

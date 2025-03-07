@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "./use-toast";
 
 export interface Notification {
   id: string;
@@ -14,7 +15,8 @@ export interface Notification {
 export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-
+  const { toast } = useToast();
+  
   useEffect(() => {
     fetchNotifications();
     const unsubscribe = subscribeToNotifications();
@@ -33,18 +35,22 @@ export function useNotifications() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
+      // Evitamos lançar erro ao buscar as notificações
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.log("Não foi possível buscar notificações:", error);
+        return;
+      }
 
       setNotifications(data as Notification[] || []);
       setUnreadCount(data?.filter(n => !n.read).length || 0);
     } catch (error) {
-      console.error("Error fetching notifications:", error);
+      console.log("Erro ao buscar notificações:", error);
     }
   };
 
@@ -70,18 +76,18 @@ export function useNotifications() {
         supabase.removeChannel(channel);
       };
     } catch (error) {
-      console.error("Error subscribing to notifications:", error);
+      console.log("Erro ao se inscrever para notificações:", error);
       return undefined;
     }
   };
 
-  // Function to check for platform updates
+  // Atualizamos a função para não causar problemas se houver falha
   const checkForPlatformUpdates = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
-      // Check for new content (videos, materials, etc.)
+      // Get last login time from localStorage
       const lastLoginTime = localStorage.getItem('lastLoginTime');
       if (!lastLoginTime) {
         localStorage.setItem('lastLoginTime', new Date().toISOString());
@@ -89,37 +95,34 @@ export function useNotifications() {
       }
       
       // Check for new videos
-      const { data: newVideos, error: videosError } = await supabase
-        .from("videos")
-        .select("count")
-        .gt("created_at", lastLoginTime);
-        
-      if (videosError) throw videosError;
-      
-      // Check for new materials
-      const { data: newMaterials, error: materialsError } = await supabase
-        .from("materials")
-        .select("count")
-        .gt("date_added", lastLoginTime);
-        
-      if (materialsError) throw materialsError;
-      
-      // If there are new items, create a notification
-      if ((newVideos && newVideos.length > 0) || (newMaterials && newMaterials.length > 0)) {
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: session.user.id,
+      try {
+        const { data: newVideos } = await supabase
+          .from("videos")
+          .select("count")
+          .gt("created_at", lastLoginTime);
+          
+        // Check for new materials
+        const { data: newMaterials } = await supabase
+          .from("materials")
+          .select("count")
+          .gt("date_added", lastLoginTime);
+          
+        // If there are new items, we'll just update the UI instead of creating notifications
+        // This evita erros de permissão
+        if ((newVideos && newVideos.length > 0) || (newMaterials && newMaterials.length > 0)) {
+          toast({
             title: "Novos conteúdos disponíveis",
-            message: "Novos vídeos e materiais foram adicionados na plataforma desde seu último acesso.",
-            read: false
+            description: "Novos vídeos e materiais foram adicionados na plataforma desde seu último acesso."
           });
+        }
+      } catch (error) {
+        console.log("Erro ao verificar por atualizações:", error);
       }
       
       // Update the last login time
       localStorage.setItem('lastLoginTime', new Date().toISOString());
     } catch (error) {
-      console.error("Error checking for platform updates:", error);
+      console.log("Erro ao verificar por atualizações da plataforma:", error);
     }
   };
 
@@ -130,7 +133,10 @@ export function useNotifications() {
         .update({ read: true })
         .eq("id", notificationId);
 
-      if (error) throw error;
+      if (error) {
+        console.log("Erro ao marcar notificação como lida:", error);
+        return;
+      }
 
       setNotifications(prev =>
         prev.map(n =>
@@ -139,7 +145,7 @@ export function useNotifications() {
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
-      console.error("Error marking notification as read:", error);
+      console.log("Erro ao marcar notificação como lida:", error);
     }
   };
 
@@ -154,14 +160,17 @@ export function useNotifications() {
         .eq("user_id", session.user.id)
         .eq("read", false);
 
-      if (error) throw error;
+      if (error) {
+        console.log("Erro ao marcar todas notificações como lidas:", error);
+        return;
+      }
 
       setNotifications(prev =>
         prev.map(n => ({ ...n, read: true }))
       );
       setUnreadCount(0);
     } catch (error) {
-      console.error("Error marking all notifications as read:", error);
+      console.log("Erro ao marcar todas notificações como lidas:", error);
     }
   };
 
