@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -74,11 +74,9 @@ const MaterialsPage = () => {
             materialsData = await MaterialsService.getUserLikedMaterials();
             break;
           case "in-progress":
-            // Now we have backend support for tracking progress
             materialsData = await MaterialsProgressService.getUserInProgressMaterials();
             break;
           case "completed":
-            // Now we have backend support for tracking completion
             materialsData = await MaterialsProgressService.getUserCompletedMaterials();
             break;
           default:
