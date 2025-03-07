@@ -961,7 +961,6 @@ export type Database = {
           duration: string | null
           format_id: string | null
           id: string
-          learning_path: string
           navigation_id: string | null
           source: string
           themes: Json | null
@@ -979,7 +978,6 @@ export type Database = {
           duration?: string | null
           format_id?: string | null
           id?: string
-          learning_path: string
           navigation_id?: string | null
           source: string
           themes?: Json | null
@@ -997,7 +995,6 @@ export type Database = {
           duration?: string | null
           format_id?: string | null
           id?: string
-          learning_path?: string
           navigation_id?: string | null
           source?: string
           themes?: Json | null

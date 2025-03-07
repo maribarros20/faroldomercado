@@ -438,11 +438,6 @@ class VideosService {
         }
       }
 
-      // Remover campos desnecessários
-      if ('learning_path' in updatedFields) {
-        delete updatedFields.learning_path;
-      }
-      
       // Update video
       const { data, error } = await supabase
         .from('videos')
