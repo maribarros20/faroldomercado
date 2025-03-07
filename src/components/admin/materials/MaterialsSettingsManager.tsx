@@ -8,6 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import MaterialsService from "@/services/MaterialsService";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from "@/components/ui/alert-dialog";
 
 interface Item {
   id: string;
@@ -36,12 +47,27 @@ const ItemList: React.FC<ItemListProps> = ({
   deletingId
 }) => {
   const [newItemName, setNewItemName] = useState("");
+  const [itemToDeleteId, setItemToDeleteId] = useState<string | null>(null);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
   const handleAdd = () => {
     if (newItemName.trim()) {
       onAdd(newItemName.trim());
       setNewItemName("");
     }
+  };
+
+  const handleDeleteClick = (id: string) => {
+    setItemToDeleteId(id);
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (itemToDeleteId) {
+      onDelete(itemToDeleteId);
+      setItemToDeleteId(null);
+    }
+    setIsConfirmDialogOpen(false);
   };
 
   return (
@@ -81,7 +107,7 @@ const ItemList: React.FC<ItemListProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => onDelete(item.id)}
+                  onClick={() => handleDeleteClick(item.id)}
                   disabled={isDeleting}
                   className="h-8 w-8 p-0"
                 >
@@ -95,6 +121,26 @@ const ItemList: React.FC<ItemListProps> = ({
             ))}
           </div>
         )}
+
+        <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleConfirmDelete}
+                className="bg-red-500 hover:bg-red-600 text-white"
+              >
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
