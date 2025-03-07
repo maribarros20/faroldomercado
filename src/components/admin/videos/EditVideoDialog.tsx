@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Video as VideoType, VideoSource } from "@/services/VideosService";
 import { MaterialCategory, KnowledgeNavigation, MaterialFormat, MaterialTheme } from "@/services/materials/types";
+import { useToast } from "@/components/ui/use-toast";
 
 interface EditVideoDialogProps {
   isOpen: boolean;
@@ -29,14 +30,14 @@ const EditVideoDialog = ({
   categories,
   navigations,
   formats,
-  themes,
-  learningPaths
+  themes
 }: EditVideoDialogProps) => {
   const [selectedThemes, setSelectedThemes] = useState<string[]>([]);
   const [currentVideo, setCurrentVideo] = useState<VideoType>(video);
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (video) {
+    if (video && isOpen) {
       setCurrentVideo(video);
       setSelectedThemes(video.themes ? video.themes.map(theme => theme.id) : []);
     }
@@ -54,7 +55,25 @@ const EditVideoDialog = ({
   };
 
   const handleSubmit = () => {
-    onSubmit(currentVideo);
+    if (!currentVideo.title || !currentVideo.url || !currentVideo.category) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos obrigatórios",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      onSubmit(currentVideo);
+    } catch (error) {
+      console.error("Erro ao atualizar vídeo:", error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao atualizar o vídeo",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -65,11 +84,12 @@ const EditVideoDialog = ({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="edit-title">Título</Label>
+            <Label htmlFor="edit-title">Título <span className="text-red-500">*</span></Label>
             <Input 
               id="edit-title" 
               value={currentVideo.title} 
               onChange={(e) => setCurrentVideo({...currentVideo, title: e.target.value})} 
+              required
             />
           </div>
           <div className="grid gap-2">
@@ -81,7 +101,7 @@ const EditVideoDialog = ({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="edit-source">Fonte</Label>
+            <Label htmlFor="edit-source">Fonte <span className="text-red-500">*</span></Label>
             <Select 
               value={currentVideo.source} 
               onValueChange={(value: VideoSource) => setCurrentVideo({...currentVideo, source: value})}
@@ -97,15 +117,16 @@ const EditVideoDialog = ({
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="edit-url">URL do Vídeo</Label>
+            <Label htmlFor="edit-url">URL do Vídeo <span className="text-red-500">*</span></Label>
             <Input 
               id="edit-url" 
               value={currentVideo.url} 
               onChange={(e) => setCurrentVideo({...currentVideo, url: e.target.value})} 
+              required
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="edit-category">Categoria</Label>
+            <Label htmlFor="edit-category">Categoria <span className="text-red-500">*</span></Label>
             <Select 
               value={currentVideo.category} 
               onValueChange={(value) => setCurrentVideo({...currentVideo, category: value})}
@@ -123,8 +144,8 @@ const EditVideoDialog = ({
           <div className="grid gap-2">
             <Label htmlFor="edit-navigation">Navegação do Conhecimento</Label>
             <Select 
-              value={currentVideo.navigation_id || ''} 
-              onValueChange={(value) => setCurrentVideo({...currentVideo, navigation_id: value || null})}
+              value={currentVideo.navigation_id || "none"} 
+              onValueChange={(value) => setCurrentVideo({...currentVideo, navigation_id: value === "none" ? null : value})}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione uma navegação" />
@@ -140,8 +161,8 @@ const EditVideoDialog = ({
           <div className="grid gap-2">
             <Label htmlFor="edit-format">Formato</Label>
             <Select 
-              value={currentVideo.format_id || ''} 
-              onValueChange={(value) => setCurrentVideo({...currentVideo, format_id: value || null})}
+              value={currentVideo.format_id || "none"} 
+              onValueChange={(value) => setCurrentVideo({...currentVideo, format_id: value === "none" ? null : value})}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um formato" />
@@ -180,34 +201,15 @@ const EditVideoDialog = ({
               )}
             </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="edit-learningPath">Trilha de Aprendizado</Label>
-            <Select 
-              value={currentVideo.learning_path} 
-              onValueChange={(value) => setCurrentVideo({...currentVideo, learning_path: value})}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma trilha" />
-              </SelectTrigger>
-              <SelectContent>
-                {learningPaths.map((path) => (
-                  <SelectItem key={path.id} value={path.name}>{path.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="edit-duration">Duração (MM:SS)</Label>
-            <Input 
-              id="edit-duration" 
-              value={currentVideo.duration} 
-              onChange={(e) => setCurrentVideo({...currentVideo, duration: e.target.value})} 
-            />
-          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit}>Atualizar</Button>
+          <Button 
+            onClick={handleSubmit}
+            disabled={!currentVideo.title || !currentVideo.url || !currentVideo.category}
+          >
+            Atualizar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

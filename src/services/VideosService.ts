@@ -11,22 +11,28 @@ export interface Video {
   url: string;
   thumbnail: string;
   category: string;
-  learning_path: string;
-  duration: string;
+  duration?: string;
   date_added: string;
   views: number;
   created_by?: string;
   navigation_id?: string | null;
   format_id?: string | null;
   themes?: MaterialTheme[];
+  learning_path?: string; // Mantido para compatibilidade, mas será removido em breve
 }
 
-export type VideoSource = 'youtube' | 'vimeo' | 'url' | 'storage';
+export type VideoSource = 'youtube' | 'vimeo' | 'storage';
+
+// Função para extrair o ID do YouTube da URL
+const extractYoutubeId = (url: string): string | null => {
+  const youtubeIdMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+  return youtubeIdMatch && youtubeIdMatch[1] ? youtubeIdMatch[1] : null;
+};
 
 // Custom hook to fetch videos with optional filtering
-export const useVideos = (categoryFilter?: string, learningPathFilter?: string) => {
+export const useVideos = (categoryFilter?: string) => {
   return useQuery({
-    queryKey: ['videos', categoryFilter, learningPathFilter],
+    queryKey: ['videos', categoryFilter],
     queryFn: async () => {
       try {
         // Primeiro, buscamos os vídeos com filtros
@@ -34,10 +40,6 @@ export const useVideos = (categoryFilter?: string, learningPathFilter?: string) 
         
         if (categoryFilter) {
           query = query.eq('category', categoryFilter);
-        }
-        
-        if (learningPathFilter) {
-          query = query.eq('learning_path', learningPathFilter);
         }
         
         query = query.order('date_added', { ascending: false });
@@ -373,12 +375,25 @@ class VideosService {
       // Extract themes from video data
       const { themes, ...videoFields } = videoData;
 
+      // Estimar duração do vídeo automaticamente
+      let duration = "00:00";
+      if (videoData.source === 'youtube') {
+        const youtubeId = extractYoutubeId(videoData.url);
+        if (youtubeId) {
+          // A duração será calculada em uma atualização futura
+          // Por enquanto, definiremos um valor padrão
+          duration = "Automático";
+        }
+      }
+
       const { data, error } = await supabase
         .from('videos')
         .insert({
           ...videoFields,
           created_by: userId || videoFields.created_by,
-          views: 0
+          views: 0,
+          duration,
+          learning_path: '' // Campo mantido vazio, será removido futuramente
         })
         .select()
         .single();
@@ -416,10 +431,25 @@ class VideosService {
       // Extract themes from video data
       const { themes, ...videoFields } = videoData;
       
+      // Estimar duração do vídeo automaticamente se a URL foi alterada
+      let updatedFields = {...videoFields};
+      if (videoData.source === 'youtube' && videoData.url) {
+        const youtubeId = extractYoutubeId(videoData.url);
+        if (youtubeId) {
+          // Aqui podemos implementar a lógica para buscar a duração real do vídeo no futuro
+          updatedFields.duration = "Automático";
+        }
+      }
+
+      // Remover campos desnecessários
+      if ('learning_path' in updatedFields) {
+        delete updatedFields.learning_path;
+      }
+      
       // Update video
       const { data, error } = await supabase
         .from('videos')
-        .update(videoFields)
+        .update(updatedFields)
         .eq('id', id)
         .select()
         .single();

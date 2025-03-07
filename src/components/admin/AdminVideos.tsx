@@ -2,53 +2,20 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash, 
-  Upload,
-  Video,
-  Youtube,
-  ExternalLink,
-  Tag,
-  Bookmark
-} from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Video as VideoType, VideoSource } from "@/services/VideosService";
+import { Video as VideoType } from "@/services/VideosService";
 import VideosService from "@/services/VideosService";
 import MaterialsService from "@/services/MaterialsService";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog";
-import { MaterialTheme } from "@/services/materials/types";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import VideosList from "./videos/VideosList";
 import AddVideoDialog from "./videos/AddVideoDialog";
 import EditVideoDialog from "./videos/EditVideoDialog";
 
+// Mantendo para compatibilidade com outros componentes
 const learningPaths = [
   { id: "1", name: "Iniciantes" },
   { id: "2", name: "Estratégias Avançadas" },
@@ -222,9 +189,8 @@ const AdminVideos = () => {
 
   const filteredVideos = videos.filter(video => 
     video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    video.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    video.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    video.learning_path.toLowerCase().includes(searchQuery.toLowerCase())
+    video.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    video.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (

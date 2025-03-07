@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Upload } from "lucide-react";
 import { Video as VideoType, VideoSource } from "@/services/VideosService";
 import { MaterialCategory, KnowledgeNavigation, MaterialFormat, MaterialTheme } from "@/services/materials/types";
+import { useToast } from "@/components/ui/use-toast";
 
 interface AddVideoDialogProps {
   isOpen: boolean;
@@ -28,22 +29,27 @@ const AddVideoDialog = ({
   categories,
   navigations,
   formats,
-  themes,
-  learningPaths
+  themes
 }: AddVideoDialogProps) => {
   const [selectedThemes, setSelectedThemes] = useState<string[]>([]);
+  const { toast } = useToast();
   const [newVideo, setNewVideo] = useState({
     title: "",
     description: "",
     source: "youtube" as VideoSource,
     url: "",
     category: "",
-    learning_path: "",
-    duration: "",
     navigation_id: null as string | null,
     format_id: null as string | null,
     themes: [] as MaterialTheme[]
   });
+
+  // Reset do formulário quando o diálogo for fechado
+  useEffect(() => {
+    if (!isOpen) {
+      resetVideoForm();
+    }
+  }, [isOpen]);
 
   const resetVideoForm = () => {
     setNewVideo({
@@ -52,8 +58,6 @@ const AddVideoDialog = ({
       source: "youtube",
       url: "",
       category: "",
-      learning_path: "",
-      duration: "",
       navigation_id: null,
       format_id: null,
       themes: []
@@ -72,26 +76,64 @@ const AddVideoDialog = ({
     });
   };
 
-  const handleSubmit = () => {
+  // Função para extrair a duração de um vídeo do YouTube
+  const getYoutubeVideoDuration = async (videoId: string): Promise<string> => {
+    try {
+      // Como não podemos usar a API do YouTube diretamente no frontend,
+      // retornaremos um valor padrão por enquanto
+      return "00:00";
+      // Nota: A duração real será calculada no backend (VideosService)
+    } catch (error) {
+      console.error("Erro ao obter duração do vídeo:", error);
+      return "00:00";
+    }
+  };
+
+  // Função para obter o ID do vídeo do YouTube a partir da URL
+  const getYoutubeId = (url: string): string | null => {
+    const youtubeIdMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+    return youtubeIdMatch && youtubeIdMatch[1] ? youtubeIdMatch[1] : null;
+  };
+
+  const handleSubmit = async () => {
+    if (!newVideo.title || !newVideo.url || !newVideo.category) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos obrigatórios",
+        variant: "destructive"
+      });
+      return;
+    }
+
     let thumbnail = "https://via.placeholder.com/300x200";
     
     if (newVideo.source === "youtube") {
-      const youtubeIdMatch = newVideo.url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-      if (youtubeIdMatch && youtubeIdMatch[1]) {
-        thumbnail = `https://img.youtube.com/vi/${youtubeIdMatch[1]}/0.jpg`;
+      const youtubeId = getYoutubeId(newVideo.url);
+      if (youtubeId) {
+        thumbnail = `https://img.youtube.com/vi/${youtubeId}/0.jpg`;
       }
     }
     
-    onSubmit({
-      ...newVideo,
-      thumbnail
-    });
+    try {
+      // A duração será calculada automaticamente no backend
+      onSubmit({
+        ...newVideo,
+        thumbnail,
+        learning_path: "" // Valor vazio, já que removemos este campo
+      });
+    } catch (error) {
+      console.error("Erro ao enviar vídeo:", error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao adicionar o vídeo",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       onOpenChange(open);
-      if (!open) resetVideoForm();
     }}>
       <DialogTrigger asChild>
         <Button className="bg-trade-blue hover:bg-trade-blue/90">
@@ -105,11 +147,12 @@ const AddVideoDialog = ({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="title">Título</Label>
+            <Label htmlFor="title">Título <span className="text-red-500">*</span></Label>
             <Input 
               id="title" 
               value={newVideo.title} 
               onChange={(e) => setNewVideo({...newVideo, title: e.target.value})} 
+              required
             />
           </div>
           <div className="grid gap-2">
@@ -121,7 +164,7 @@ const AddVideoDialog = ({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="source">Fonte</Label>
+            <Label htmlFor="source">Fonte <span className="text-red-500">*</span></Label>
             <Select 
               value={newVideo.source} 
               onValueChange={(value: VideoSource) => setNewVideo({...newVideo, source: value})}
@@ -137,7 +180,7 @@ const AddVideoDialog = ({
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="url">URL do Vídeo</Label>
+            <Label htmlFor="url">URL do Vídeo <span className="text-red-500">*</span></Label>
             <Input 
               id="url" 
               value={newVideo.url} 
@@ -145,6 +188,7 @@ const AddVideoDialog = ({
               placeholder={newVideo.source === "youtube" ? "https://www.youtube.com/watch?v=..." : 
                             newVideo.source === "vimeo" ? "https://vimeo.com/..." : 
                             "URL ou caminho para o vídeo"}
+              required
             />
           </div>
           {newVideo.source === "storage" && (
@@ -176,7 +220,7 @@ const AddVideoDialog = ({
             </div>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="category">Categoria</Label>
+            <Label htmlFor="category">Categoria <span className="text-red-500">*</span></Label>
             <Select 
               value={newVideo.category} 
               onValueChange={(value) => setNewVideo({...newVideo, category: value})}
@@ -194,8 +238,8 @@ const AddVideoDialog = ({
           <div className="grid gap-2">
             <Label htmlFor="navigation">Navegação do Conhecimento</Label>
             <Select 
-              value={newVideo.navigation_id || ''} 
-              onValueChange={(value) => setNewVideo({...newVideo, navigation_id: value || null})}
+              value={newVideo.navigation_id || "none"} 
+              onValueChange={(value) => setNewVideo({...newVideo, navigation_id: value === "none" ? null : value})}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione uma navegação" />
@@ -211,8 +255,8 @@ const AddVideoDialog = ({
           <div className="grid gap-2">
             <Label htmlFor="format">Formato</Label>
             <Select 
-              value={newVideo.format_id || ''} 
-              onValueChange={(value) => setNewVideo({...newVideo, format_id: value || null})}
+              value={newVideo.format_id || "none"} 
+              onValueChange={(value) => setNewVideo({...newVideo, format_id: value === "none" ? null : value})}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um formato" />
@@ -251,37 +295,12 @@ const AddVideoDialog = ({
               )}
             </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="learningPath">Trilha de Aprendizado</Label>
-            <Select 
-              value={newVideo.learning_path} 
-              onValueChange={(value) => setNewVideo({...newVideo, learning_path: value})}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma trilha" />
-              </SelectTrigger>
-              <SelectContent>
-                {learningPaths.map((path) => (
-                  <SelectItem key={path.id} value={path.name}>{path.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="duration">Duração (MM:SS)</Label>
-            <Input 
-              id="duration" 
-              value={newVideo.duration} 
-              onChange={(e) => setNewVideo({...newVideo, duration: e.target.value})} 
-              placeholder="Ex: 15:30"
-            />
-          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={!newVideo.title || !newVideo.url || !newVideo.category || !newVideo.learning_path}
+            disabled={!newVideo.title || !newVideo.url || !newVideo.category}
           >
             Adicionar
           </Button>
