@@ -19,7 +19,7 @@ interface ExpandableTabsProps {
 
 export const ExpandableTabs: React.FC<ExpandableTabsProps> = ({
   tabs,
-  activeColor = "text-primary",
+  activeColor = "text-white",
   className,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -78,8 +78,10 @@ export const ExpandableTabs: React.FC<ExpandableTabsProps> = ({
             <div
               key={index}
               className={cn(
-                "flex items-center rounded-md px-2 py-1 cursor-pointer transition-all hover:bg-primary/20 hover:text-primary",
-                isActive && "bg-primary/20"
+                "flex items-center rounded-md px-2 py-1 cursor-pointer transition-all",
+                isActive 
+                  ? "bg-[#0066FF] text-white" 
+                  : "hover:bg-[#0066FF] hover:text-white text-muted-foreground"
               )}
               onMouseEnter={() => handleTabHover(index)}
               onClick={() => handleTabClick(index)}
@@ -87,14 +89,14 @@ export const ExpandableTabs: React.FC<ExpandableTabsProps> = ({
               <Icon
                 className={cn(
                   "w-5 h-5",
-                  isActive ? activeColor : "text-muted-foreground"
+                  isActive ? "text-white" : ""
                 )}
               />
               {isExpanded && (
                 <span
                   className={cn(
                     "ml-2 transition-opacity duration-200",
-                    isActive ? activeColor : "text-muted-foreground"
+                    isActive ? "text-white" : ""
                   )}
                 >
                   {tab.title}
