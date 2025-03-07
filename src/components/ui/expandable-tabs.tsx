@@ -52,7 +52,7 @@ export const ExpandableTabs: React.FC<ExpandableTabsProps> = ({
   return (
     <div
       className={cn(
-        "relative flex items-center transition-all duration-300 rounded-full border bg-background hover:bg-accent",
+        "relative flex items-center transition-all duration-300 rounded-md border bg-background hover:bg-accent",
         className
       )}
       onMouseEnter={handleMouseEnter}
@@ -72,7 +72,7 @@ export const ExpandableTabs: React.FC<ExpandableTabsProps> = ({
             <div
               key={index}
               className={cn(
-                "flex items-center rounded-full px-2 py-1 cursor-pointer transition-all hover:bg-primary/10",
+                "flex items-center rounded-md px-2 py-1 cursor-pointer transition-all hover:bg-primary/10 hover:text-primary",
                 isActive && "bg-primary/10"
               )}
               onMouseEnter={() => handleTabHover(index)}

@@ -5,7 +5,9 @@ import {
   ShieldAlert, 
   Bell, 
   UserCog,
-  ArrowLeft
+  User,
+  BellRing,
+  Lock
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -16,6 +18,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import NotificationPopover from "@/components/notifications/NotificationPopover";
 import { Button } from "@/components/ui/button";
 
@@ -33,6 +42,7 @@ const QuickActions = () => {
   const { unreadCount } = useNotifications();
   const { userRole } = useUserProfile();
   const [showNotifications, setShowNotifications] = React.useState(false);
+  const [showProfileOptions, setShowProfileOptions] = React.useState(false);
   
   // Check if user is admin
   const isAdmin = userRole === 'admin';
@@ -61,7 +71,9 @@ const QuickActions = () => {
       {
         title: "Perfil",
         icon: UserCog,
-        to: "/profile"
+        onClick: () => {
+          setShowProfileOptions(true);
+        }
       },
       {
         title: "Notificações",
@@ -75,52 +87,71 @@ const QuickActions = () => {
     return baseTabs;
   };
 
-  // Check if we need to show the back button
-  // We show it if we're not on the dashboard page and the URL is one of the quick action destinations
-  const showBackButton = () => {
-    const quickActionPaths = ['/profile-settings', '/admin', '/profile'];
-    return location.pathname !== '/dashboard' && quickActionPaths.includes(location.pathname);
-  };
-
-  const handleGoBack = () => {
-    navigate(-1); // Navigate back in history
+  const handleProfileOption = (path: string) => {
+    setShowProfileOptions(false);
+    navigate(path);
   };
 
   return (
     <div className="relative z-20">
-      {showBackButton() && (
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="absolute -left-12 top-0" 
-          onClick={handleGoBack}
-        >
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Voltar
-        </Button>
-      )}
-      
-      <Popover open={showNotifications} onOpenChange={setShowNotifications}>
-        <PopoverTrigger asChild>
-          <div className="inline-block">
-            <ExpandableTabs 
-              tabs={getTabs()}
-              activeColor="text-primary"
-              className="border-gray-200 dark:border-gray-700"
-            />
+      <div className="flex items-center space-x-2">
+        <Popover open={showNotifications} onOpenChange={setShowNotifications}>
+          <PopoverTrigger asChild>
+            <div className="inline-block">
+              <ExpandableTabs 
+                tabs={getTabs()}
+                activeColor="text-primary"
+                className="border-gray-200 dark:border-gray-700"
+              />
+            </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-0">
+            <NotificationPopover onClose={() => setShowNotifications(false)} />
+          </PopoverContent>
+        </Popover>
+        
+        {/* Notification indicator badge */}
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </div>
+
+      {/* Profile Options Dialog */}
+      <Dialog open={showProfileOptions} onOpenChange={setShowProfileOptions}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Opções de Perfil</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Button
+              variant="outline"
+              className="flex items-center justify-start gap-2"
+              onClick={() => handleProfileOption("/profile")}
+            >
+              <User className="h-4 w-4" />
+              Configurar perfil do usuário
+            </Button>
+            <Button
+              variant="outline"
+              className="flex items-center justify-start gap-2"
+              onClick={() => handleProfileOption("/notifications-settings")}
+            >
+              <BellRing className="h-4 w-4" />
+              Configurar notificações
+            </Button>
+            <Button
+              variant="outline"
+              className="flex items-center justify-start gap-2"
+              onClick={() => handleProfileOption("/security-settings")}
+            >
+              <Lock className="h-4 w-4" />
+              Configurar segurança
+            </Button>
           </div>
-        </PopoverTrigger>
-        <PopoverContent className="w-80 p-0">
-          <NotificationPopover onClose={() => setShowNotifications(false)} />
-        </PopoverContent>
-      </Popover>
-      
-      {/* Notification indicator badge */}
-      {unreadCount > 0 && (
-        <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-          {unreadCount > 9 ? '9+' : unreadCount}
-        </span>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
