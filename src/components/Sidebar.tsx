@@ -204,7 +204,7 @@ const Sidebar = () => {
                 </a>
 
                 <a 
-                  href="https://painel.faroldomercado.com/farolito" 
+                  href="https://painel.faroldomercado.com/farolito-blog" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="flex items-center py-2 text-sm text-white hover:text-white/80 transition-colors"
@@ -224,7 +224,7 @@ const Sidebar = () => {
                 </a>
 
                 <a 
-                  href="https://wa.me/5511999999999" 
+                  href="https://api.whatsapp.com/send/?phone=5585996282222&text&type=phone_number&app_absent=0" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="flex items-center py-2 text-sm text-white hover:text-white/80 transition-colors"
