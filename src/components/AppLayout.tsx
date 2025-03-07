@@ -4,12 +4,12 @@ import { useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import NotificationPopover from "@/components/notifications/NotificationPopover";
 import { useNotifications } from "@/hooks/use-notifications";
 import { BellRing } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useGreeting } from "@/hooks/use-greeting";
+import QuickActions from "./QuickActions";
 
 interface AppLayoutProps {
   children: React.ReactNode;

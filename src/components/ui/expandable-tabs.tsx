@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -136,7 +137,7 @@ export function ExpandableTabs({
           "relative flex items-center rounded-xl py-2 text-sm font-medium transition-colors duration-300",
           selected === index
             ? cn("bg-muted", activeColor)
-            : "text-muted-foreground hover:bg-muted hover:text-primary"
+            : "text-muted-foreground hover:bg-primary hover:text-white"
         );
 
         // If tab has a link, use Link component

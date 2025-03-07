@@ -1,92 +1,105 @@
 
-import React from "react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useNotifications } from "@/hooks/use-notifications";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, { useEffect, useState } from 'react';
+import { Check, Bell, X } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { useNotifications } from '@/hooks/use-notifications';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NotificationPopoverProps {
-  children: React.ReactNode;
+  onClose?: () => void;
 }
 
-const NotificationPopover = ({ children }: NotificationPopoverProps) => {
-  const { notifications, markAsRead, markAllAsRead, unreadCount } = useNotifications();
+const NotificationPopover = ({ onClose }: NotificationPopoverProps) => {
+  const { notifications, refreshNotifications, markAllAsRead } = useNotifications();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleMarkAllAsRead = async () => {
+    setIsLoading(true);
+    try {
+      await markAllAsRead();
+    } finally {
+      setIsLoading(false);
+      if (onClose) {
+        onClose();
+      }
+    }
+  };
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
+  useEffect(() => {
+    refreshNotifications();
+  }, [refreshNotifications]);
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        {children}
-      </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h4 className="text-sm font-medium">Notificações</h4>
-          {unreadCount > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                markAllAsRead();
-              }}
-              className="text-xs"
-            >
-              Marcar todas como lidas
-            </Button>
-          )}
+    <div className="w-full">
+      <div className="flex items-center justify-between border-b p-4">
+        <div className="flex items-center">
+          <Bell className="h-5 w-5 mr-2 text-primary" />
+          <h3 className="font-semibold">Notificações</h3>
         </div>
-        <ScrollArea className="h-[300px]">
-          {notifications.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              Nenhuma notificação no momento
-            </div>
-          ) : (
-            <div className="divide-y">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-4 ${
-                    !notification.read ? "bg-muted/50" : ""
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">
-                        {notification.title}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {formatDistanceToNow(new Date(notification.created_at), {
-                          addSuffix: true,
-                          locale: ptBR,
-                        })}
-                      </p>
-                    </div>
-                    {!notification.read && (
-                      <button
-                        onClick={() => markAsRead(notification.id)}
-                        className="ml-2 text-primary hover:text-primary/80"
-                      >
-                        <Check className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleMarkAllAsRead} 
+            disabled={isLoading || notifications.length === 0}
+            className="text-xs"
+          >
+            <Check className="h-4 w-4 mr-1" /> Marcar todas como lidas
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      
+      <ScrollArea className="h-[300px] p-4">
+        {notifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-4">
+            <Bell className="h-12 w-12 text-muted-foreground mb-2 opacity-20" />
+            <p className="text-muted-foreground">Você não tem notificações.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {notifications.map((notification) => (
+              <div 
+                key={notification.id} 
+                className={`p-3 rounded-lg border ${notification.read ? 'bg-background' : 'bg-accent'}`}
+              >
+                <div className="flex justify-between">
+                  <h4 className="font-medium text-sm">{notification.title}</h4>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDate(notification.created_at)}
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-      </PopoverContent>
-    </Popover>
+                <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+    </div>
   );
 };
 

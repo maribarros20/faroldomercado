@@ -10,11 +10,18 @@ import { useNavigate } from "react-router-dom";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import NotificationPopover from "@/components/notifications/NotificationPopover";
 
 const QuickActions = () => {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
   const { userRole } = useUserProfile();
+  const [showNotifications, setShowNotifications] = React.useState(false);
   
   // Check if user is admin
   const isAdmin = userRole === 'admin';
@@ -25,7 +32,7 @@ const QuickActions = () => {
       {
         title: "Configurações",
         icon: Settings,
-        to: "/profile/settings"
+        to: "/profile-settings"
       }
     ];
     
@@ -50,7 +57,7 @@ const QuickActions = () => {
         icon: Bell,
         onClick: () => {
           console.log("Open notifications");
-          // Here we could implement a notification popover
+          setShowNotifications(true);
         }
       }
     );
@@ -60,11 +67,20 @@ const QuickActions = () => {
 
   return (
     <div className="relative z-20">
-      <ExpandableTabs 
-        tabs={getTabs()}
-        activeColor="text-primary"
-        className="border-gray-200 dark:border-gray-700"
-      />
+      <Popover open={showNotifications} onOpenChange={setShowNotifications}>
+        <PopoverTrigger asChild>
+          <div className="inline-block">
+            <ExpandableTabs 
+              tabs={getTabs()}
+              activeColor="text-white"
+              className="border-gray-200 dark:border-gray-700"
+            />
+          </div>
+        </PopoverTrigger>
+        <PopoverContent className="w-80 p-0">
+          <NotificationPopover onClose={() => setShowNotifications(false)} />
+        </PopoverContent>
+      </Popover>
       
       {/* Notification indicator badge */}
       {unreadCount > 0 && (
