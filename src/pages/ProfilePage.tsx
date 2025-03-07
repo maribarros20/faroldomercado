@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,15 +10,6 @@ import { ArrowLeft, Upload, User, Shield, Bell, Settings, Save } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/use-user-profile";
-import { 
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage 
-} from "@/components/ui/form";
-import { useForm } from "react-hook-form";
 import { Switch } from "@/components/ui/switch";
 
 export default function ProfilePage() {
@@ -105,32 +95,54 @@ export default function ProfilePage() {
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-1">
-          <Tabs 
-            defaultValue={activeTab} 
-            value={activeTab}
-            onValueChange={setActiveTab}
-            orientation="vertical" 
-            className="bg-white rounded-xl shadow-sm border border-gray-100 h-full"
-          >
-            <TabsList className="flex flex-col w-full items-start gap-1 p-2">
-              <TabsTrigger value="personal" className="justify-start w-full px-4 py-3">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 h-full">
+            <div className="flex flex-col w-full items-start gap-1 p-4">
+              <button 
+                onClick={() => setActiveTab("personal")} 
+                className={`flex items-center justify-start w-full px-4 py-3 rounded-md transition-colors ${
+                  activeTab === "personal" 
+                    ? "bg-primary/10 text-primary" 
+                    : "text-gray-700 hover:bg-primary/10 hover:text-primary"
+                }`}
+              >
                 <User size={18} className="mr-3" />
                 Informações pessoais
-              </TabsTrigger>
-              <TabsTrigger value="security" className="justify-start w-full px-4 py-3">
+              </button>
+              <button 
+                onClick={() => setActiveTab("security")} 
+                className={`flex items-center justify-start w-full px-4 py-3 rounded-md transition-colors ${
+                  activeTab === "security" 
+                    ? "bg-primary/10 text-primary" 
+                    : "text-gray-700 hover:bg-primary/10 hover:text-primary"
+                }`}
+              >
                 <Shield size={18} className="mr-3" />
                 Segurança
-              </TabsTrigger>
-              <TabsTrigger value="notifications" className="justify-start w-full px-4 py-3">
+              </button>
+              <button 
+                onClick={() => setActiveTab("notifications")} 
+                className={`flex items-center justify-start w-full px-4 py-3 rounded-md transition-colors ${
+                  activeTab === "notifications" 
+                    ? "bg-primary/10 text-primary" 
+                    : "text-gray-700 hover:bg-primary/10 hover:text-primary"
+                }`}
+              >
                 <Bell size={18} className="mr-3" />
                 Notificações
-              </TabsTrigger>
-              <TabsTrigger value="preferences" className="justify-start w-full px-4 py-3">
+              </button>
+              <button 
+                onClick={() => setActiveTab("preferences")} 
+                className={`flex items-center justify-start w-full px-4 py-3 rounded-md transition-colors ${
+                  activeTab === "preferences" 
+                    ? "bg-primary/10 text-primary" 
+                    : "text-gray-700 hover:bg-primary/10 hover:text-primary"
+                }`}
+              >
                 <Settings size={18} className="mr-3" />
                 Preferências
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+              </button>
+            </div>
+          </div>
         </div>
         
         <div className="lg:col-span-3">
@@ -140,203 +152,6 @@ export default function ProfilePage() {
             transition={{ duration: 0.3 }}
             className="bg-white rounded-xl shadow-sm border border-gray-100 p-8"
           >
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="hidden">
-              <TabsContent value="personal">
-                <h2 className="text-2xl font-semibold mb-6">Informações do perfil</h2>
-                <p className="text-gray-500 mb-8">Atualize suas informações de perfil e foto</p>
-                
-                <div className="mb-8 flex flex-col md:flex-row items-start md:items-center gap-6">
-                  <div className="relative">
-                    <div className="w-24 h-24 bg-gray-100 rounded-full overflow-hidden">
-                      {imagePreview ? (
-                        <img src={imagePreview} alt="Profile" className="w-full h-full object-cover" />
-                      ) : avatarUrl ? (
-                        <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
-                          <User size={40} />
-                        </div>
-                      )}
-                    </div>
-                    <label 
-                      htmlFor="profile-image" 
-                      className="absolute -bottom-2 -right-2 bg-primary text-white p-2 rounded-full cursor-pointer shadow-md hover:bg-primary/90 transition-colors"
-                    >
-                      <Upload size={16} />
-                    </label>
-                    <input 
-                      type="file" 
-                      id="profile-image" 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={handleImageChange}
-                    />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900">Carregar nova foto</h3>
-                    <p className="text-sm text-gray-500">JPG, GIF ou PNG. Tamanho máximo de 800K</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome completo</Label>
-                    <Input id="name" placeholder="Digite seu nome completo" defaultValue={userName || ""} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Nome de usuário</Label>
-                    <Input id="username" placeholder="Digite seu nome de usuário" />
-                  </div>
-                </div>
-                
-                <div className="space-y-2 mb-6">
-                  <Label htmlFor="bio">Biografia</Label>
-                  <Textarea 
-                    id="bio" 
-                    placeholder="Escreva uma breve descrição sobre você" 
-                    className="min-h-[120px]"
-                  />
-                </div>
-                
-                <h3 className="text-xl font-semibold mt-10 mb-4">Informações de contato</h3>
-                <p className="text-gray-500 mb-6">Atualize seus dados de contato</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Endereço de e-mail</Label>
-                    <Input id="email" type="email" placeholder="Insira seu endereço de e-mail" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Número de telefone</Label>
-                    <Input id="phone" placeholder="Insira seu número de telefone" />
-                  </div>
-                </div>
-                
-                <h3 className="text-xl font-semibold mt-10 mb-4">Informações de endereço</h3>
-                <p className="text-gray-500 mb-6">Atualize seus dados de endereço</p>
-                
-                <div className="space-y-2 mb-6">
-                  <Label htmlFor="address">Endereço de Rua</Label>
-                  <Input id="address" placeholder="Insira seu endereço" />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="city">Cidade</Label>
-                    <Input id="city" placeholder="Insira sua cidade" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="state">Estado</Label>
-                    <Input id="state" placeholder="Digite seu estado" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="zip">CEP</Label>
-                    <Input id="zip" placeholder="Insira seu código postal" />
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="security">
-                <h2 className="text-2xl font-semibold mb-6">Configurações de segurança</h2>
-                <p className="text-gray-500 mb-8">Gerencie suas senhas e configurações de segurança</p>
-                
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="current-password">Senha atual</Label>
-                    <Input id="current-password" type="password" placeholder="••••••••" />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="new-password">Nova senha</Label>
-                      <Input id="new-password" type="password" placeholder="••••••••" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirm-password">Confirmar nova senha</Label>
-                      <Input id="confirm-password" type="password" placeholder="••••••••" />
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4 border-t mt-6">
-                    <h3 className="text-lg font-semibold mb-4">Autenticação de dois fatores</h3>
-                    <p className="text-gray-500 mb-4">Adicione uma camada extra de segurança à sua conta</p>
-                    
-                    <Button variant="outline">Configurar autenticação de dois fatores</Button>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="notifications">
-                <h2 className="text-2xl font-semibold mb-6">Preferências de notificação</h2>
-                <p className="text-gray-500 mb-8">Escolha quais notificações você deseja receber</p>
-                
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center pb-4 border-b">
-                    <div>
-                      <h3 className="font-medium">Notificações por e-mail</h3>
-                      <p className="text-sm text-gray-500">Receba atualizações importantes por e-mail</p>
-                    </div>
-                    <div className="flex items-center">
-                      <Switch id="email-notifications" />
-                      <Label htmlFor="email-notifications" className="ml-2">Ativado</Label>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center pb-4 border-b">
-                    <div>
-                      <h3 className="font-medium">Notificações do sistema</h3>
-                      <p className="text-sm text-gray-500">Receba notificações dentro do aplicativo</p>
-                    </div>
-                    <div className="flex items-center">
-                      <Switch id="system-notifications" defaultChecked />
-                      <Label htmlFor="system-notifications" className="ml-2">Ativado</Label>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center pb-4 border-b">
-                    <div>
-                      <h3 className="font-medium">Alertas de mercado</h3>
-                      <p className="text-sm text-gray-500">Receba alertas sobre mudanças no mercado</p>
-                    </div>
-                    <div className="flex items-center">
-                      <Switch id="market-alerts" defaultChecked />
-                      <Label htmlFor="market-alerts" className="ml-2">Ativado</Label>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="preferences">
-                <h2 className="text-2xl font-semibold mb-6">Preferências do sistema</h2>
-                <p className="text-gray-500 mb-8">Personalize sua experiência na plataforma</p>
-                
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center pb-4 border-b">
-                    <div>
-                      <h3 className="font-medium">Tema escuro</h3>
-                      <p className="text-sm text-gray-500">Mude para o tema escuro para reduzir o cansaço visual</p>
-                    </div>
-                    <div className="flex items-center">
-                      <Switch id="dark-mode" />
-                      <Label htmlFor="dark-mode" className="ml-2">Ativado</Label>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center pb-4 border-b">
-                    <div>
-                      <h3 className="font-medium">Idioma</h3>
-                      <p className="text-sm text-gray-500">Selecione seu idioma preferido</p>
-                    </div>
-                    <select className="p-2 border rounded">
-                      <option value="pt-BR">Português (Brasil)</option>
-                      <option value="en-US">English (US)</option>
-                      <option value="es">Español</option>
-                    </select>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-            
             {activeTab === "personal" && (
               <div>
                 <h2 className="text-2xl font-semibold mb-6">Informações do perfil</h2>

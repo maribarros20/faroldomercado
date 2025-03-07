@@ -10,9 +10,9 @@ const Logo = () => {
       onClick={() => navigate("/")}
     >
       <img 
-        src="/lovable-uploads/18a3a903-1ddc-4916-a178-85f9fad0a63a.png" 
+        src="/lovable-uploads/192cf71f-62e8-4e72-b336-37fda7d4683e.png" 
         alt="Farol do Mercado" 
-        className="h-10 object-contain" 
+        className="h-8 object-contain" 
       />
     </div>
   );

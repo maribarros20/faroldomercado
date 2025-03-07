@@ -7,8 +7,6 @@ import {
   Video, 
   Users, 
   CreditCard, 
-  Settings, 
-  Shield, 
   TrendingUp
 } from "lucide-react";
 import NavItem from "./NavItem";
@@ -73,24 +71,6 @@ const Navigation = ({ expanded, userRole }: NavigationProps) => {
         active={isActive("/plans")}
         expanded={expanded}
       />
-      
-      <NavItem
-        to="/profile-settings"
-        icon={<Settings size={20} />}
-        text="Configurações"
-        active={isActive("/profile-settings")}
-        expanded={expanded}
-      />
-      
-      {userRole === "admin" && (
-        <NavItem
-          to="/admin"
-          icon={<Shield size={20} />}
-          text="Admin"
-          active={isActive("/admin") || location.pathname.startsWith("/admin/")}
-          expanded={expanded}
-        />
-      )}
     </div>
   );
 };
