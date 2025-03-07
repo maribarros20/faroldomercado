@@ -916,6 +916,42 @@ export type Database = {
           },
         ]
       }
+      video_theme_relations: {
+        Row: {
+          created_at: string
+          id: string
+          theme_id: string
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          theme_id: string
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          theme_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_theme_relations_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "material_themes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_theme_relations_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       videos: {
         Row: {
           category: string
@@ -923,9 +959,12 @@ export type Database = {
           date_added: string | null
           description: string | null
           duration: string | null
+          format_id: string | null
           id: string
           learning_path: string
+          navigation_id: string | null
           source: string
+          themes: Json | null
           thumbnail: string | null
           title: string
           updated_at: string | null
@@ -938,9 +977,12 @@ export type Database = {
           date_added?: string | null
           description?: string | null
           duration?: string | null
+          format_id?: string | null
           id?: string
           learning_path: string
+          navigation_id?: string | null
           source: string
+          themes?: Json | null
           thumbnail?: string | null
           title: string
           updated_at?: string | null
@@ -953,16 +995,34 @@ export type Database = {
           date_added?: string | null
           description?: string | null
           duration?: string | null
+          format_id?: string | null
           id?: string
           learning_path?: string
+          navigation_id?: string | null
           source?: string
+          themes?: Json | null
           thumbnail?: string | null
           title?: string
           updated_at?: string | null
           url?: string
           views?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "videos_format_id_fkey"
+            columns: ["format_id"]
+            isOneToOne: false
+            referencedRelation: "material_formats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "videos_navigation_id_fkey"
+            columns: ["navigation_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_navigation"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
