@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MaterialsService from "@/services/MaterialsService";
+import MaterialsProgressService from "@/services/materials/MaterialsProgressService";
 import MaterialsList from "@/components/materials/MaterialsList";
 import MaterialsFilters from "@/components/materials/MaterialsFilters";
 import MaterialsStatusTabs from "@/components/materials/MaterialsStatusTabs";
@@ -73,12 +74,12 @@ const MaterialsPage = () => {
             materialsData = await MaterialsService.getUserLikedMaterials();
             break;
           case "in-progress":
-            // This would require backend support for tracking progress
-            materialsData = await MaterialsService.getMaterials();
+            // Now we have backend support for tracking progress
+            materialsData = await MaterialsProgressService.getUserInProgressMaterials();
             break;
           case "completed":
-            // This would require backend support for tracking completion
-            materialsData = await MaterialsService.getMaterials();
+            // Now we have backend support for tracking completion
+            materialsData = await MaterialsProgressService.getUserCompletedMaterials();
             break;
           default:
             materialsData = await MaterialsService.getMaterials();
@@ -122,10 +123,24 @@ const MaterialsPage = () => {
   }, [allMaterials, searchQuery, selectedCategory, selectedNavigation, selectedFormat]);
 
   const handleMaterialLikeToggle = (materialId: string) => {
-    // If viewing favorites, we might need to refetch
-    if (activeStatus === "favorites") {
-      refetchMaterials();
-    }
+    MaterialsService.likeMaterial(materialId)
+      .then(() => {
+        // If viewing favorites, we might need to refetch
+        if (activeStatus === "favorites") {
+          refetchMaterials();
+        } else {
+          // Update the like status in the current materials list
+          refetchMaterials();
+        }
+      })
+      .catch(error => {
+        console.error("Error toggling material like:", error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível atualizar o status de favorito. Tente novamente.",
+          variant: "destructive"
+        });
+      });
   };
 
   const clearFilters = () => {
