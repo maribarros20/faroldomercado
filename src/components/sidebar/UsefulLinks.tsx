@@ -62,7 +62,7 @@ const UsefulLinks = ({ expanded }: UsefulLinksProps) => {
         <LinkItem 
           key={index}
           href={link.href}
-          icon={<link.icon className="w-5 h-5" />}
+          icon={<link.icon className="w-5 h-5 text-white" />}
           label={link.label}
         />
       ))}

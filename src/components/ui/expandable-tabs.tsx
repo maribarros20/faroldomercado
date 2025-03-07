@@ -19,7 +19,7 @@ interface ExpandableTabsProps {
 
 export const ExpandableTabs: React.FC<ExpandableTabsProps> = ({
   tabs,
-  activeColor = "text-primary",
+  activeColor = "text-[#02tdfb]",
   className,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -78,8 +78,8 @@ export const ExpandableTabs: React.FC<ExpandableTabsProps> = ({
             <div
               key={index}
               className={cn(
-                "flex items-center rounded-md px-2 py-1 cursor-pointer transition-all hover:bg-primary/20 hover:text-primary",
-                isActive && "bg-primary/20"
+                "flex items-center rounded-md px-2 py-1 cursor-pointer transition-all hover:bg-[#e6f9fd] hover:text-[#02tdfb]",
+                isActive && "bg-[#e6f9fd]"
               )}
               onMouseEnter={() => handleTabHover(index)}
               onClick={() => handleTabClick(index)}
