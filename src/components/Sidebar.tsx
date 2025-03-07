@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -15,7 +16,6 @@ import {
   BookMarked,
   LineChart,
   User,
-  BellRing,
   ExternalLink,
   HelpCircle,
   Sparkles,
@@ -26,8 +26,7 @@ import Logo from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
-import NotificationPopover from "@/components/notifications/NotificationPopover";
-import { useNotifications } from "@/hooks/use-notifications";
+import { useGreeting } from "@/hooks/use-greeting";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -38,7 +37,7 @@ const Sidebar = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const { expanded, setExpanded } = useSidebar();
-  const { unreadCount } = useNotifications();
+  const { greeting } = useGreeting(userName);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -123,7 +122,7 @@ const Sidebar = () => {
         />
       </Header>
       
-      <Content className="flex-1 py-4 overflow-y-auto">
+      <Content className="flex-1 py-4 overflow-y-auto flex flex-col justify-between">
         <Section className="space-y-1 px-3">
           <NavItem
             to="/dashboard"
@@ -160,7 +159,7 @@ const Sidebar = () => {
           <NavItem
             to="/community"
             icon={<Users size={20} />}
-            text="Faróverso"
+            text="Farolverso"
             active={isActive("/community")}
             expanded={expanded}
           />
@@ -193,51 +192,53 @@ const Sidebar = () => {
         </Section>
 
         {expanded && (
-          <Section className="mt-6 px-3 space-y-1">
-            <div className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-3">
-              Links Úteis
-            </div>
-            
-            <a 
-              href="https://www.faroldomercado.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-            >
-              <Globe className="w-5 h-5 mr-3" />
-              Site Farol
-            </a>
+          <div className="mt-auto">
+            <Section className="px-3 space-y-1 mb-4">
+              <div className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-3">
+                Links Úteis
+              </div>
+              
+              <a 
+                href="https://www.faroldomercado.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
+                <Globe className="w-5 h-5 mr-3" />
+                Site Farol
+              </a>
 
-            <a 
-              href="https://painel.faroldomercado.com/farolito" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-            >
-              <BookMarked className="w-5 h-5 mr-3" />
-              Blog Farolito
-            </a>
+              <a 
+                href="https://painel.faroldomercado.com/farolito" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
+                <BookMarked className="w-5 h-5 mr-3" />
+                Blog Farolito
+              </a>
 
-            <a 
-              href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-            >
-              <Sparkles className="w-5 h-5 mr-3" />
-              Luma IA
-            </a>
+              <a 
+                href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
+                <Sparkles className="w-5 h-5 mr-3" />
+                Luma IA
+              </a>
 
-            <a 
-              href="https://wa.me/5511999999999" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-            >
-              <HelpCircle className="w-5 h-5 mr-3" />
-              Ajuda
-            </a>
-          </Section>
+              <a 
+                href="https://wa.me/5511999999999" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
+                <HelpCircle className="w-5 h-5 mr-3" />
+                Ajuda
+              </a>
+            </Section>
+          </div>
         )}
       </Content>
       
@@ -253,6 +254,11 @@ const Sidebar = () => {
             </div>
             {expanded && (
               <div className="flex flex-col">
+                {greeting && (
+                  <span className="text-xs text-muted-foreground">
+                    {greeting}
+                  </span>
+                )}
                 <span className="text-sm font-medium truncate max-w-32">
                   {userName || "Usuário"}
                 </span>
