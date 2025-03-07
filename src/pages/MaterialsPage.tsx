@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -26,7 +27,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import MaterialsService, { Material, MaterialCategory } from "@/services/MaterialsService";
+import MaterialsService, { 
+  Material, 
+  MaterialCategory, 
+  MaterialFormat, 
+  KnowledgeNavigation 
+} from "@/services/MaterialsService";
 import { useQuery } from "@tanstack/react-query";
 
 const MaterialsPage = () => {
@@ -34,11 +40,25 @@ const MaterialsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const { toast } = useToast();
 
+  // Fetch categories
   const { data: categories = [] } = useQuery({
     queryKey: ['materialCategories'],
     queryFn: () => MaterialsService.getMaterialCategories(),
   });
 
+  // Fetch formats
+  const { data: formats = [] } = useQuery({
+    queryKey: ['materialFormats'],
+    queryFn: () => MaterialsService.getMaterialFormats(),
+  });
+
+  // Fetch navigations
+  const { data: navigations = [] } = useQuery({
+    queryKey: ['knowledgeNavigations'],
+    queryFn: () => MaterialsService.getKnowledgeNavigations(),
+  });
+
+  // Fetch materials based on selected category
   const { data: materials = [], isLoading: isMaterialsLoading } = useQuery({
     queryKey: ['materials', selectedCategory],
     queryFn: async () => {
