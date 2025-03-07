@@ -17,6 +17,14 @@ import {
 } from "@/components/ui/popover";
 import NotificationPopover from "@/components/notifications/NotificationPopover";
 
+// Define the tab type explicitly with onClick as optional
+interface TabItem {
+  title: string;
+  icon: React.ElementType;
+  to?: string;
+  onClick?: () => void;
+}
+
 const QuickActions = () => {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
@@ -27,8 +35,8 @@ const QuickActions = () => {
   const isAdmin = userRole === 'admin';
   
   // Create tabs configuration based on user role
-  const getTabs = () => {
-    const baseTabs = [
+  const getTabs = (): TabItem[] => {
+    const baseTabs: TabItem[] = [
       {
         title: "Configurações",
         icon: Settings,
