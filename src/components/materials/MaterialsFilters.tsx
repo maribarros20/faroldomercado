@@ -11,6 +11,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { MaterialCategory, MaterialFormat, KnowledgeNavigation } from "@/services/materials/types";
+import { Spinner } from "@/components/ui/spinner";
 
 interface MaterialsFiltersProps {
   categories: MaterialCategory[];
@@ -60,7 +61,7 @@ const MaterialsFilters: React.FC<MaterialsFiltersProps> = ({
               <SelectValue placeholder="Categoria" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas as categorias</SelectItem>
+              <SelectItem value="all">Todas as categorias</SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.name}>
                   {category.name}
@@ -74,7 +75,7 @@ const MaterialsFilters: React.FC<MaterialsFiltersProps> = ({
               <SelectValue placeholder="Roteiro" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os roteiros</SelectItem>
+              <SelectItem value="all">Todos os roteiros</SelectItem>
               {navigations.map((navigation) => (
                 <SelectItem key={navigation.id} value={navigation.id}>
                   {navigation.name}
@@ -88,7 +89,7 @@ const MaterialsFilters: React.FC<MaterialsFiltersProps> = ({
               <SelectValue placeholder="Formato" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os formatos</SelectItem>
+              <SelectItem value="all">Todos os formatos</SelectItem>
               {formats.map((format) => (
                 <SelectItem key={format.id} value={format.id}>
                   {format.name}

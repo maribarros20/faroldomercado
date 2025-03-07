@@ -9,13 +9,14 @@ import MaterialsList from "@/components/materials/MaterialsList";
 import MaterialsFilters from "@/components/materials/MaterialsFilters";
 import MaterialsStatusTabs from "@/components/materials/MaterialsStatusTabs";
 import { Material } from "@/services/materials/types";
+import { Spinner } from "@/components/ui/spinner";
 
 const MaterialsPage = () => {
   // Filter and search state
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedNavigation, setSelectedNavigation] = useState<string>("");
-  const [selectedFormat, setSelectedFormat] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedNavigation, setSelectedNavigation] = useState<string>("all");
+  const [selectedFormat, setSelectedFormat] = useState<string>("all");
   
   // View status state
   const [activeStatus, setActiveStatus] = useState<string>("all");
@@ -23,19 +24,19 @@ const MaterialsPage = () => {
   const { toast } = useToast();
 
   // Fetch categories
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [], isLoading: isCategoriesLoading } = useQuery({
     queryKey: ['materialCategories'],
     queryFn: () => MaterialsService.getMaterialCategories(),
   });
 
   // Fetch formats
-  const { data: formats = [] } = useQuery({
+  const { data: formats = [], isLoading: isFormatsLoading } = useQuery({
     queryKey: ['materialFormats'],
     queryFn: () => MaterialsService.getMaterialFormats(),
   });
 
   // Fetch navigations
-  const { data: navigations = [] } = useQuery({
+  const { data: navigations = [], isLoading: isNavigationsLoading } = useQuery({
     queryKey: ['knowledgeNavigations'],
     queryFn: () => MaterialsService.getKnowledgeNavigations(),
   });
@@ -67,7 +68,7 @@ const MaterialsPage = () => {
           metadata: { page: "materials", status: activeStatus }
         });
 
-        let materialsData;
+        let materialsData: Material[] = [];
         
         switch (activeStatus) {
           case "favorites":
@@ -94,7 +95,7 @@ const MaterialsPage = () => {
         return [];
       }
     },
-    enabled: !!categories.length
+    enabled: categories.length > 0 && formats.length > 0 && navigations.length > 0
   });
 
   // Filter materials based on search query and other filters
@@ -108,13 +109,13 @@ const MaterialsPage = () => {
         (material.description && material.description.toLowerCase().includes(searchQuery.toLowerCase()));
       
       // Filter by category
-      const matchesCategory = selectedCategory === "" || material.category === selectedCategory;
+      const matchesCategory = selectedCategory === "all" || material.category === selectedCategory;
       
       // Filter by navigation
-      const matchesNavigation = selectedNavigation === "" || material.navigation_id === selectedNavigation;
+      const matchesNavigation = selectedNavigation === "all" || material.navigation_id === selectedNavigation;
       
       // Filter by format
-      const matchesFormat = selectedFormat === "" || material.format_id === selectedFormat;
+      const matchesFormat = selectedFormat === "all" || material.format_id === selectedFormat;
       
       return matchesSearch && matchesCategory && matchesNavigation && matchesFormat;
     });
@@ -143,10 +144,22 @@ const MaterialsPage = () => {
 
   const clearFilters = () => {
     setSearchQuery("");
-    setSelectedCategory("");
-    setSelectedNavigation("");
-    setSelectedFormat("");
+    setSelectedCategory("all");
+    setSelectedNavigation("all");
+    setSelectedFormat("all");
   };
+
+  // Show loading spinner while fetching initial data
+  if (isCategoriesLoading || isFormatsLoading || isNavigationsLoading) {
+    return (
+      <div className="container mx-auto py-8 px-4 flex items-center justify-center min-h-[50vh]">
+        <div className="text-center">
+          <Spinner size="lg" className="mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando dados...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">

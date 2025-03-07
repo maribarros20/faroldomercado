@@ -3,246 +3,206 @@ import { supabase } from '@/integrations/supabase/client';
 import { Material } from './types';
 
 class MaterialsProgressService {
-  // Get all materials that are in progress for the current user
+  /**
+   * Get materials that are in progress for the current user
+   */
   async getUserInProgressMaterials(): Promise<Material[]> {
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user.id;
-
-      if (!userId) {
-        throw new Error('You must be logged in to see your in-progress materials');
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData.session) {
+        console.error('Error getting session or user not logged in:', sessionError);
+        return [];
       }
-
-      // Call the function we created to get in-progress materials
-      const { data, error } = await supabase.rpc(
-        'get_user_in_progress_materials',
-        { user_uuid: userId }
-      );
-
+      
+      const userId = sessionData.session.user.id;
+      
+      // Using the database function to get in-progress materials
+      const { data, error } = await supabase
+        .rpc('get_user_in_progress_materials', { user_uuid: userId });
+      
       if (error) {
         console.error('Error fetching in-progress materials:', error);
-        throw new Error(error.message);
+        return [];
       }
+      
+      // Process the data to match Material interface if needed
+      // Here we assume the database function returns data in the correct format already
+      
+      // If user is logged in, check which materials are liked by the user
+      const { data: likedMaterials, error: likesError } = await supabase
+        .from('material_likes')
+        .select('material_id')
+        .eq('user_id', userId);
 
-      // Process the data to match our interface
-      return data as unknown as Material[] || [];
+      if (!likesError && likedMaterials && data) {
+        const likedMaterialIds = new Set(likedMaterials.map(like => like.material_id));
+        
+        data.forEach((material: any) => {
+          material.is_liked_by_user = likedMaterialIds.has(material.id);
+        });
+      }
+      
+      return data as Material[] || [];
     } catch (error) {
       console.error('Error in getUserInProgressMaterials service:', error);
-      throw error;
+      return [];
     }
   }
-
-  // Get all materials that are completed for the current user
+  
+  /**
+   * Get materials that are completed by the current user
+   */
   async getUserCompletedMaterials(): Promise<Material[]> {
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user.id;
-
-      if (!userId) {
-        throw new Error('You must be logged in to see your completed materials');
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData.session) {
+        console.error('Error getting session or user not logged in:', sessionError);
+        return [];
       }
-
-      // Call the function we created to get completed materials
-      const { data, error } = await supabase.rpc(
-        'get_user_completed_materials',
-        { user_uuid: userId }
-      );
-
+      
+      const userId = sessionData.session.user.id;
+      
+      // Using the database function to get completed materials
+      const { data, error } = await supabase
+        .rpc('get_user_completed_materials', { user_uuid: userId });
+      
       if (error) {
         console.error('Error fetching completed materials:', error);
-        throw new Error(error.message);
+        return [];
       }
+      
+      // Process the data to match Material interface if needed
+      // Here we assume the database function returns data in the correct format already
+      
+      // If user is logged in, check which materials are liked by the user
+      const { data: likedMaterials, error: likesError } = await supabase
+        .from('material_likes')
+        .select('material_id')
+        .eq('user_id', userId);
 
-      // Process the data to match our interface
-      return data as unknown as Material[] || [];
+      if (!likesError && likedMaterials && data) {
+        const likedMaterialIds = new Set(likedMaterials.map(like => like.material_id));
+        
+        data.forEach((material: any) => {
+          material.is_liked_by_user = likedMaterialIds.has(material.id);
+        });
+      }
+      
+      return data as Material[] || [];
     } catch (error) {
       console.error('Error in getUserCompletedMaterials service:', error);
-      throw error;
+      return [];
     }
   }
-
-  // Update progress for a material
-  async updateMaterialProgress(
-    materialId: string, 
-    navigationId: string | null, 
-    progressPercentage: number, 
-    isCompleted: boolean = false
-  ): Promise<void> {
+  
+  /**
+   * Update progress for a material
+   */
+  async updateMaterialProgress(materialId: string, progress: number): Promise<boolean> {
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user.id;
-
-      if (!userId) {
-        throw new Error('You must be logged in to update material progress');
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData.session) {
+        console.error('Error getting session or user not logged in:', sessionError);
+        return false;
       }
-
-      // Check if a progress record already exists for this user and material
-      const { data: existingProgress, error: checkError } = await supabase
+      
+      const userId = sessionData.session.user.id;
+      
+      // Get the material to get its navigation_id
+      const { data: material, error: materialError } = await supabase
+        .from('materials')
+        .select('navigation_id')
+        .eq('id', materialId)
+        .single();
+        
+      if (materialError) {
+        console.error('Error fetching material:', materialError);
+        return false;
+      }
+      
+      // Check if there's already a progress record
+      const { data: existingProgress, error: progressError } = await supabase
         .from('user_material_progress')
-        .select('id')
+        .select('id, progress_percentage')
         .eq('user_id', userId)
         .eq('material_id', materialId)
         .maybeSingle();
-
-      if (checkError) {
-        console.error('Error checking existing progress:', checkError);
-        throw new Error(checkError.message);
-      }
-
-      const now = new Date().toISOString();
+        
+      const isCompleted = progress >= 100;
       
-      if (existingProgress) {
-        // Update existing progress
-        const { error: updateError } = await supabase
-          .from('user_material_progress')
-          .update({
-            progress_percentage: progressPercentage,
-            is_completed: isCompleted,
-            completed_at: isCompleted ? now : null,
-            last_accessed_at: now
-          })
-          .eq('id', existingProgress.id);
-
-        if (updateError) {
-          console.error('Error updating material progress:', updateError);
-          throw new Error(updateError.message);
-        }
-      } else {
+      if (!existingProgress) {
         // Create new progress record
         const { error: insertError } = await supabase
           .from('user_material_progress')
           .insert({
             user_id: userId,
             material_id: materialId,
-            navigation_id: navigationId,
-            progress_percentage: progressPercentage,
+            navigation_id: material?.navigation_id,
+            progress_percentage: progress,
             is_completed: isCompleted,
-            completed_at: isCompleted ? now : null,
-            started_at: now,
-            last_accessed_at: now
+            completed_at: isCompleted ? new Date().toISOString() : null
           });
-
+          
         if (insertError) {
-          console.error('Error creating material progress:', insertError);
-          throw new Error(insertError.message);
+          console.error('Error creating progress record:', insertError);
+          return false;
+        }
+      } else {
+        // Update existing progress record
+        const { error: updateError } = await supabase
+          .from('user_material_progress')
+          .update({
+            progress_percentage: progress,
+            is_completed: isCompleted,
+            completed_at: isCompleted ? new Date().toISOString() : existingProgress.is_completed ? existingProgress.completed_at : null,
+            last_accessed_at: new Date().toISOString()
+          })
+          .eq('id', existingProgress.id);
+          
+        if (updateError) {
+          console.error('Error updating progress record:', updateError);
+          return false;
         }
       }
-
-      // Track this activity
-      await supabase.from("user_activities").insert({
-        user_id: userId,
-        activity_type: isCompleted ? "complete_material" : "progress_material",
-        content_id: materialId,
-        metadata: { 
-          material_id: materialId,
-          progress_percentage: progressPercentage,
-          navigation_id: navigationId
-        }
-      });
-
+      
+      return true;
     } catch (error) {
       console.error('Error in updateMaterialProgress service:', error);
-      throw error;
+      return false;
     }
   }
-
-  // Get progress for a specific material
-  async getMaterialProgress(materialId: string): Promise<{
-    progressPercentage: number;
-    isCompleted: boolean;
-    lastAccessed: string | null;
-  }> {
+  
+  /**
+   * Get progress for a specific material
+   */
+  async getMaterialProgress(materialId: string): Promise<number> {
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user.id;
-
-      if (!userId) {
-        return { progressPercentage: 0, isCompleted: false, lastAccessed: null };
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData.session) {
+        return 0;
       }
-
+      
+      const userId = sessionData.session.user.id;
+      
       const { data, error } = await supabase
         .from('user_material_progress')
-        .select('progress_percentage, is_completed, last_accessed_at')
+        .select('progress_percentage')
         .eq('user_id', userId)
         .eq('material_id', materialId)
         .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching material progress:', error);
-        return { progressPercentage: 0, isCompleted: false, lastAccessed: null };
+        
+      if (error || !data) {
+        return 0;
       }
-
-      if (!data) {
-        return { progressPercentage: 0, isCompleted: false, lastAccessed: null };
-      }
-
-      return {
-        progressPercentage: data.progress_percentage,
-        isCompleted: data.is_completed,
-        lastAccessed: data.last_accessed_at
-      };
+      
+      return data.progress_percentage;
     } catch (error) {
       console.error('Error in getMaterialProgress service:', error);
-      return { progressPercentage: 0, isCompleted: false, lastAccessed: null };
-    }
-  }
-
-  // Get progress statistics for a navigation path
-  async getNavigationProgress(navigationId: string): Promise<{
-    totalMaterials: number;
-    completedMaterials: number;
-    inProgressMaterials: number;
-    progressPercentage: number;
-  }> {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user.id;
-
-      if (!userId) {
-        return {
-          totalMaterials: 0,
-          completedMaterials: 0,
-          inProgressMaterials: 0,
-          progressPercentage: 0
-        };
-      }
-
-      const { data, error } = await supabase.rpc(
-        'get_navigation_progress',
-        { 
-          user_uuid: userId,
-          nav_id: navigationId
-        }
-      );
-
-      if (error) {
-        console.error('Error fetching navigation progress:', error);
-        throw new Error(error.message);
-      }
-
-      if (!data || data.length === 0) {
-        return {
-          totalMaterials: 0,
-          completedMaterials: 0,
-          inProgressMaterials: 0,
-          progressPercentage: 0
-        };
-      }
-
-      return {
-        totalMaterials: data[0].total_materials,
-        completedMaterials: data[0].completed_materials,
-        inProgressMaterials: data[0].in_progress_materials,
-        progressPercentage: data[0].progress_percentage
-      };
-    } catch (error) {
-      console.error('Error in getNavigationProgress service:', error);
-      return {
-        totalMaterials: 0,
-        completedMaterials: 0,
-        inProgressMaterials: 0,
-        progressPercentage: 0
-      };
+      return 0;
     }
   }
 }
