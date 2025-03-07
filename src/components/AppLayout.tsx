@@ -5,7 +5,6 @@ import Sidebar from "./Sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNotifications } from "@/hooks/use-notifications";
-import { BellRing } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useGreeting } from "@/hooks/use-greeting";
@@ -18,7 +17,6 @@ interface AppLayoutProps {
 const AppLayout = ({ children }: AppLayoutProps) => {
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { unreadCount } = useNotifications();
   const { toast } = useToast();
   const { greeting } = useGreeting(null);
 
@@ -63,12 +61,15 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         <div className="flex flex-1 w-full">
           <Sidebar />
           <main className="flex-1 flex flex-col max-w-full overflow-x-hidden">
+            <div className="flex justify-end p-4">
+              <QuickActions />
+            </div>
             {children}
           </main>
         </div>
       </div>
     </SidebarProvider>
   );
-};
+}
 
 export default AppLayout;

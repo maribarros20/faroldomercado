@@ -56,7 +56,6 @@ const QuickActions = () => {
         title: "Notificações",
         icon: Bell,
         onClick: () => {
-          console.log("Open notifications");
           setShowNotifications(true);
         }
       }

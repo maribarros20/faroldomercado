@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -134,7 +135,7 @@ export function ExpandableTabs({
         const commonClassNames = cn(
           "relative flex items-center rounded-xl py-2 text-sm font-medium transition-colors duration-300",
           selected === index
-            ? cn("bg-muted", activeColor)
+            ? cn("bg-primary text-white", activeColor)
             : "text-muted-foreground hover:bg-primary hover:text-white"
         );
 

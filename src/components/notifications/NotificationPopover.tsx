@@ -4,7 +4,6 @@ import { Check, Bell, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { useNotifications } from '@/hooks/use-notifications';
-import { supabase } from '@/integrations/supabase/client';
 
 interface NotificationPopoverProps {
   onClose?: () => void;
@@ -20,9 +19,6 @@ const NotificationPopover = ({ onClose }: NotificationPopoverProps) => {
       await markAllAsRead();
     } finally {
       setIsLoading(false);
-      if (onClose) {
-        onClose();
-      }
     }
   };
 
