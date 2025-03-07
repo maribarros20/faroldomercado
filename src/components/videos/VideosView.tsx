@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Youtube, Video, Play, Clock } from "lucide-react";
+import { Search, Youtube, Video, Play, Clock, Tag, Bookmark } from "lucide-react";
 import { useVideos, VideoSource, Video as VideoType, incrementVideoViews } from "@/services/VideosService";
 import { Spinner } from "@/components/ui/spinner";
+import MaterialsService from "@/services/MaterialsService";
+import { useQuery } from "@tanstack/react-query";
 
 const learningPaths = [
   { id: "all", name: "Todos" },
@@ -17,18 +20,16 @@ const learningPaths = [
   { id: "gerenciamento-risco", name: "Gerenciamento de Risco" }
 ];
 
-const categories = [
-  { id: "all", name: "Todos" },
-  { id: "day-trade", name: "Day Trade" },
-  { id: "swing-trade", name: "Swing Trade" },
-  { id: "analise-tecnica", name: "Análise Técnica" },
-  { id: "analise-fundamental", name: "Análise Fundamental" },
-  { id: "psicologia", name: "Psicologia" }
-];
-
 const VideoCard = ({ video }: { video: VideoType }) => {
   const navigate = useNavigate();
   
+  // Get navigations data
+  const { data: navigations = [] } = useQuery({
+    queryKey: ['knowledgeNavigations'],
+    queryFn: () => MaterialsService.getKnowledgeNavigations(),
+    staleTime: 1000 * 60 * 10 // 10 minutes
+  });
+
   const getSourceIcon = (source: VideoSource) => {
     switch (source) {
       case "youtube":
@@ -44,6 +45,15 @@ const VideoCard = ({ video }: { video: VideoType }) => {
     await incrementVideoViews(video.id);
     navigate(`/videos/${video.id}`);
   };
+
+  // Get navigation name
+  const getNavigationName = (id: string | null | undefined) => {
+    if (!id) return null;
+    const navigation = navigations.find(nav => nav.id === id);
+    return navigation ? navigation.name : null;
+  };
+
+  const navigationName = getNavigationName(video.navigation_id);
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow border border-gray-200 h-full flex flex-col cursor-pointer" onClick={handleClick}>
@@ -72,9 +82,32 @@ const VideoCard = ({ video }: { video: VideoType }) => {
           <Badge variant="outline" className="text-xs">
             {video.category}
           </Badge>
+          {navigationName && (
+            <Badge variant="outline" className="text-xs bg-blue-50">
+              <Bookmark size={10} className="mr-1" />
+              {navigationName}
+            </Badge>
+          )}
         </div>
         <h3 className="font-semibold text-base line-clamp-2 mb-2">{video.title}</h3>
         <p className="text-sm text-gray-500 line-clamp-3 mb-3 flex-1">{video.description}</p>
+        
+        {video.themes && video.themes.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-3">
+            {video.themes.slice(0, 3).map(theme => (
+              <Badge key={theme.id} variant="outline" className="text-xs bg-green-50">
+                <Tag size={10} className="mr-1" />
+                {theme.name}
+              </Badge>
+            ))}
+            {video.themes.length > 3 && (
+              <Badge variant="outline" className="text-xs">
+                +{video.themes.length - 3}
+              </Badge>
+            )}
+          </div>
+        )}
+        
         <div className="mt-auto flex justify-between items-center text-xs text-gray-500">
           <span>{new Date(video.date_added).toLocaleDateString()}</span>
           <span>{video.views} visualizações</span>
@@ -89,11 +122,18 @@ const VideosView = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [activeCategory, setActiveCategory] = useState("all");
 
+  // Fetch categories
+  const { data: categoriesData = [] } = useQuery({
+    queryKey: ['materialCategories'],
+    queryFn: () => MaterialsService.getMaterialCategories(),
+    staleTime: 1000 * 60 * 10 // 10 minutes
+  });
+
   const learningPathFilter = activeTab !== "all" ? 
     learningPaths.find(p => p.id === activeTab)?.name : undefined;
   
   const categoryFilter = activeCategory !== "all" ?
-    categories.find(c => c.id === activeCategory)?.name : undefined;
+    categoriesData.find(c => c.id === activeCategory)?.name : undefined;
 
   const { data: videos = [], isLoading, error } = useVideos(categoryFilter, learningPathFilter);
 
@@ -101,6 +141,12 @@ const VideosView = () => {
     video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     video.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Format categories from the real data
+  const categories = [
+    { id: "all", name: "Todos" },
+    ...categoriesData.map(cat => ({ id: cat.id, name: cat.name }))
+  ];
 
   return (
     <div className="container mx-auto py-6">

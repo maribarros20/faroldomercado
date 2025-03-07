@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { MaterialTheme } from './materials/types';
 
 export interface Video {
   id: string;
@@ -15,6 +16,9 @@ export interface Video {
   date_added: string;
   views: number;
   created_by: string;
+  navigation_id?: string | null;
+  format_id?: string | null;
+  themes?: MaterialTheme[];
 }
 
 export type VideoSource = 'youtube' | 'vimeo' | 'url' | 'storage';
@@ -24,7 +28,10 @@ export const useVideos = (categoryFilter?: string, learningPathFilter?: string) 
   return useQuery({
     queryKey: ['videos', categoryFilter, learningPathFilter],
     queryFn: async () => {
-      let query = supabase.from('videos').select('*');
+      let query = supabase.from('videos').select(`
+        *,
+        video_theme_relations(theme_id, material_themes(id, name))
+      `);
       
       if (categoryFilter) {
         query = query.eq('category', categoryFilter);
@@ -43,8 +50,26 @@ export const useVideos = (categoryFilter?: string, learningPathFilter?: string) 
         throw new Error(error.message);
       }
       
-      return data as Video[];
-    }
+      // Process themes
+      const processedData = data.map(video => {
+        const themes = video.video_theme_relations 
+          ? video.video_theme_relations
+            .filter(relation => relation.material_themes)
+            .map(relation => relation.material_themes) 
+          : [];
+        
+        const result = {
+          ...video,
+          themes
+        };
+        
+        delete result.video_theme_relations;
+        return result;
+      });
+      
+      return processedData as Video[];
+    },
+    staleTime: 30000 // 30 seconds
   });
 };
 
@@ -68,7 +93,10 @@ class VideosService {
     try {
       const { data, error } = await supabase
         .from('videos')
-        .select('*')
+        .select(`
+          *,
+          video_theme_relations(theme_id, material_themes(id, name))
+        `)
         .order('date_added', { ascending: false });
 
       if (error) {
@@ -76,7 +104,24 @@ class VideosService {
         throw new Error(error.message);
       }
 
-      return data as unknown as Video[] || [];
+      // Process themes
+      const processedData = data.map(video => {
+        const themes = video.video_theme_relations 
+          ? video.video_theme_relations
+            .filter(relation => relation.material_themes)
+            .map(relation => relation.material_themes) 
+          : [];
+        
+        const result = {
+          ...video,
+          themes
+        };
+        
+        delete result.video_theme_relations;
+        return result;
+      });
+
+      return processedData as Video[] || [];
     } catch (error) {
       console.error('Error in getVideos service:', error);
       throw error;
@@ -87,8 +132,11 @@ class VideosService {
     try {
       const { data, error } = await supabase
         .from('videos')
-        .select('*')
-        .eq('id', id as any)
+        .select(`
+          *,
+          video_theme_relations(theme_id, material_themes(id, name))
+        `)
+        .eq('id', id)
         .single();
 
       if (error) {
@@ -96,10 +144,24 @@ class VideosService {
         throw new Error(error.message);
       }
 
+      // Process themes
+      const themes = data.video_theme_relations 
+        ? data.video_theme_relations
+          .filter(relation => relation.material_themes)
+          .map(relation => relation.material_themes) 
+        : [];
+      
+      const result = {
+        ...data,
+        themes
+      };
+      
+      delete result.video_theme_relations;
+
       // Increment view count
       await this.incrementViews(id);
 
-      return data as unknown as Video;
+      return result as Video;
     } catch (error) {
       console.error('Error in getVideoById service:', error);
       throw error;
@@ -110,7 +172,7 @@ class VideosService {
     try {
       // Use the RPC function to increment views safely
       const { error } = await supabase.rpc('increment_video_views', {
-        video_id: videoId as any
+        video_id: videoId
       });
 
       if (error) {
@@ -125,9 +187,12 @@ class VideosService {
     try {
       const { data, error } = await supabase
         .from('videos')
-        .select('*')
-        .eq('category', category as any)
-        .neq('id', currentVideoId as any)
+        .select(`
+          *,
+          video_theme_relations(theme_id, material_themes(id, name))
+        `)
+        .eq('category', category)
+        .neq('id', currentVideoId)
         .limit(4);
 
       if (error) {
@@ -135,7 +200,24 @@ class VideosService {
         throw new Error(error.message);
       }
 
-      return data as unknown as Video[] || [];
+      // Process themes
+      const processedData = data.map(video => {
+        const themes = video.video_theme_relations 
+          ? video.video_theme_relations
+            .filter(relation => relation.material_themes)
+            .map(relation => relation.material_themes) 
+          : [];
+        
+        const result = {
+          ...video,
+          themes
+        };
+        
+        delete result.video_theme_relations;
+        return result;
+      });
+
+      return processedData as Video[] || [];
     } catch (error) {
       console.error('Error in getRelatedVideos service:', error);
       throw error;
@@ -146,8 +228,11 @@ class VideosService {
     try {
       const { data, error } = await supabase
         .from('videos')
-        .select('*')
-        .eq('category', category as any)
+        .select(`
+          *,
+          video_theme_relations(theme_id, material_themes(id, name))
+        `)
+        .eq('category', category)
         .order('date_added', { ascending: false });
 
       if (error) {
@@ -155,7 +240,24 @@ class VideosService {
         throw new Error(error.message);
       }
 
-      return data as unknown as Video[] || [];
+      // Process themes
+      const processedData = data.map(video => {
+        const themes = video.video_theme_relations 
+          ? video.video_theme_relations
+            .filter(relation => relation.material_themes)
+            .map(relation => relation.material_themes) 
+          : [];
+        
+        const result = {
+          ...video,
+          themes
+        };
+        
+        delete result.video_theme_relations;
+        return result;
+      });
+
+      return processedData as Video[] || [];
     } catch (error) {
       console.error('Error in getVideosByCategory service:', error);
       throw error;
@@ -168,20 +270,16 @@ class VideosService {
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData.session?.user.id;
 
+      // Extract themes from video data
+      const { themes, ...videoFields } = videoData;
+
       const { data, error } = await supabase
         .from('videos')
         .insert({
-          title: videoData.title,
-          description: videoData.description,
-          source: videoData.source,
-          url: videoData.url,
-          thumbnail: videoData.thumbnail,
-          category: videoData.category,
-          learning_path: videoData.learning_path,
-          duration: videoData.duration,
+          ...videoFields,
           created_by: userId,
           views: 0
-        } as any)
+        })
         .select()
         .single();
 
@@ -190,7 +288,23 @@ class VideosService {
         throw new Error(error.message);
       }
 
-      return data as unknown as Video;
+      // If themes are provided, create theme relations
+      if (themes && themes.length > 0 && data) {
+        const themeRelations = themes.map(theme => ({
+          video_id: data.id,
+          theme_id: theme.id
+        }));
+
+        const { error: relationsError } = await supabase
+          .from('video_theme_relations')
+          .insert(themeRelations);
+
+        if (relationsError) {
+          console.error('Error creating theme relations:', relationsError);
+        }
+      }
+
+      return data as Video;
     } catch (error) {
       console.error('Error in createVideo service:', error);
       throw error;
@@ -199,10 +313,14 @@ class VideosService {
 
   async updateVideo(id: string, videoData: Partial<Video>): Promise<Video> {
     try {
+      // Extract themes from video data
+      const { themes, ...videoFields } = videoData;
+      
+      // Update video
       const { data, error } = await supabase
         .from('videos')
-        .update(videoData as any)
-        .eq('id', id as any)
+        .update(videoFields)
+        .eq('id', id)
         .select()
         .single();
 
@@ -211,7 +329,36 @@ class VideosService {
         throw new Error(error.message);
       }
 
-      return data as unknown as Video;
+      // If themes are provided, update theme relations
+      if (themes && data) {
+        // First delete existing relations
+        const { error: deleteError } = await supabase
+          .from('video_theme_relations')
+          .delete()
+          .eq('video_id', id);
+
+        if (deleteError) {
+          console.error('Error deleting theme relations:', deleteError);
+        }
+
+        // Then create new relations if there are themes
+        if (themes.length > 0) {
+          const themeRelations = themes.map(theme => ({
+            video_id: data.id,
+            theme_id: theme.id
+          }));
+
+          const { error: insertError } = await supabase
+            .from('video_theme_relations')
+            .insert(themeRelations);
+
+          if (insertError) {
+            console.error('Error creating theme relations:', insertError);
+          }
+        }
+      }
+
+      return data as Video;
     } catch (error) {
       console.error('Error in updateVideo service:', error);
       throw error;
@@ -220,10 +367,17 @@ class VideosService {
 
   async deleteVideo(id: string): Promise<void> {
     try {
+      // Delete theme relations first (though CASCADE should handle this)
+      await supabase
+        .from('video_theme_relations')
+        .delete()
+        .eq('video_id', id);
+        
+      // Then delete the video
       const { error } = await supabase
         .from('videos')
         .delete()
-        .eq('id', id as any);
+        .eq('id', id);
 
       if (error) {
         console.error('Error deleting video:', error);
