@@ -37,7 +37,6 @@ const Sidebar = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const { expanded, setExpanded } = useSidebar();
-  const { greeting } = useGreeting(userName);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -191,8 +190,9 @@ const Sidebar = () => {
           )}
         </Section>
 
-        {expanded && (
-          <div className="mt-auto">
+        {/* Useful Links moved to bottom of sidebar but above user profile */}
+        <div className="mt-auto">
+          {expanded && (
             <Section className="px-3 space-y-1 mb-4">
               <div className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-3">
                 Links Úteis
@@ -238,8 +238,8 @@ const Sidebar = () => {
                 Ajuda
               </a>
             </Section>
-          </div>
-        )}
+          )}
+        </div>
       </Content>
       
       <Footer className="border-t p-4">
@@ -254,11 +254,6 @@ const Sidebar = () => {
             </div>
             {expanded && (
               <div className="flex flex-col">
-                {greeting && (
-                  <span className="text-xs text-muted-foreground">
-                    {greeting}
-                  </span>
-                )}
                 <span className="text-sm font-medium truncate max-w-32">
                   {userName || "Usuário"}
                 </span>

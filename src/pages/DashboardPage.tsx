@@ -10,6 +10,10 @@ import MarketOverview from "@/components/admin/MarketOverview";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { BellRing } from "lucide-react";
+import { useNotifications } from "@/hooks/use-notifications";
+import NotificationPopover from "@/components/notifications/NotificationPopover";
+import { useGreeting } from "@/hooks/use-greeting";
 
 // Type for user plans
 type UserPlan = {
@@ -24,8 +28,11 @@ const DashboardPage = () => {
   const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { unreadCount } = useNotifications();
+  const { greeting } = useGreeting(userName);
 
   // Check user plan and admin status
   useEffect(() => {
@@ -35,25 +42,23 @@ const DashboardPage = () => {
         // Check if user is authenticated and get their plan
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          // Get the user's profile to check if they're an admin
+          // Get the user's profile to check if they're an admin and get name
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, first_name, last_name')
             .eq('id', session.user.id)
             .single();
             
-          if (profileData && profileData.role === 'admin') {
-            setIsAdmin(true);
-            // Admins have access to all features
-            setUserPlan({
-              id: "admin",
-              name: "Administrador",
-              features: ["dashboard", "notícias do mercado", "planilha financeira"]
-            });
-            setIsLoading(false);
-            return;
+          if (profileData) {
+            if (profileData.role === 'admin') {
+              setIsAdmin(true);
+            }
+            // Set user name for greeting
+            if (profileData.first_name) {
+              setUserName(`${profileData.first_name} ${profileData.last_name || ''}`);
+            }
           }
-          
+
           // Get the user's subscription for non-admin users
           const { data: subscriptionData, error: subscriptionError } = await supabase
             .from('subscriptions')
@@ -160,7 +165,29 @@ const DashboardPage = () => {
 
   return (
     <div className="animate-fade-in container mx-auto px-4 py-6">
-      <h1 className="text-3xl font-bold mb-6">Painel do Mercado</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Painel do Mercado</h1>
+        <div className="flex items-center gap-4">
+          {greeting && (
+            <span className="text-sm text-muted-foreground hidden sm:inline-block">
+              {greeting}
+            </span>
+          )}
+          <NotificationPopover>
+            <button 
+              className="p-2 rounded-full hover:bg-gray-100 bg-white shadow-sm relative"
+              title="Notificações"
+            >
+              <BellRing size={20} className="text-gray-500" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+          </NotificationPopover>
+        </div>
+      </div>
       
       <Tabs defaultValue="dashboard" value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="mb-6 w-full md:w-auto flex flex-wrap">

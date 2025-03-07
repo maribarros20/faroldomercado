@@ -9,6 +9,7 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { BellRing } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useGreeting } from "@/hooks/use-greeting";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -19,6 +20,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   const isMobile = useIsMobile();
   const { unreadCount } = useNotifications();
   const { toast } = useToast();
+  const { greeting } = useGreeting(null); // Will be used in the header
 
   // Create a sample notification when component mounts
   useEffect(() => {
@@ -60,27 +62,9 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       <div className="flex min-h-screen flex-col w-full">
         <div className="flex flex-1 w-full">
           <Sidebar />
-          <main className="flex-1 flex flex-col max-w-full overflow-x-hidden relative">
-            {/* Notification bell positioned at top right of main content area */}
-            <div className="absolute top-4 right-6 z-50">
-              <NotificationPopover>
-                <button 
-                  className="p-2 rounded-full hover:bg-gray-100 bg-white shadow-sm relative"
-                  title="Notificações"
-                >
-                  <BellRing size={20} className="text-gray-500" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
-              </NotificationPopover>
-            </div>
-            
-            <div className="flex-1 px-3 md:px-6 py-4 md:py-6">
-              {children}
-            </div>
+          <main className="flex-1 flex flex-col max-w-full overflow-x-hidden">
+            {/* The notification bell is moved to the content area */}
+            {children}
           </main>
         </div>
       </div>
