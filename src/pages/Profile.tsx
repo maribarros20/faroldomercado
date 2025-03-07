@@ -1,14 +1,67 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { Spinner } from "@/components/ui/spinner";
 import ProfileForm from "@/components/ProfileForm";
+import { supabase } from "@/integrations/supabase/client";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("personal");
   const { userName, isLoading } = useUserProfile();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [profileData, setProfileData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    cnpj: "",
+    phone: "",
+    cpf: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        setUserId(session.user.id);
+        
+        // Fetch user profile data
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (!error && data) {
+          setProfileData({
+            firstName: data.first_name || "",
+            lastName: data.last_name || "",
+            email: data.email || "",
+            cnpj: data.cnpj || "",
+            phone: data.phone || "",
+            cpf: data.cpf || "",
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+          });
+        }
+      }
+    };
+    
+    fetchUserData();
+  }, []);
+
+  const handleGoBack = () => {
+    navigate(-1);
+  };
 
   if (isLoading) {
     return (
@@ -23,7 +76,17 @@ const Profile = () => {
 
   return (
     <div className="container mx-auto py-6 animate-fade-in">
-      <h1 className="text-2xl font-bold mb-6">Perfil do Usuário</h1>
+      <div className="flex items-center mb-6">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={handleGoBack}
+          className="rounded-full mr-3"
+        >
+          <ArrowLeft size={18} />
+        </Button>
+        <h1 className="text-2xl font-bold">Perfil do Usuário</h1>
+      </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full md:w-auto grid-cols-3">
@@ -41,7 +104,7 @@ const Profile = () => {
                   <p className="text-muted-foreground">Gerencie suas informações pessoais</p>
                 </div>
                 
-                <ProfileForm />
+                <ProfileForm initialValues={profileData} userId={userId || undefined} />
               </div>
             </TabsContent>
             
