@@ -18,29 +18,33 @@ import {
   FilePieChart,
   Calendar,
   Clock,
-  BookOpen
+  BookOpen,
+  Hash,
+  FilePresentation,
+  FileBarChart2,
+  Book
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import MaterialsService, { Material } from "@/services/MaterialsService";
-
-const CATEGORIES = [
-  { id: "all", name: "Todos" },
-  { id: "articles", name: "Artigos" },
-  { id: "presentations", name: "Apresentações" },
-  { id: "spreadsheets", name: "Planilhas" },
-  { id: "reports", name: "Relatórios" },
-];
+import MaterialsService, { Material, MaterialCategory } from "@/services/MaterialsService";
+import { useQuery } from "@tanstack/react-query";
 
 const MaterialsPage = () => {
-  const [materials, setMaterials] = useState<Material[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchMaterials = async () => {
-      setIsLoading(true);
+  // Fetch categories
+  const { data: categories = [] } = useQuery({
+    queryKey: ['materialCategories'],
+    queryFn: () => MaterialsService.getMaterialCategories(),
+  });
+
+  // Fetch materials
+  const { data: materials = [], isLoading: isMaterialsLoading } = useQuery({
+    queryKey: ['materials', selectedCategory],
+    queryFn: async () => {
       try {
         // Get session for user activity logging
         const { data: sessionData } = await supabase.auth.getSession();
@@ -52,15 +56,14 @@ const MaterialsPage = () => {
             description: "Você precisa estar logado para acessar os materiais.",
             variant: "destructive"
           });
-          setIsLoading(false);
-          return;
+          return [];
         }
 
         // Log activity
         await supabase.from("user_activities").insert({
           user_id: userId,
           activity_type: "view_materials",
-          metadata: { page: "materials" }
+          metadata: { page: "materials", category: selectedCategory }
         } as any);
 
         // Fetch materials
@@ -72,7 +75,7 @@ const MaterialsPage = () => {
           materialsData = await MaterialsService.getMaterialsByCategory(selectedCategory);
         }
 
-        setMaterials(materialsData);
+        return materialsData;
       } catch (error) {
         console.error("Error fetching materials:", error);
         toast({
@@ -80,33 +83,53 @@ const MaterialsPage = () => {
           description: "Não foi possível carregar os materiais. Tente novamente mais tarde.",
           variant: "destructive"
         });
-      } finally {
-        setIsLoading(false);
+        return [];
       }
-    };
+    },
+    enabled: !!categories.length
+  });
 
-    fetchMaterials();
-  }, [selectedCategory, toast]);
+  // Once we have categories, materials will start loading
+  useEffect(() => {
+    if (!isMaterialsLoading) {
+      setIsLoading(false);
+    }
+  }, [isMaterialsLoading]);
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
   };
 
-  const getMaterialIcon = (type: string) => {
-    switch (type.toLowerCase()) {
-      case "article":
+  const getMaterialIcon = (material: Material) => {
+    // First check format_id if available
+    if (material.format_id) {
+      const formatName = material.format_name?.toLowerCase() || '';
+      
+      if (formatName.includes('ebook')) return <Book className="h-6 w-6 text-purple-500" />;
+      if (formatName.includes('apresentação')) return <FilePresentation className="h-6 w-6 text-blue-500" />;
+      if (formatName.includes('relatório')) return <FileBarChart2 className="h-6 w-6 text-orange-500" />;
+      if (formatName.includes('planilha')) return <FileSpreadsheet className="h-6 w-6 text-green-500" />;
+      if (formatName.includes('mapa')) return <FilePieChart className="h-6 w-6 text-pink-500" />;
+    }
+    
+    // Fallback to type
+    switch (material.type.toLowerCase()) {
       case "pdf":
-        return <FileText className="h-6 w-6" />;
-      case "presentation":
-      case "slide":
-        return <FilePieChart className="h-6 w-6" />;
-      case "spreadsheet":
+        return <FileText className="h-6 w-6 text-red-500" />;
       case "excel":
-        return <FileSpreadsheet className="h-6 w-6" />;
+        return <FileSpreadsheet className="h-6 w-6 text-green-500" />;
+      case "ebook":
+        return <Book className="h-6 w-6 text-purple-500" />;
+      case "presentation":
+      case "apresentação":
+        return <FilePresentation className="h-6 w-6 text-blue-500" />;
+      case "relatório":
+      case "report":
+        return <FileBarChart2 className="h-6 w-6 text-orange-500" />;
       case "book":
-        return <BookOpen className="h-6 w-6" />;
+        return <BookOpen className="h-6 w-6 text-indigo-500" />;
       default:
-        return <FileIcon className="h-6 w-6" />;
+        return <FileIcon className="h-6 w-6 text-gray-500" />;
     }
   };
 
@@ -173,6 +196,12 @@ const MaterialsPage = () => {
     }
   };
 
+  // Prepare categories array with "All" option at the beginning
+  const categoryOptions = [
+    { id: "all", name: "Todos" },
+    ...categories
+  ];
+
   return (
     <div className="container mx-auto py-6 px-4">
       <h1 className="text-2xl font-bold mb-6">Materiais</h1>
@@ -183,14 +212,14 @@ const MaterialsPage = () => {
         className="space-y-4"
       >
         <TabsList className="flex overflow-x-auto pb-1">
-          {CATEGORIES.map((category) => (
+          {categoryOptions.map((category) => (
             <TabsTrigger key={category.id} value={category.id}>
               {category.name}
             </TabsTrigger>
           ))}
         </TabsList>
         
-        {CATEGORIES.map((category) => (
+        {categoryOptions.map((category) => (
           <TabsContent key={category.id} value={category.id} className="space-y-4">
             {isLoading ? (
               <div className="text-center py-12">
@@ -203,13 +232,18 @@ const MaterialsPage = () => {
                   <Card key={material.id} className="h-full flex flex-col">
                     <CardHeader className="pb-3">
                       <div className="flex items-center space-x-3">
-                        <div className="bg-blue-100 text-blue-600 p-2 rounded-lg">
-                          {getMaterialIcon(material.type)}
+                        <div className="bg-blue-100 p-2 rounded-lg">
+                          {getMaterialIcon(material)}
                         </div>
                         <div>
                           <CardTitle className="text-lg">{material.title}</CardTitle>
-                          <CardDescription className="text-xs">
-                            Tipo: {material.type}
+                          <CardDescription className="text-xs flex items-center">
+                            <span className="capitalize">{material.type}</span>
+                            {material.navigation_id && (
+                              <Badge variant="outline" className="ml-2 text-xs">
+                                {material.navigation_name}
+                              </Badge>
+                            )}
                           </CardDescription>
                         </div>
                       </div>
@@ -219,6 +253,16 @@ const MaterialsPage = () => {
                       <p className="text-sm text-gray-700 line-clamp-3 mb-3">
                         {material.description || "Nenhuma descrição disponível."}
                       </p>
+                      
+                      {material.themes && material.themes.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-3 mb-3">
+                          {material.themes.map(theme => (
+                            <Badge key={theme.id} variant="outline" className="text-xs">
+                              <Hash size={10} className="mr-1" /> {theme.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                       
                       <div className="flex items-center text-xs text-gray-500 mt-2">
                         <Calendar className="h-3 w-3 mr-1" />

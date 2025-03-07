@@ -18,13 +18,19 @@ import {
   Edit, 
   Trash, 
   Upload,
-  ArrowUpDown, 
+  FileSpreadsheet,
+  Book,
+  FilePresentation,
+  FilePieChart,
+  FileBarChart2,
+  Hash,
   BarChart2, 
   Shield, 
   Brain,
-  AlertCircle
+  AlertCircle,
+  Settings2
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,39 +39,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
-
-// Type definitions
-type Material = {
-  id: string;
-  title: string;
-  description: string | null;
-  type: string;
-  category: string;
-  file_url: string | null;
-  thumbnail_url: string | null;
-  downloads: number;
-  date_added: string;
-  created_by: string | null;
-};
-
-// Categories with icons
-const categories = [
-  { id: "1", name: "Análise Técnica", icon: <BarChart2 size={16} /> },
-  { id: "2", name: "Análise Fundamental", icon: <Search size={16} /> },
-  { id: "3", name: "Gestão de Riscos", icon: <Shield size={16} /> },
-  { id: "4", name: "Psicologia de Negociação", icon: <Brain size={16} /> },
-];
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import MaterialsService, { Material, MaterialCategory, KnowledgeNavigation, MaterialFormat, MaterialTheme } from "@/services/MaterialsService";
+import MaterialsSettingsManager from "@/components/admin/materials/MaterialsSettingsManager";
 
 const AdminMaterials = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("list");
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const [newMaterial, setNewMaterial] = useState({
     title: "",
     description: "",
     category: "",
-    type: "pdf"
+    type: "pdf",
+    navigation_id: "",
+    format_id: "",
+    selectedThemes: [] as string[]
   });
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const { toast } = useToast();
@@ -75,30 +68,42 @@ const AdminMaterials = () => {
   const { data: materials, isLoading, isError } = useQuery({
     queryKey: ['materials'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('materials')
-        .select('*')
-        .order('date_added', { ascending: false });
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      return data as Material[];
+      return MaterialsService.getMaterials();
     }
+  });
+
+  // Fetch categories, navigations, formats, and themes
+  const { data: categories = [] } = useQuery({
+    queryKey: ['materialCategories'],
+    queryFn: () => MaterialsService.getMaterialCategories(),
+  });
+
+  const { data: navigations = [] } = useQuery({
+    queryKey: ['knowledgeNavigations'],
+    queryFn: () => MaterialsService.getKnowledgeNavigations(),
+  });
+
+  const { data: formats = [] } = useQuery({
+    queryKey: ['materialFormats'],
+    queryFn: () => MaterialsService.getMaterialFormats(),
+  });
+
+  const { data: themes = [] } = useQuery({
+    queryKey: ['materialThemes'],
+    queryFn: () => MaterialsService.getMaterialThemes(),
   });
 
   // Mutation for adding a material
   const addMaterialMutation = useMutation({
     mutationFn: async (materialData: any) => {
       // First insert the material record
-      const { data, error } = await supabase
-        .from('materials')
-        .insert([materialData])
-        .select()
-        .single();
+      const { selectedThemes, ...materialFields } = materialData;
       
-      if (error) throw new Error(error.message);
+      // Create material
+      const data = await MaterialsService.createMaterial({
+        ...materialFields,
+        themes: selectedThemes
+      });
       
       // If there's a file to upload
       if (fileToUpload && data) {
@@ -119,13 +124,10 @@ const AdminMaterials = () => {
           .getPublicUrl(filePath);
           
         // Update the material with the file URL
-        const { error: updateError } = await supabase
-          .from('materials')
-          .update({ file_url: publicUrlData.publicUrl })
-          .eq('id', data.id);
+        await MaterialsService.updateMaterial(data.id, { 
+          file_url: publicUrlData.publicUrl 
+        });
           
-        if (updateError) throw new Error(updateError.message);
-        
         // Log the action
         await logAdminAction('create', 'material', data.id, {
           title: data.title,
@@ -137,7 +139,15 @@ const AdminMaterials = () => {
     },
     onSuccess: () => {
       // Reset form and refetch data
-      setNewMaterial({ title: "", description: "", category: "", type: "pdf" });
+      setNewMaterial({ 
+        title: "", 
+        description: "", 
+        category: "", 
+        type: "pdf",
+        navigation_id: "",
+        format_id: "",
+        selectedThemes: []
+      });
       setFileToUpload(null);
       setIsAddDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ['materials'] });
@@ -159,17 +169,13 @@ const AdminMaterials = () => {
   // Mutation for updating a material
   const updateMaterialMutation = useMutation({
     mutationFn: async (materialData: any) => {
-      const { id, ...updateData } = materialData;
+      const { id, selectedThemes, ...updateData } = materialData;
       
       // Update the material
-      const { data, error } = await supabase
-        .from('materials')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw new Error(error.message);
+      const data = await MaterialsService.updateMaterial(id, {
+        ...updateData,
+        themes: selectedThemes
+      });
       
       // If there's a file to upload
       if (fileToUpload && data) {
@@ -190,12 +196,9 @@ const AdminMaterials = () => {
           .getPublicUrl(filePath);
           
         // Update the material with the file URL
-        const { error: updateError } = await supabase
-          .from('materials')
-          .update({ file_url: publicUrlData.publicUrl })
-          .eq('id', data.id);
-          
-        if (updateError) throw new Error(updateError.message);
+        await MaterialsService.updateMaterial(data.id, { 
+          file_url: publicUrlData.publicUrl 
+        });
       }
       
       // Log the action
@@ -229,19 +232,10 @@ const AdminMaterials = () => {
   const deleteMaterialMutation = useMutation({
     mutationFn: async (id: string) => {
       // Get the material to log its data before deletion
-      const { data: materialToDelete } = await supabase
-        .from('materials')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const materialToDelete = await MaterialsService.getMaterialById(id);
       
       // Delete the material
-      const { error } = await supabase
-        .from('materials')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw new Error(error.message);
+      await MaterialsService.deleteMaterial(id);
       
       // If there's a file, delete it from storage
       if (materialToDelete?.file_url) {
@@ -311,9 +305,43 @@ const AdminMaterials = () => {
     }
   };
 
+  // Handle theme selection toggle
+  const handleThemeToggle = (themeId: string, isSelected: boolean, isNewMaterial: boolean) => {
+    if (isNewMaterial) {
+      if (isSelected) {
+        setNewMaterial(prev => ({
+          ...prev,
+          selectedThemes: prev.selectedThemes.filter(id => id !== themeId)
+        }));
+      } else {
+        setNewMaterial(prev => ({
+          ...prev,
+          selectedThemes: [...prev.selectedThemes, themeId]
+        }));
+      }
+    } else if (selectedMaterial) {
+      const currentThemes = selectedMaterial.themes?.map(theme => theme.id) || [];
+      
+      if (isSelected) {
+        setSelectedMaterial({
+          ...selectedMaterial,
+          themes: (selectedMaterial.themes || []).filter(theme => theme.id !== themeId)
+        });
+      } else {
+        const newTheme = themes.find(theme => theme.id === themeId);
+        if (newTheme) {
+          setSelectedMaterial({
+            ...selectedMaterial,
+            themes: [...(selectedMaterial.themes || []), newTheme]
+          });
+        }
+      }
+    }
+  };
+
   // Handle add material submission
   const handleAddMaterial = () => {
-    if (!newMaterial.title || !newMaterial.category || !newMaterial.type) {
+    if (!newMaterial.title || !newMaterial.category) {
       toast({
         title: "Dados incompletos",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -327,12 +355,18 @@ const AdminMaterials = () => {
       description: newMaterial.description,
       category: newMaterial.category,
       type: newMaterial.type,
+      navigation_id: newMaterial.navigation_id || null,
+      format_id: newMaterial.format_id || null,
+      selectedThemes: newMaterial.selectedThemes
     });
   };
 
   // Handle edit material
   const handleEditMaterial = (material: Material) => {
-    setSelectedMaterial(material);
+    setSelectedMaterial({
+      ...material,
+      themes: material.themes || []
+    });
     setIsEditDialogOpen(true);
   };
 
@@ -346,6 +380,9 @@ const AdminMaterials = () => {
       description: selectedMaterial.description,
       category: selectedMaterial.category,
       type: selectedMaterial.type,
+      navigation_id: selectedMaterial.navigation_id || null,
+      format_id: selectedMaterial.format_id || null,
+      selectedThemes: selectedMaterial.themes?.map(theme => theme.id) || []
     });
   };
 
@@ -357,13 +394,7 @@ const AdminMaterials = () => {
   // Increment download count
   const incrementDownloadCount = async (id: string) => {
     try {
-      const { data, error } = await supabase
-        .from('materials')
-        .update({ downloads: materials?.find(m => m.id === id)?.downloads + 1 || 1 })
-        .eq('id', id);
-        
-      if (error) throw error;
-      
+      await MaterialsService.incrementDownloads(id);
       queryClient.invalidateQueries({ queryKey: ['materials'] });
     } catch (error) {
       console.error('Error incrementing download count:', error);
@@ -379,13 +410,37 @@ const AdminMaterials = () => {
 
   // Helper function to get type icon
   const getTypeIcon = (type: string) => {
-    switch (type) {
+    switch (type.toLowerCase()) {
       case "pdf":
         return <FileText size={16} className="text-red-500" />;
       case "excel":
-        return <FileText size={16} className="text-green-500" />;
+        return <FileSpreadsheet size={16} className="text-green-500" />;
+      case "ebook":
+        return <Book size={16} className="text-purple-500" />;
+      case "apresentação":
+        return <FilePresentation size={16} className="text-blue-500" />;
+      case "relatório":
+        return <FileBarChart2 size={16} className="text-orange-500" />;
+      case "mapa mental":
+        return <FilePieChart size={16} className="text-pink-500" />;
       default:
         return <FileText size={16} className="text-blue-500" />;
+    }
+  };
+
+  // Helper function to get category icon
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "Análise Técnica":
+        return <BarChart2 size={16} />;
+      case "Análise Fundamental":
+        return <Search size={16} />;
+      case "Gestão de Riscos":
+        return <Shield size={16} />;
+      case "Psicologia de Negociação":
+        return <Brain size={16} />;
+      default:
+        return <FileText size={16} />;
     }
   };
 
@@ -393,6 +448,20 @@ const AdminMaterials = () => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
+  };
+
+  // Find the format name by ID
+  const getFormatName = (formatId: string | null) => {
+    if (!formatId) return "Não especificado";
+    const format = formats.find(f => f.id === formatId);
+    return format ? format.name : "Não especificado";
+  };
+
+  // Find the navigation name by ID
+  const getNavigationName = (navigationId: string | null) => {
+    if (!navigationId) return "Não especificado";
+    const navigation = navigations.find(n => n.id === navigationId);
+    return navigation ? navigation.name : "Não especificado";
   };
 
   if (isLoading) {
@@ -426,228 +495,354 @@ const AdminMaterials = () => {
           <p className="text-sm text-gray-500">Adicione, edite ou remova materiais educacionais</p>
         </div>
         
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-trade-blue hover:bg-trade-blue/90">
-              <Plus size={16} className="mr-2" /> 
-              Adicionar Material
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Adicionar Novo Material</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Título</Label>
-                <Input 
-                  id="title" 
-                  value={newMaterial.title} 
-                  onChange={(e) => setNewMaterial({...newMaterial, title: e.target.value})} 
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Descrição</Label>
-                <Textarea 
-                  id="description" 
-                  value={newMaterial.description} 
-                  onChange={(e) => setNewMaterial({...newMaterial, description: e.target.value})} 
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="category">Categoria</Label>
-                <Select 
-                  value={newMaterial.category} 
-                  onValueChange={(value) => setNewMaterial({...newMaterial, category: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.name}>
-                        <div className="flex items-center">
-                          {category.icon}
-                          <span className="ml-2">{category.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="type">Tipo</Label>
-                <Select 
-                  value={newMaterial.type} 
-                  onValueChange={(value) => setNewMaterial({...newMaterial, type: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pdf">PDF</SelectItem>
-                    <SelectItem value="excel">Excel</SelectItem>
-                    <SelectItem value="doc">Documento</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="file">Arquivo</Label>
-                <div className="flex items-center justify-center w-full">
-                  <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-8 h-8 mb-3 text-gray-400" />
-                      <p className="mb-2 text-sm text-gray-500">
-                        <span className="font-semibold">Clique para fazer upload</span> ou arraste e solte
-                      </p>
-                      <p className="text-xs text-gray-500">PDF, Excel, Doc (MAX. 10MB)</p>
-                      {fileToUpload && (
-                        <p className="mt-2 text-sm text-green-600 font-medium">{fileToUpload.name}</p>
-                      )}
-                    </div>
-                    <input 
-                      id="file-upload" 
-                      type="file" 
-                      className="hidden" 
-                      onChange={handleFileChange} 
-                    />
-                  </label>
+        <div className="flex space-x-2">
+          <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Settings2 size={16} className="mr-2" /> 
+                Configurações
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Configurações de Materiais</DialogTitle>
+              </DialogHeader>
+              <MaterialsSettingsManager />
+            </DialogContent>
+          </Dialog>
+          
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-trade-blue hover:bg-trade-blue/90">
+                <Plus size={16} className="mr-2" /> 
+                Adicionar Material
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Adicionar Novo Material</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="title">Título</Label>
+                  <Input 
+                    id="title" 
+                    value={newMaterial.title} 
+                    onChange={(e) => setNewMaterial({...newMaterial, title: e.target.value})} 
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="description">Descrição</Label>
+                  <Textarea 
+                    id="description" 
+                    value={newMaterial.description} 
+                    onChange={(e) => setNewMaterial({...newMaterial, description: e.target.value})} 
+                    className="min-h-[120px]"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="category">Categoria</Label>
+                    <Select 
+                      value={newMaterial.category} 
+                      onValueChange={(value) => setNewMaterial({...newMaterial, category: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma categoria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.name}>
+                            <div className="flex items-center">
+                              {getCategoryIcon(category.name)}
+                              <span className="ml-2">{category.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="type">Tipo</Label>
+                    <Select 
+                      value={newMaterial.type} 
+                      onValueChange={(value) => setNewMaterial({...newMaterial, type: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pdf">PDF</SelectItem>
+                        <SelectItem value="excel">Excel</SelectItem>
+                        <SelectItem value="doc">Documento</SelectItem>
+                        <SelectItem value="presentation">Apresentação</SelectItem>
+                        <SelectItem value="ebook">eBook</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="navigation">Navegação do Conhecimento</Label>
+                    <Select 
+                      value={newMaterial.navigation_id} 
+                      onValueChange={(value) => setNewMaterial({...newMaterial, navigation_id: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um nível" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Não especificado</SelectItem>
+                        {navigations.map((navigation) => (
+                          <SelectItem key={navigation.id} value={navigation.id}>
+                            {navigation.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="format">Formato</Label>
+                    <Select 
+                      value={newMaterial.format_id} 
+                      onValueChange={(value) => setNewMaterial({...newMaterial, format_id: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um formato" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Não especificado</SelectItem>
+                        {formats.map((format) => (
+                          <SelectItem key={format.id} value={format.id}>
+                            {format.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Temas/Assuntos (Hashtags)</Label>
+                  <div className="flex flex-wrap gap-2 border p-2 rounded-md min-h-[100px]">
+                    {themes.length === 0 ? (
+                      <div className="text-gray-500 text-sm p-2">
+                        Nenhum tema disponível. Adicione temas nas configurações.
+                      </div>
+                    ) : (
+                      themes.map((theme) => {
+                        const isSelected = newMaterial.selectedThemes.includes(theme.id);
+                        return (
+                          <Badge 
+                            key={theme.id} 
+                            variant={isSelected ? "default" : "outline"}
+                            className="cursor-pointer"
+                            onClick={() => handleThemeToggle(theme.id, isSelected, true)}
+                          >
+                            <Hash size={12} className="mr-1" /> 
+                            {theme.name}
+                          </Badge>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="file">Arquivo</Label>
+                  <div className="flex items-center justify-center w-full">
+                    <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-8 h-8 mb-3 text-gray-400" />
+                        <p className="mb-2 text-sm text-gray-500">
+                          <span className="font-semibold">Clique para fazer upload</span> ou arraste e solte
+                        </p>
+                        <p className="text-xs text-gray-500">PDF, Excel, Doc (MAX. 10MB)</p>
+                        {fileToUpload && (
+                          <p className="mt-2 text-sm text-green-600 font-medium">{fileToUpload.name}</p>
+                        )}
+                      </div>
+                      <input 
+                        id="file-upload" 
+                        type="file" 
+                        className="hidden" 
+                        onChange={handleFileChange} 
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setIsAddDialogOpen(false);
-                  setFileToUpload(null);
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handleAddMaterial} 
-                disabled={!newMaterial.title || !newMaterial.category || !newMaterial.type || addMaterialMutation.isPending}
-              >
-                {addMaterialMutation.isPending ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" />
-                    Adicionando...
-                  </>
-                ) : "Adicionar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsAddDialogOpen(false);
+                    setFileToUpload(null);
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleAddMaterial} 
+                  disabled={!newMaterial.title || !newMaterial.category || addMaterialMutation.isPending}
+                >
+                  {addMaterialMutation.isPending ? (
+                    <>
+                      <Spinner className="mr-2 h-4 w-4" />
+                      Adicionando...
+                    </>
+                  ) : "Adicionar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <Card className="border-gray-200">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-            <CardTitle>Lista de Materiais</CardTitle>
-            <div className="relative w-full md:w-72">
-              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <Input 
-                className="pl-10 py-2 border-gray-200" 
-                placeholder="Buscar materiais..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10">#</TableHead>
-                  <TableHead className="w-[250px]">Título</TableHead>
-                  <TableHead className="hidden md:table-cell">Categoria</TableHead>
-                  <TableHead className="hidden md:table-cell">Tipo</TableHead>
-                  <TableHead className="hidden md:table-cell text-right">Downloads</TableHead>
-                  <TableHead className="hidden md:table-cell">Data Adicionado</TableHead>
-                  <TableHead className="w-[100px] text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMaterials.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      Nenhum material encontrado.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredMaterials.map((material, index) => (
-                    <TableRow key={material.id}>
-                      <TableCell className="font-medium">{index + 1}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{material.title}</div>
-                        <div className="text-sm text-gray-500 md:hidden">{material.category}</div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">{material.category}</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <div className="flex items-center">
-                          {getTypeIcon(material.type)}
-                          <span className="ml-2 capitalize">{material.type}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-right">{material.downloads}</TableCell>
-                      <TableCell className="hidden md:table-cell">{formatDate(material.date_added)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            onClick={() => handleEditMaterial(material)}
-                          >
-                            <Edit size={16} />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="icon" className="h-8 w-8 text-red-500">
-                                <Trash size={16} />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Confirmar remoção</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Tem certeza que deseja remover o material "{material.title}"? Esta ação não pode ser desfeita.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteMaterial(material.id)}
-                                  className="bg-red-500 hover:bg-red-600"
-                                >
-                                  {deleteMaterialMutation.isPending && material.id === deleteMaterialMutation.variables ? (
-                                    <>
-                                      <Spinner className="mr-2 h-4 w-4" />
-                                      Removendo...
-                                    </>
-                                  ) : "Remover"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="list">Lista de Materiais</TabsTrigger>
+          <TabsTrigger value="settings">Configurações</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="list">
+          <Card className="border-gray-200">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                <CardTitle>Lista de Materiais</CardTitle>
+                <div className="relative w-full md:w-72">
+                  <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <Input 
+                    className="pl-10 py-2 border-gray-200" 
+                    placeholder="Buscar materiais..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10">#</TableHead>
+                      <TableHead className="w-[250px]">Título</TableHead>
+                      <TableHead className="hidden md:table-cell">Categoria</TableHead>
+                      <TableHead className="hidden md:table-cell">Tipo/Formato</TableHead>
+                      <TableHead className="hidden lg:table-cell">Temas</TableHead>
+                      <TableHead className="hidden md:table-cell text-right">Downloads</TableHead>
+                      <TableHead className="hidden md:table-cell">Data Adicionado</TableHead>
+                      <TableHead className="w-[100px] text-right">Ações</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredMaterials.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="h-24 text-center">
+                          Nenhum material encontrado.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredMaterials.map((material, index) => (
+                        <TableRow key={material.id}>
+                          <TableCell className="font-medium">{index + 1}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{material.title}</div>
+                            <div className="text-sm text-gray-500 md:hidden">{material.category}</div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">{material.category}</TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            <div className="flex flex-col">
+                              <div className="flex items-center">
+                                {getTypeIcon(material.type)}
+                                <span className="ml-2 capitalize">{material.type}</span>
+                              </div>
+                              {material.format_id && (
+                                <span className="text-xs text-gray-500 mt-1">
+                                  Formato: {getFormatName(material.format_id)}
+                                </span>
+                              )}
+                              {material.navigation_id && (
+                                <span className="text-xs text-gray-500 mt-1">
+                                  Nível: {getNavigationName(material.navigation_id)}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            <div className="flex flex-wrap gap-1 max-w-[200px]">
+                              {material.themes && material.themes.length > 0 ? (
+                                material.themes.map(theme => (
+                                  <Badge key={theme.id} variant="outline" className="text-xs">
+                                    <Hash size={10} className="mr-1" /> {theme.name}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-xs text-gray-400">Nenhum tema</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell text-right">{material.downloads}</TableCell>
+                          <TableCell className="hidden md:table-cell">{formatDate(material.date_added || '')}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => handleEditMaterial(material)}
+                              >
+                                <Edit size={16} />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="outline" size="icon" className="h-8 w-8 text-red-500">
+                                    <Trash size={16} />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Confirmar remoção</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja remover o material "{material.title}"? Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteMaterial(material.id)}
+                                      className="bg-red-500 hover:bg-red-600"
+                                    >
+                                      {deleteMaterialMutation.isPending && material.id === deleteMaterialMutation.variables ? (
+                                        <>
+                                          <Spinner className="mr-2 h-4 w-4" />
+                                          Removendo...
+                                        </>
+                                      ) : "Remover"}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <MaterialsSettingsManager />
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Material Dialog */}
       {selectedMaterial && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Editar Material</DialogTitle>
             </DialogHeader>
@@ -666,44 +861,114 @@ const AdminMaterials = () => {
                   id="edit-description" 
                   value={selectedMaterial.description || ''} 
                   onChange={(e) => setSelectedMaterial({...selectedMaterial, description: e.target.value})} 
+                  className="min-h-[120px]"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-category">Categoria</Label>
-                <Select 
-                  value={selectedMaterial.category} 
-                  onValueChange={(value) => setSelectedMaterial({...selectedMaterial, category: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.name}>
-                        <div className="flex items-center">
-                          {category.icon}
-                          <span className="ml-2">{category.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-category">Categoria</Label>
+                  <Select 
+                    value={selectedMaterial.category} 
+                    onValueChange={(value) => setSelectedMaterial({...selectedMaterial, category: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.name}>
+                          <div className="flex items-center">
+                            {getCategoryIcon(category.name)}
+                            <span className="ml-2">{category.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-type">Tipo</Label>
+                  <Select 
+                    value={selectedMaterial.type} 
+                    onValueChange={(value) => setSelectedMaterial({...selectedMaterial, type: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdf">PDF</SelectItem>
+                      <SelectItem value="excel">Excel</SelectItem>
+                      <SelectItem value="doc">Documento</SelectItem>
+                      <SelectItem value="presentation">Apresentação</SelectItem>
+                      <SelectItem value="ebook">eBook</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-navigation">Navegação do Conhecimento</Label>
+                  <Select 
+                    value={selectedMaterial.navigation_id || ""} 
+                    onValueChange={(value) => setSelectedMaterial({...selectedMaterial, navigation_id: value || null})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um nível" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Não especificado</SelectItem>
+                      {navigations.map((navigation) => (
+                        <SelectItem key={navigation.id} value={navigation.id}>
+                          {navigation.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-format">Formato</Label>
+                  <Select 
+                    value={selectedMaterial.format_id || ""} 
+                    onValueChange={(value) => setSelectedMaterial({...selectedMaterial, format_id: value || null})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um formato" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Não especificado</SelectItem>
+                      {formats.map((format) => (
+                        <SelectItem key={format.id} value={format.id}>
+                          {format.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-type">Tipo</Label>
-                <Select 
-                  value={selectedMaterial.type} 
-                  onValueChange={(value) => setSelectedMaterial({...selectedMaterial, type: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pdf">PDF</SelectItem>
-                    <SelectItem value="excel">Excel</SelectItem>
-                    <SelectItem value="doc">Documento</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Temas/Assuntos (Hashtags)</Label>
+                <div className="flex flex-wrap gap-2 border p-2 rounded-md min-h-[100px]">
+                  {themes.length === 0 ? (
+                    <div className="text-gray-500 text-sm p-2">
+                      Nenhum tema disponível. Adicione temas nas configurações.
+                    </div>
+                  ) : (
+                    themes.map((theme) => {
+                      const isSelected = selectedMaterial.themes?.some(t => t.id === theme.id) || false;
+                      return (
+                        <Badge 
+                          key={theme.id} 
+                          variant={isSelected ? "default" : "outline"}
+                          className="cursor-pointer"
+                          onClick={() => handleThemeToggle(theme.id, isSelected, false)}
+                        >
+                          <Hash size={12} className="mr-1" /> 
+                          {theme.name}
+                        </Badge>
+                      );
+                    })
+                  )}
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-file">Arquivo</Label>
@@ -756,7 +1021,7 @@ const AdminMaterials = () => {
               </Button>
               <Button 
                 onClick={handleUpdateMaterial}
-                disabled={!selectedMaterial.title || !selectedMaterial.category || !selectedMaterial.type || updateMaterialMutation.isPending}
+                disabled={!selectedMaterial.title || !selectedMaterial.category || updateMaterialMutation.isPending}
               >
                 {updateMaterialMutation.isPending ? (
                   <>

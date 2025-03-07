@@ -170,6 +170,27 @@ export type Database = {
           },
         ]
       }
+      knowledge_navigation: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       market_news: {
         Row: {
           author: string | null
@@ -212,6 +233,105 @@ export type Database = {
         }
         Relationships: []
       }
+      material_categories: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      material_formats: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      material_theme_relations: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          theme_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          theme_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          theme_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_theme_relations_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_theme_relations_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "material_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_themes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       materials: {
         Row: {
           category: string
@@ -220,8 +340,10 @@ export type Database = {
           description: string | null
           downloads: number | null
           file_url: string | null
+          format_id: string | null
           id: string
           mentor_id: string | null
+          navigation_id: string | null
           plan_id: string | null
           thumbnail_url: string | null
           title: string
@@ -235,8 +357,10 @@ export type Database = {
           description?: string | null
           downloads?: number | null
           file_url?: string | null
+          format_id?: string | null
           id?: string
           mentor_id?: string | null
+          navigation_id?: string | null
           plan_id?: string | null
           thumbnail_url?: string | null
           title: string
@@ -250,8 +374,10 @@ export type Database = {
           description?: string | null
           downloads?: number | null
           file_url?: string | null
+          format_id?: string | null
           id?: string
           mentor_id?: string | null
+          navigation_id?: string | null
           plan_id?: string | null
           thumbnail_url?: string | null
           title?: string
@@ -260,10 +386,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "materials_format_id_fkey"
+            columns: ["format_id"]
+            isOneToOne: false
+            referencedRelation: "material_formats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "materials_mentor_id_fkey"
             columns: ["mentor_id"]
             isOneToOne: false
             referencedRelation: "mentors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materials_navigation_id_fkey"
+            columns: ["navigation_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_navigation"
             referencedColumns: ["id"]
           },
           {
