@@ -133,7 +133,7 @@ const MaterialsSettingsManager: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["materialCategories"] });
       toast({
         title: "Categoria adicionada com sucesso",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error: any) => {
@@ -154,7 +154,7 @@ const MaterialsSettingsManager: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["materialCategories"] });
       toast({
         title: "Categoria removida com sucesso",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error: any) => {
@@ -176,7 +176,7 @@ const MaterialsSettingsManager: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["knowledgeNavigations"] });
       toast({
         title: "Navegação adicionada com sucesso",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error: any) => {
@@ -197,7 +197,7 @@ const MaterialsSettingsManager: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["knowledgeNavigations"] });
       toast({
         title: "Navegação removida com sucesso",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error: any) => {
@@ -219,7 +219,7 @@ const MaterialsSettingsManager: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["materialFormats"] });
       toast({
         title: "Formato adicionado com sucesso",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error: any) => {
@@ -240,7 +240,7 @@ const MaterialsSettingsManager: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["materialFormats"] });
       toast({
         title: "Formato removido com sucesso",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error: any) => {
@@ -262,7 +262,7 @@ const MaterialsSettingsManager: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["materialThemes"] });
       toast({
         title: "Tema adicionado com sucesso",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error: any) => {
@@ -283,7 +283,7 @@ const MaterialsSettingsManager: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["materialThemes"] });
       toast({
         title: "Tema removido com sucesso",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error: any) => {

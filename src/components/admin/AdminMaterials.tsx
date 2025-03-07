@@ -20,7 +20,7 @@ import {
   Upload,
   FileSpreadsheet,
   Book,
-  FilePresentation,
+  Presentation,
   FilePieChart,
   FileBarChart2,
   Hash,
@@ -418,7 +418,7 @@ const AdminMaterials = () => {
       case "ebook":
         return <Book size={16} className="text-purple-500" />;
       case "apresentação":
-        return <FilePresentation size={16} className="text-blue-500" />;
+        return <Presentation size={16} className="text-blue-500" />;
       case "relatório":
         return <FileBarChart2 size={16} className="text-orange-500" />;
       case "mapa mental":

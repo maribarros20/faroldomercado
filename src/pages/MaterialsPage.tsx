@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -20,7 +19,7 @@ import {
   Clock,
   BookOpen,
   Hash,
-  FilePresentation,
+  Presentation,
   FileBarChart2,
   Book
 } from "lucide-react";
@@ -35,18 +34,15 @@ const MaterialsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const { toast } = useToast();
 
-  // Fetch categories
   const { data: categories = [] } = useQuery({
     queryKey: ['materialCategories'],
     queryFn: () => MaterialsService.getMaterialCategories(),
   });
 
-  // Fetch materials
   const { data: materials = [], isLoading: isMaterialsLoading } = useQuery({
     queryKey: ['materials', selectedCategory],
     queryFn: async () => {
       try {
-        // Get session for user activity logging
         const { data: sessionData } = await supabase.auth.getSession();
         const userId = sessionData.session?.user.id;
 
@@ -59,14 +55,12 @@ const MaterialsPage = () => {
           return [];
         }
 
-        // Log activity
         await supabase.from("user_activities").insert({
           user_id: userId,
           activity_type: "view_materials",
           metadata: { page: "materials", category: selectedCategory }
         } as any);
 
-        // Fetch materials
         let materialsData: Material[];
         
         if (selectedCategory === "all") {
@@ -89,30 +83,22 @@ const MaterialsPage = () => {
     enabled: !!categories.length
   });
 
-  // Once we have categories, materials will start loading
-  useEffect(() => {
-    if (!isMaterialsLoading) {
-      setIsLoading(false);
-    }
-  }, [isMaterialsLoading]);
-
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
   };
 
   const getMaterialIcon = (material: Material) => {
-    // First check format_id if available
     if (material.format_id) {
-      const formatName = material.format_name?.toLowerCase() || '';
+      const format = formats.find(f => f.id === material.format_id);
+      const formatName = format ? format.name.toLowerCase() : '';
       
       if (formatName.includes('ebook')) return <Book className="h-6 w-6 text-purple-500" />;
-      if (formatName.includes('apresentação')) return <FilePresentation className="h-6 w-6 text-blue-500" />;
+      if (formatName.includes('apresentação')) return <Presentation className="h-6 w-6 text-blue-500" />;
       if (formatName.includes('relatório')) return <FileBarChart2 className="h-6 w-6 text-orange-500" />;
       if (formatName.includes('planilha')) return <FileSpreadsheet className="h-6 w-6 text-green-500" />;
       if (formatName.includes('mapa')) return <FilePieChart className="h-6 w-6 text-pink-500" />;
     }
     
-    // Fallback to type
     switch (material.type.toLowerCase()) {
       case "pdf":
         return <FileText className="h-6 w-6 text-red-500" />;
@@ -122,7 +108,7 @@ const MaterialsPage = () => {
         return <Book className="h-6 w-6 text-purple-500" />;
       case "presentation":
       case "apresentação":
-        return <FilePresentation className="h-6 w-6 text-blue-500" />;
+        return <Presentation className="h-6 w-6 text-blue-500" />;
       case "relatório":
       case "report":
         return <FileBarChart2 className="h-6 w-6 text-orange-500" />;
@@ -151,10 +137,8 @@ const MaterialsPage = () => {
         return;
       }
 
-      // Increment download count
       await MaterialsService.incrementDownloads(material.id);
 
-      // Log activity
       await supabase.from("user_activities").insert({
         user_id: sessionData.session.user.id,
         activity_type: "download_material",
@@ -162,7 +146,6 @@ const MaterialsPage = () => {
         metadata: { material_id: material.id, title: material.title }
       } as any);
 
-      // Get download URL
       const { url, filename } = await MaterialsService.downloadMaterial(material.id);
       
       if (!url) {
@@ -174,7 +157,6 @@ const MaterialsPage = () => {
         return;
       }
 
-      // Create a temporary anchor element to trigger download
       const link = document.createElement("a");
       link.href = url;
       link.download = filename || material.title;
@@ -196,7 +178,6 @@ const MaterialsPage = () => {
     }
   };
 
-  // Prepare categories array with "All" option at the beginning
   const categoryOptions = [
     { id: "all", name: "Todos" },
     ...categories
@@ -241,7 +222,7 @@ const MaterialsPage = () => {
                             <span className="capitalize">{material.type}</span>
                             {material.navigation_id && (
                               <Badge variant="outline" className="ml-2 text-xs">
-                                {material.navigation_name}
+                                {navigations.find(n => n.id === material.navigation_id)?.name || 'Unknown'}
                               </Badge>
                             )}
                           </CardDescription>

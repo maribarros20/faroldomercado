@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Material {
@@ -618,6 +617,44 @@ class MaterialsService {
     } catch (error) {
       console.error('Error in deleteMaterialTheme service:', error);
       throw error;
+    }
+  }
+
+  // Find the format name by ID
+  async getFormatNameById(formatId: string | null): Promise<string> {
+    if (!formatId) return "Não especificado";
+    
+    try {
+      const { data, error } = await supabase
+        .from('material_formats')
+        .select('name')
+        .eq('id', formatId)
+        .single();
+      
+      if (error || !data) return "Não especificado";
+      return data.name;
+    } catch (error) {
+      console.error('Error getting format name:', error);
+      return "Não especificado";
+    }
+  }
+
+  // Find the navigation name by ID
+  async getNavigationNameById(navigationId: string | null): Promise<string> {
+    if (!navigationId) return "Não especificado";
+    
+    try {
+      const { data, error } = await supabase
+        .from('knowledge_navigation')
+        .select('name')
+        .eq('id', navigationId)
+        .single();
+      
+      if (error || !data) return "Não especificado";
+      return data.name;
+    } catch (error) {
+      console.error('Error getting navigation name:', error);
+      return "Não especificado";
     }
   }
 }
