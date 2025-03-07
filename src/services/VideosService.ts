@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { MaterialTheme } from './materials/types';
@@ -18,7 +17,6 @@ export interface Video {
   navigation_id?: string | null;
   format_id?: string | null;
   themes?: MaterialTheme[];
-  learning_path?: string; // Mantido para compatibilidade, mas será removido em breve
 }
 
 export type VideoSource = 'youtube' | 'vimeo' | 'storage';

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +22,6 @@ const learningPaths = [
 const VideoCard = ({ video }: { video: VideoType }) => {
   const navigate = useNavigate();
   
-  // Get navigations data
   const { data: navigations = [] } = useQuery({
     queryKey: ['knowledgeNavigations'],
     queryFn: () => MaterialsService.getKnowledgeNavigations(),
@@ -46,7 +44,6 @@ const VideoCard = ({ video }: { video: VideoType }) => {
     navigate(`/videos/${video.id}`);
   };
 
-  // Get navigation name
   const getNavigationName = (id: string | null | undefined) => {
     if (!id) return null;
     const navigation = navigations.find(nav => nav.id === id);
@@ -122,27 +119,22 @@ const VideosView = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [activeCategory, setActiveCategory] = useState("all");
 
-  // Fetch categories
   const { data: categoriesData = [] } = useQuery({
     queryKey: ['materialCategories'],
     queryFn: () => MaterialsService.getMaterialCategories(),
     staleTime: 1000 * 60 * 10 // 10 minutes
   });
 
-  const learningPathFilter = activeTab !== "all" ? 
-    learningPaths.find(p => p.id === activeTab)?.name : undefined;
-  
   const categoryFilter = activeCategory !== "all" ?
     categoriesData.find(c => c.id === activeCategory)?.name : undefined;
 
-  const { data: videos = [], isLoading, error } = useVideos(categoryFilter, learningPathFilter);
+  const { data: videos = [], isLoading, error } = useVideos(categoryFilter);
 
   const filteredVideos = videos.filter(video => 
     video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     video.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Format categories from the real data
   const categories = [
     { id: "all", name: "Todos" },
     ...categoriesData.map(cat => ({ id: cat.id, name: cat.name }))
