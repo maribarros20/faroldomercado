@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -190,53 +189,50 @@ const Sidebar = () => {
           )}
         </Section>
 
-        {/* Useful Links moved to bottom of sidebar but above user profile */}
         <div className="mt-auto">
           {expanded && (
             <Section className="px-3 space-y-1 mb-4">
-              <div className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-3">
-                Links Úteis
+              <div className="bg-primary rounded-lg px-3 py-3">
+                <a 
+                  href="https://www.faroldomercado.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center py-2 text-sm text-white hover:text-white/80 transition-colors"
+                >
+                  <Globe className="w-5 h-5 mr-3" />
+                  Site Farol
+                </a>
+
+                <a 
+                  href="https://painel.faroldomercado.com/farolito" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center py-2 text-sm text-white hover:text-white/80 transition-colors"
+                >
+                  <BookMarked className="w-5 h-5 mr-3" />
+                  Blog Farolito
+                </a>
+
+                <a 
+                  href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center py-2 text-sm text-white hover:text-white/80 transition-colors"
+                >
+                  <Sparkles className="w-5 h-5 mr-3" />
+                  Luma IA
+                </a>
+
+                <a 
+                  href="https://wa.me/5511999999999" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center py-2 text-sm text-white hover:text-white/80 transition-colors"
+                >
+                  <HelpCircle className="w-5 h-5 mr-3" />
+                  Ajuda
+                </a>
               </div>
-              
-              <a 
-                href="https://www.faroldomercado.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                <Globe className="w-5 h-5 mr-3" />
-                Site Farol
-              </a>
-
-              <a 
-                href="https://painel.faroldomercado.com/farolito" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                <BookMarked className="w-5 h-5 mr-3" />
-                Blog Farolito
-              </a>
-
-              <a 
-                href="https://share.chatling.ai/s/PnKmMgATCQPf4tr" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                <Sparkles className="w-5 h-5 mr-3" />
-                Luma IA
-              </a>
-
-              <a 
-                href="https://wa.me/5511999999999" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                <HelpCircle className="w-5 h-5 mr-3" />
-                Ajuda
-              </a>
             </Section>
           )}
         </div>

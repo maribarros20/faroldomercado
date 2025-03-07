@@ -20,7 +20,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   const isMobile = useIsMobile();
   const { unreadCount } = useNotifications();
   const { toast } = useToast();
-  const { greeting } = useGreeting(null); // Will be used in the header
+  const { greeting } = useGreeting(null);
 
   // Create a sample notification when component mounts
   useEffect(() => {
@@ -63,7 +63,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         <div className="flex flex-1 w-full">
           <Sidebar />
           <main className="flex-1 flex flex-col max-w-full overflow-x-hidden">
-            {/* The notification bell is moved to the content area */}
             {children}
           </main>
         </div>

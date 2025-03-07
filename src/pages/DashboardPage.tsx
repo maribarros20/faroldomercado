@@ -167,9 +167,9 @@ const DashboardPage = () => {
     <div className="animate-fade-in container mx-auto px-4 py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Painel do Mercado</h1>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {greeting && (
-            <span className="text-sm text-muted-foreground hidden sm:inline-block">
+            <span className="text-sm text-muted-foreground">
               {greeting}
             </span>
           )}
