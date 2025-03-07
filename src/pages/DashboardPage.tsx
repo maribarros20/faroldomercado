@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +13,7 @@ import { BellRing } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import NotificationPopover from "@/components/notifications/NotificationPopover";
 import { useGreeting } from "@/hooks/use-greeting";
+import QuickActions from "@/components/QuickActions";
 
 // Type for user plans
 type UserPlan = {
@@ -173,6 +173,7 @@ const DashboardPage = () => {
               {greeting}
             </span>
           )}
+          <QuickActions />
           <NotificationPopover>
             <button 
               className="p-2 rounded-full hover:bg-gray-100 bg-white shadow-sm relative"

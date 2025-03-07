@@ -8,9 +8,32 @@ interface NavItemProps {
   text: string;
   active: boolean;
   expanded: boolean;
+  onClick?: () => void;
 }
 
-const NavItem = ({ to, icon, text, active, expanded }: NavItemProps) => {
+const NavItem = ({ to, icon, text, active, expanded, onClick }: NavItemProps) => {
+  const content = (
+    <>
+      <span className={expanded ? "mr-3" : ""}>{icon}</span>
+      {expanded && <span className="font-medium">{text}</span>}
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        className={`flex items-center px-3 py-2 rounded-md transition-colors ${
+          active
+            ? "bg-primary/10 text-primary"
+            : "text-gray-700 hover:bg-gray-100"
+        } ${expanded ? "justify-start" : "justify-center"} w-full text-left`}
+      >
+        {content}
+      </button>
+    );
+  }
+
   return (
     <Link
       to={to}
@@ -20,8 +43,7 @@ const NavItem = ({ to, icon, text, active, expanded }: NavItemProps) => {
           : "text-gray-700 hover:bg-gray-100"
       } ${expanded ? "justify-start" : "justify-center"}`}
     >
-      <span className={expanded ? "mr-3" : ""}>{icon}</span>
-      {expanded && <span className="font-medium">{text}</span>}
+      {content}
     </Link>
   );
 };
