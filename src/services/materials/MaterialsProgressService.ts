@@ -77,18 +77,23 @@ class MaterialsProgressService {
       }
 
       // Check if a progress record already exists for this user and material
-      const { data: existingProgress } = await supabase
+      const { data: existingProgress, error: checkError } = await supabase
         .from('user_material_progress')
         .select('id')
         .eq('user_id', userId)
         .eq('material_id', materialId)
-        .single();
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing progress:', checkError);
+        throw new Error(checkError.message);
+      }
 
       const now = new Date().toISOString();
       
       if (existingProgress) {
         // Update existing progress
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from('user_material_progress')
           .update({
             progress_percentage: progressPercentage,
@@ -98,13 +103,13 @@ class MaterialsProgressService {
           })
           .eq('id', existingProgress.id);
 
-        if (error) {
-          console.error('Error updating material progress:', error);
-          throw new Error(error.message);
+        if (updateError) {
+          console.error('Error updating material progress:', updateError);
+          throw new Error(updateError.message);
         }
       } else {
         // Create new progress record
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from('user_material_progress')
           .insert({
             user_id: userId,
@@ -117,9 +122,9 @@ class MaterialsProgressService {
             last_accessed_at: now
           });
 
-        if (error) {
-          console.error('Error creating material progress:', error);
-          throw new Error(error.message);
+        if (insertError) {
+          console.error('Error creating material progress:', insertError);
+          throw new Error(insertError.message);
         }
       }
 
@@ -133,7 +138,7 @@ class MaterialsProgressService {
           progress_percentage: progressPercentage,
           navigation_id: navigationId
         }
-      } as any);
+      });
 
     } catch (error) {
       console.error('Error in updateMaterialProgress service:', error);
@@ -160,15 +165,15 @@ class MaterialsProgressService {
         .select('progress_percentage, is_completed, last_accessed_at')
         .eq('user_id', userId)
         .eq('material_id', materialId)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          // No progress record found
-          return { progressPercentage: 0, isCompleted: false, lastAccessed: null };
-        }
         console.error('Error fetching material progress:', error);
-        throw new Error(error.message);
+        return { progressPercentage: 0, isCompleted: false, lastAccessed: null };
+      }
+
+      if (!data) {
+        return { progressPercentage: 0, isCompleted: false, lastAccessed: null };
       }
 
       return {
@@ -213,6 +218,15 @@ class MaterialsProgressService {
       if (error) {
         console.error('Error fetching navigation progress:', error);
         throw new Error(error.message);
+      }
+
+      if (!data || data.length === 0) {
+        return {
+          totalMaterials: 0,
+          completedMaterials: 0,
+          inProgressMaterials: 0,
+          progressPercentage: 0
+        };
       }
 
       return {

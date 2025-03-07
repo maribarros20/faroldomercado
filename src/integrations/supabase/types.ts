@@ -862,6 +862,60 @@ export type Database = {
           },
         ]
       }
+      user_material_progress: {
+        Row: {
+          completed_at: string | null
+          id: string
+          is_completed: boolean
+          last_accessed_at: string
+          material_id: string
+          metadata: Json | null
+          navigation_id: string | null
+          progress_percentage: number
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          is_completed?: boolean
+          last_accessed_at?: string
+          material_id: string
+          metadata?: Json | null
+          navigation_id?: string | null
+          progress_percentage?: number
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          is_completed?: boolean
+          last_accessed_at?: string
+          material_id?: string
+          metadata?: Json | null
+          navigation_id?: string | null
+          progress_percentage?: number
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_material_progress_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_material_progress_navigation_id_fkey"
+            columns: ["navigation_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_navigation"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       videos: {
         Row: {
           category: string
@@ -929,6 +983,64 @@ export type Database = {
       }
     }
     Functions: {
+      get_navigation_progress: {
+        Args: {
+          user_uuid: string
+          nav_id: string
+        }
+        Returns: {
+          total_materials: number
+          completed_materials: number
+          in_progress_materials: number
+          progress_percentage: number
+        }[]
+      }
+      get_user_completed_materials: {
+        Args: {
+          user_uuid: string
+        }
+        Returns: {
+          category: string
+          created_by: string | null
+          date_added: string | null
+          description: string | null
+          downloads: number | null
+          file_url: string | null
+          format_id: string | null
+          id: string
+          likes_count: number | null
+          mentor_id: string | null
+          navigation_id: string | null
+          plan_id: string | null
+          thumbnail_url: string | null
+          title: string
+          type: string
+          updated_at: string | null
+        }[]
+      }
+      get_user_in_progress_materials: {
+        Args: {
+          user_uuid: string
+        }
+        Returns: {
+          category: string
+          created_by: string | null
+          date_added: string | null
+          description: string | null
+          downloads: number | null
+          file_url: string | null
+          format_id: string | null
+          id: string
+          likes_count: number | null
+          mentor_id: string | null
+          navigation_id: string | null
+          plan_id: string | null
+          thumbnail_url: string | null
+          title: string
+          type: string
+          updated_at: string | null
+        }[]
+      }
       get_user_role: {
         Args: {
           user_id: string

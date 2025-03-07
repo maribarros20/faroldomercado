@@ -65,7 +65,7 @@ const MaterialsPage = () => {
           user_id: userId,
           activity_type: "view_materials",
           metadata: { page: "materials", status: activeStatus }
-        } as any);
+        });
 
         let materialsData;
         
