@@ -18,8 +18,13 @@ export function useNotifications() {
   useEffect(() => {
     fetchNotifications();
     const unsubscribe = subscribeToNotifications();
+    
+    // Check for platform updates periodically
+    const platformUpdateInterval = setInterval(checkForPlatformUpdates, 3600000); // Check every hour
+    
     return () => {
       if (unsubscribe) unsubscribe();
+      clearInterval(platformUpdateInterval);
     };
   }, []);
 
@@ -67,6 +72,54 @@ export function useNotifications() {
     } catch (error) {
       console.error("Error subscribing to notifications:", error);
       return undefined;
+    }
+  };
+
+  // Function to check for platform updates
+  const checkForPlatformUpdates = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      // Check for new content (videos, materials, etc.)
+      const lastLoginTime = localStorage.getItem('lastLoginTime');
+      if (!lastLoginTime) {
+        localStorage.setItem('lastLoginTime', new Date().toISOString());
+        return;
+      }
+      
+      // Check for new videos
+      const { data: newVideos, error: videosError } = await supabase
+        .from("videos")
+        .select("count")
+        .gt("created_at", lastLoginTime);
+        
+      if (videosError) throw videosError;
+      
+      // Check for new materials
+      const { data: newMaterials, error: materialsError } = await supabase
+        .from("materials")
+        .select("count")
+        .gt("date_added", lastLoginTime);
+        
+      if (materialsError) throw materialsError;
+      
+      // If there are new items, create a notification
+      if ((newVideos && newVideos.length > 0) || (newMaterials && newMaterials.length > 0)) {
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: session.user.id,
+            title: "Novos conteúdos disponíveis",
+            message: "Novos vídeos e materiais foram adicionados na plataforma desde seu último acesso.",
+            read: false
+          });
+      }
+      
+      // Update the last login time
+      localStorage.setItem('lastLoginTime', new Date().toISOString());
+    } catch (error) {
+      console.error("Error checking for platform updates:", error);
     }
   };
 
