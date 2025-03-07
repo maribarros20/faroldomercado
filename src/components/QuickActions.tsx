@@ -4,9 +4,10 @@ import {
   Settings, 
   ShieldAlert, 
   Bell, 
-  UserCog
+  UserCog,
+  ArrowLeft
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
@@ -16,6 +17,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import NotificationPopover from "@/components/notifications/NotificationPopover";
+import { Button } from "@/components/ui/button";
 
 // Define the tab type explicitly with onClick as optional
 interface TabItem {
@@ -27,6 +29,7 @@ interface TabItem {
 
 const QuickActions = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { unreadCount } = useNotifications();
   const { userRole } = useUserProfile();
   const [showNotifications, setShowNotifications] = React.useState(false);
@@ -72,14 +75,37 @@ const QuickActions = () => {
     return baseTabs;
   };
 
+  // Check if we need to show the back button
+  // We show it if we're not on the dashboard page and the URL is one of the quick action destinations
+  const showBackButton = () => {
+    const quickActionPaths = ['/profile-settings', '/admin', '/profile'];
+    return location.pathname !== '/dashboard' && quickActionPaths.includes(location.pathname);
+  };
+
+  const handleGoBack = () => {
+    navigate(-1); // Navigate back in history
+  };
+
   return (
     <div className="relative z-20">
+      {showBackButton() && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="absolute -left-12 top-0" 
+          onClick={handleGoBack}
+        >
+          <ArrowLeft className="mr-1 h-4 w-4" />
+          Voltar
+        </Button>
+      )}
+      
       <Popover open={showNotifications} onOpenChange={setShowNotifications}>
         <PopoverTrigger asChild>
           <div className="inline-block">
             <ExpandableTabs 
               tabs={getTabs()}
-              activeColor="text-white"
+              activeColor="text-primary"
               className="border-gray-200 dark:border-gray-700"
             />
           </div>

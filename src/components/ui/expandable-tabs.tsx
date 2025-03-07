@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 
@@ -24,6 +24,7 @@ export const ExpandableTabs: React.FC<ExpandableTabsProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   const handleMouseEnter = () => {
     setIsExpanded(true);

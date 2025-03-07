@@ -1,6 +1,6 @@
 
 import React from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, 
   BookOpen, 
@@ -9,7 +9,8 @@ import {
   CreditCard, 
   Settings, 
   Shield, 
-  TrendingUp 
+  TrendingUp,
+  ArrowLeft
 } from "lucide-react";
 import NavItem from "./NavItem";
 
@@ -20,11 +21,34 @@ interface NavigationProps {
 
 const Navigation = ({ expanded, userRole }: NavigationProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   
   const isActive = (path: string) => location.pathname === path;
 
+  // Handle going back to previous page
+  const handleGoBack = () => {
+    navigate(-1);
+  };
+
+  // Check if we're on a page that needs a back button
+  const showBackButton = () => {
+    return location.pathname !== '/dashboard' && 
+           location.pathname !== '/' && 
+           !location.pathname.includes('/auth');
+  };
+
   return (
     <div className="space-y-1 px-3">
+      {showBackButton() && expanded && (
+        <button 
+          onClick={handleGoBack}
+          className="flex items-center px-3 py-2 mb-4 text-gray-700 hover:bg-gray-100 rounded-md w-full"
+        >
+          <ArrowLeft size={20} className="mr-3" /> 
+          <span className="font-medium">Voltar</span>
+        </button>
+      )}
+
       <NavItem
         to="/dashboard"
         icon={<LayoutDashboard size={20} />}

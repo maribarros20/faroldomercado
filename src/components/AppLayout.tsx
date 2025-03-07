@@ -64,12 +64,14 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             <div className="flex justify-end p-4">
               <QuickActions />
             </div>
-            {children}
+            <div className="px-4 pb-4 flex-1">
+              {children}
+            </div>
           </main>
         </div>
       </div>
     </SidebarProvider>
   );
-}
+};
 
 export default AppLayout;
