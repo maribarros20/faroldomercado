@@ -9,7 +9,6 @@ import MarketOverview from "@/components/admin/MarketOverview";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { BellRing } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import NotificationPopover from "@/components/notifications/NotificationPopover";
 import { useGreeting } from "@/hooks/use-greeting";
@@ -174,19 +173,6 @@ const DashboardPage = () => {
             </span>
           )}
           <QuickActions />
-          <NotificationPopover>
-            <button 
-              className="p-2 rounded-full hover:bg-gray-100 bg-white shadow-sm relative"
-              title="Notificações"
-            >
-              <BellRing size={20} className="text-gray-500" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </button>
-          </NotificationPopover>
         </div>
       </div>
       
