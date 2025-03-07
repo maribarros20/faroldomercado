@@ -92,7 +92,7 @@ const QuickActions = () => {
             <div className="inline-block">
               <ExpandableTabs 
                 tabs={getTabs()}
-                activeColor="text-primary"
+                activeColor="text-[#02tdfb]"
                 className="border-gray-200 dark:border-gray-700"
               />
             </div>
@@ -104,7 +104,7 @@ const QuickActions = () => {
         
         {/* Notification indicator badge */}
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+          <span className="absolute -top-1 -right-1 bg-[#02tdfb] text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
