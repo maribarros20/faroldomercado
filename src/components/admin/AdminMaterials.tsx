@@ -762,7 +762,7 @@ const AdminMaterials = () => {
                     <SelectValue placeholder="Selecione um nível" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Não especificado</SelectItem>
+                    <SelectItem value="none">Não especificado</SelectItem>
                     {navigations.map((navigation) => (
                       <SelectItem key={navigation.id} value={navigation.id}>
                         {navigation.name}
@@ -781,7 +781,7 @@ const AdminMaterials = () => {
                     <SelectValue placeholder="Selecione um formato" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Não especificado</SelectItem>
+                    <SelectItem value="none">Não especificado</SelectItem>
                     {formats.map((format) => (
                       <SelectItem key={format.id} value={format.id}>
                         {format.name}
@@ -963,14 +963,14 @@ const AdminMaterials = () => {
                 <div className="grid gap-2">
                   <Label htmlFor="edit-navigation">Navegação do Conhecimento</Label>
                   <Select 
-                    value={selectedMaterial.navigation_id || ''} 
-                    onValueChange={(value) => setSelectedMaterial({...selectedMaterial, navigation_id: value || null})}
+                    value={selectedMaterial.navigation_id || 'none'} 
+                    onValueChange={(value) => setSelectedMaterial({...selectedMaterial, navigation_id: value === 'none' ? null : value})}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um nível" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Não especificado</SelectItem>
+                      <SelectItem value="none">Não especificado</SelectItem>
                       {navigations.map((navigation) => (
                         <SelectItem key={navigation.id} value={navigation.id}>
                           {navigation.name}
@@ -982,14 +982,14 @@ const AdminMaterials = () => {
                 <div className="grid gap-2">
                   <Label htmlFor="edit-format">Formato</Label>
                   <Select 
-                    value={selectedMaterial.format_id || ''} 
-                    onValueChange={(value) => setSelectedMaterial({...selectedMaterial, format_id: value || null})}
+                    value={selectedMaterial.format_id || 'none'} 
+                    onValueChange={(value) => setSelectedMaterial({...selectedMaterial, format_id: value === 'none' ? null : value})}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um formato" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Não especificado</SelectItem>
+                      <SelectItem value="none">Não especificado</SelectItem>
                       {formats.map((format) => (
                         <SelectItem key={format.id} value={format.id}>
                           {format.name}
