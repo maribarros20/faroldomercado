@@ -9,6 +9,7 @@ export function useUserProfile() {
   const [isLoading, setIsLoading] = useState(true);
   const [accountType, setAccountType] = useState<string | null>(null);
   const [mentorId, setMentorId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -34,6 +35,7 @@ export function useUserProfile() {
             setUserName(`${profile.first_name} ${profile.last_name}`);
             setAccountType(profile.tipo_de_conta);
             setMentorId(profile.mentor_link_id);
+            setUserId(profile.id);
           }
         }
       } catch (error) {
@@ -52,6 +54,7 @@ export function useUserProfile() {
     userName, 
     isLoading, 
     accountType,
-    mentorId
+    mentorId,
+    userId
   };
 }
