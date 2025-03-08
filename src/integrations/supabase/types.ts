@@ -916,6 +916,70 @@ export type Database = {
           },
         ]
       }
+      video_comments: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          likes_count: number | null
+          user_id: string | null
+          video_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          likes_count?: number | null
+          user_id?: string | null
+          video_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          likes_count?: number | null
+          user_id?: string | null
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_comments_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_likes: {
+        Row: {
+          created_at: string | null
+          id: string
+          user_id: string | null
+          video_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+          video_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_likes_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       video_theme_relations: {
         Row: {
           created_at: string
@@ -961,6 +1025,7 @@ export type Database = {
           duration: string | null
           format_id: string | null
           id: string
+          likes: number | null
           navigation_id: string | null
           source: string
           themes: Json | null
@@ -978,6 +1043,7 @@ export type Database = {
           duration?: string | null
           format_id?: string | null
           id?: string
+          likes?: number | null
           navigation_id?: string | null
           source: string
           themes?: Json | null
@@ -995,6 +1061,7 @@ export type Database = {
           duration?: string | null
           format_id?: string | null
           id?: string
+          likes?: number | null
           navigation_id?: string | null
           source?: string
           themes?: Json | null
@@ -1040,6 +1107,14 @@ export type Database = {
       }
     }
     Functions: {
+      decrement: {
+        Args: {
+          row_id: string
+          table_name: string
+          column_name: string
+        }
+        Returns: number
+      }
       get_navigation_progress: {
         Args: {
           user_uuid: string
@@ -1103,6 +1178,14 @@ export type Database = {
           user_id: string
         }
         Returns: string
+      }
+      increment: {
+        Args: {
+          row_id: string
+          table_name: string
+          column_name: string
+        }
+        Returns: number
       }
       increment_video_views: {
         Args: {

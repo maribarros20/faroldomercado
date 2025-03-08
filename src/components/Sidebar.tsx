@@ -33,7 +33,7 @@ const Sidebar = () => {
   return (
     <UISidebar className={`border-r min-h-screen transition-all duration-300 bg-background ${
       expanded ? "w-64" : "w-20"
-    } flex flex-col fixed z-10 h-screen overflow-hidden`}>
+    } flex flex-col fixed z-30 h-screen overflow-hidden`}>
       <Header className="flex items-center justify-between p-4 border-b h-16">
         <div className="flex items-center">
           {expanded && <Logo />}

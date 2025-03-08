@@ -33,16 +33,16 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       <div className="flex min-h-screen flex-col w-full">
         <div className="flex flex-1 w-full">
           <Sidebar />
-          <main className="flex-1 flex flex-col max-w-full overflow-x-hidden ml-20 md:ml-20 lg:ml-20">
+          <main className="flex-1 flex flex-col max-w-full overflow-x-hidden transition-all duration-300 ml-20 md:ml-20 lg:ml-20 pb-36">
             <div className="flex justify-end p-4">
               <QuickActions />
             </div>
-            <div className="px-4 pb-4 flex-1">
+            <div className="px-4 flex-1">
               {children}
             </div>
           </main>
         </div>
-        <Footer className="ml-20 md:ml-20 lg:ml-20" />
+        <Footer />
       </div>
     </SidebarProvider>
   );
