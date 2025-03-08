@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import AppLayout from "@/components/AppLayout";
@@ -23,48 +23,39 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Check if user is authenticated on initial load and set up auth listener
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        setIsCheckingAuth(true);
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error("Session check error:", error);
-          setIsAuthenticated(false);
-          setIsCheckingAuth(false);
+          if (location.pathname !== '/auth' && location.pathname !== '/' && location.pathname !== '/register') {
+            navigate("/auth");
+          }
           return;
         }
         
         const publicPaths = ['/', '/auth', '/register'];
-        const isPublicPath = publicPaths.includes(location.pathname);
         
-        if (!data.session) {
-          setIsAuthenticated(false);
-          // Only redirect if not already on a public page
-          if (!isPublicPath && !isCheckingAuth) {
+        if (!data.session && !publicPaths.includes(location.pathname)) {
+          // Display toast only if not already on a public page
+          if (location.pathname !== '/auth') {
             toast({
               title: "Sessão expirada",
               description: "Por favor, faça login novamente.",
             });
-            navigate("/auth");
           }
-        } else {
-          setIsAuthenticated(true);
+          navigate("/auth");
+        } else if (data.session && publicPaths.includes(location.pathname)) {
           // If authenticated and on a public page, redirect to dashboard
-          if (isPublicPath && !isCheckingAuth) {
-            navigate("/dashboard");
-          }
+          navigate("/dashboard");
         }
       } catch (error) {
         console.error("Error checking session:", error);
-        setIsAuthenticated(false);
-      } finally {
-        setIsCheckingAuth(false);
+        navigate("/auth");
       }
     };
 
@@ -76,27 +67,24 @@ function App() {
         console.log("Auth event:", event);
         
         if (event === 'SIGNED_OUT') {
-          setIsAuthenticated(false);
-          // Always redirect to auth page on sign out
-          if (location.pathname !== '/auth') {
-            navigate('/auth');
-            toast({
-              title: "Sessão encerrada",
-              description: "Você foi desconectado com sucesso.",
-            });
-          }
+          // Always redirect to auth page on sign out and show toast
+          navigate('/auth');
+          toast({
+            title: "Sessão encerrada",
+            description: "Você foi desconectado com sucesso.",
+          });
         } else if (event === 'SIGNED_IN' && session) {
-          setIsAuthenticated(true);
           // Redirect to dashboard on sign in if on a public page
           const publicPaths = ['/', '/auth', '/register'];
           if (publicPaths.includes(location.pathname)) {
             navigate('/dashboard');
-            // Display welcome toast on successful sign in
-            toast({
-              title: "Bem-vindo!",
-              description: "Login realizado com sucesso.",
-            });
           }
+          
+          // Display welcome toast on successful sign in
+          toast({
+            title: "Bem-vindo!",
+            description: "Login realizado com sucesso.",
+          });
         }
       }
     );
@@ -106,16 +94,7 @@ function App() {
         authListener.subscription.unsubscribe();
       }
     };
-  }, [navigate, location.pathname, toast, isCheckingAuth]);
-
-  // Show loading indicator while checking authentication state
-  if (isCheckingAuth) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  }, [navigate, location.pathname, toast]);
 
   return (
     <>
