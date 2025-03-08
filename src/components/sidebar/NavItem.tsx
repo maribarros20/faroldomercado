@@ -14,7 +14,7 @@ interface NavItemProps {
 const NavItem = ({ to, icon, text, active, expanded, onClick }: NavItemProps) => {
   const content = (
     <>
-      <span className={expanded ? "mr-3" : ""}>{icon}</span>
+      <span className={`${expanded ? "mr-3" : ""} flex items-center justify-center w-5 h-5`}>{icon}</span>
       {expanded && <span className="font-medium">{text}</span>}
     </>
   );
@@ -23,7 +23,7 @@ const NavItem = ({ to, icon, text, active, expanded, onClick }: NavItemProps) =>
     return (
       <button
         onClick={onClick}
-        className={`flex items-center px-3 py-2 rounded-md transition-colors ${
+        className={`flex items-center px-3 py-3 rounded-md transition-colors ${
           active
             ? "bg-[#0066FF] text-white"
             : "text-gray-700 hover:bg-[#0066FF] hover:text-white"
@@ -37,7 +37,7 @@ const NavItem = ({ to, icon, text, active, expanded, onClick }: NavItemProps) =>
   return (
     <Link
       to={to}
-      className={`flex items-center px-3 py-2 rounded-md transition-colors ${
+      className={`flex items-center px-3 py-3 rounded-md transition-colors ${
         active
           ? "bg-[#0066FF] text-white"
           : "text-gray-700 hover:bg-[#0066FF] hover:text-white"

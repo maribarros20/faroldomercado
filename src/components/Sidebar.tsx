@@ -56,7 +56,7 @@ const Sidebar = () => {
       </Content>
       
       <Footer className="border-t p-4">
-        {/* Footer content can go here if needed */}
+        {/* Footer content removed as user profile is now in the header */}
       </Footer>
     </UISidebar>
   );

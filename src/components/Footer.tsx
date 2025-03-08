@@ -21,13 +21,13 @@ const Footer = ({ className = "" }: FooterProps) => {
   };
 
   return (
-    <footer className={`bg-[#0066FF] text-white dark:bg-[#0066FF] border-t border-gray-200 dark:border-gray-800 pt-3 pb-2 ${className} w-full right-0 transition-all duration-300 z-10 mt-auto ${
+    <footer className={`bg-[#0066FF] text-white dark:bg-[#0066FF] border-t border-gray-200 dark:border-gray-800 py-3 ${className} w-full right-0 transition-all duration-300 z-10 mt-auto rounded-t-2xl ${
       expanded ? "ml-64" : "ml-20"
     }`}>
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Company Info */}
-          <div className="space-y-1">
+          <div className="space-y-2">
             <h3 className="text-lg font-semibold text-white dark:text-white">Farol do Mercado</h3>
             <p className="text-white/80 dark:text-white/80 text-xs">
               CNPJ: 40.085.415/0001-20
@@ -55,7 +55,7 @@ const Footer = ({ className = "" }: FooterProps) => {
           </div>
           
           {/* Quick Links */}
-          <div className="space-y-1">
+          <div className="space-y-2">
             <h3 className="text-lg font-semibold text-white dark:text-white">Links Rápidos</h3>
             <ul className="space-y-1">
               <li>
@@ -82,7 +82,7 @@ const Footer = ({ className = "" }: FooterProps) => {
           </div>
           
           {/* Contact/Support */}
-          <div className="space-y-1">
+          <div className="space-y-2">
             <h3 className="text-lg font-semibold text-white dark:text-white">Suporte</h3>
             <p className="text-white/80 dark:text-white/80 text-xs">
               Precisa de ajuda? Entre em contato!

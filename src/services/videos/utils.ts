@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const incrementVideoViews = async (videoId: string) => {
@@ -73,37 +72,39 @@ export const getVideoComments = async (videoId: string) => {
   }
 };
 
-// Updated likeVideoComment to use custom SQL function instead of RPC
 export const likeVideoComment = async (commentId: string) => {
   try {
-    // Since 'like_video_comment' is not in the allowed RPC list, we'll use a direct update
-    const { error } = await supabase
-      .from('video_comments')
-      .update({ likes_count: supabase.rpc('increment', { row_id: commentId, table_name: 'video_comments', column_name: 'likes_count' }) })
-      .eq('id', commentId);
-
+    const { error, data } = await supabase.rpc('like_video_comment', {
+      comment_id: commentId
+    });
+    
     if (error) {
-      console.error('Error liking video comment:', error);
+      console.error('Error liking comment:', error);
+      throw error;
     }
-  } catch (error) {
-    console.error('Error in likeVideoComment:', error);
+    
+    return data;
+  } catch (err) {
+    console.error('Error liking comment:', err);
+    throw err;
   }
 };
 
-// Updated unlikeVideoComment to use custom SQL function instead of RPC
 export const unlikeVideoComment = async (commentId: string) => {
   try {
-    // Since 'unlike_video_comment' is not in the allowed RPC list, we'll use a direct update
-    const { error } = await supabase
-      .from('video_comments')
-      .update({ likes_count: supabase.rpc('decrement', { row_id: commentId, table_name: 'video_comments', column_name: 'likes_count' }) })
-      .eq('id', commentId);
-
+    const { error, data } = await supabase.rpc('unlike_video_comment', {
+      comment_id: commentId
+    });
+    
     if (error) {
-      console.error('Error unliking video comment:', error);
+      console.error('Error unliking comment:', error);
+      throw error;
     }
-  } catch (error) {
-    console.error('Error in unlikeVideoComment:', error);
+    
+    return data;
+  } catch (err) {
+    console.error('Error unliking comment:', err);
+    throw err;
   }
 };
 
@@ -155,7 +156,6 @@ export const addVideoComment = async (videoId: string, content: string, userId: 
   }
 };
 
-// Add the missing functions that are imported in other files
 export const extractYoutubeId = (url: string): string | null => {
   if (!url) return null;
   
@@ -178,7 +178,6 @@ export const extractYoutubeId = (url: string): string | null => {
   return null;
 };
 
-// Process a single video with themes
 export const processVideoWithThemes = async (video: any): Promise<any> => {
   if (!video) return null;
   
@@ -208,7 +207,6 @@ export const processVideoWithThemes = async (video: any): Promise<any> => {
   }
 };
 
-// Process multiple videos with themes
 export const processVideosWithThemes = async (videos: any[]): Promise<any[]> => {
   if (!videos || videos.length === 0) return [];
   
@@ -220,7 +218,6 @@ export const processVideosWithThemes = async (videos: any[]): Promise<any[]> => 
   }
 };
 
-// Add the missing likeVideo and hasUserLikedVideo functions
 export const likeVideo = async (videoId: string) => {
   try {
     const { data: session } = await supabase.auth.getSession();

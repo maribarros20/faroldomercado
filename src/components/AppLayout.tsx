@@ -36,8 +36,8 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       <div className="flex min-h-screen flex-col w-full">
         <div className="flex flex-1 w-full">
           <Sidebar />
-          <main className="flex-1 flex flex-col max-w-full overflow-x-hidden transition-all duration-300 ml-20 md:ml-20 lg:ml-20 pb-36">
-            <div className="flex justify-between items-center p-4 border-b">
+          <main className="flex-1 flex flex-col max-w-full overflow-x-hidden transition-all duration-300 ml-20 md:ml-20 lg:ml-20 pb-24 min-h-screen">
+            <div className="flex justify-between items-center p-4 border-b h-16">
               {/* Left side of header can be empty or have a title/breadcrumb */}
               <div></div>
               {/* Right side of header with user profile and quick actions */}
