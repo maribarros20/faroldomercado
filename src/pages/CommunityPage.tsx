@@ -1,17 +1,16 @@
 
 import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, AlertCircle } from "lucide-react";
-import ChannelsList from "@/components/community/ChannelsList";
-import CommunityPosts from "@/components/community/CommunityPosts";
+import { AlertCircle } from "lucide-react";
 import CreatePostDialog from "@/components/community/CreatePostDialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Channel } from "@/types/community"; // Import Channel type from common types
+import { Channel } from "@/types/community";
 import { Spinner } from "@/components/ui/spinner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import CommunityHeader from "@/components/community/CommunityHeader";
+import ChannelsSection from "@/components/community/ChannelsSection";
+import PostsSection from "@/components/community/PostsSection";
 
 const CommunityPage = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -186,18 +185,16 @@ const CommunityPage = () => {
     });
   };
 
+  const handleOpenCreatePost = () => {
+    setIsCreatePostOpen(true);
+  };
+
   return (
     <div className="container mx-auto py-6 px-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Comunidade</h1>
-        <Button 
-          onClick={() => setIsCreatePostOpen(true)}
-          disabled={isLoading || !selectedChannelId || accessDenied}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Criar Postagem
-        </Button>
-      </div>
+      <CommunityHeader 
+        onCreatePost={handleOpenCreatePost}
+        isDisabled={isLoading || !selectedChannelId || accessDenied}
+      />
       
       <Tabs defaultValue="forum" className="space-y-4">
         <TabsList>
@@ -218,31 +215,21 @@ const CommunityPage = () => {
           ) : channels.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="md:col-span-1">
-                <ChannelsList 
-                  channels={channels} 
-                  activeChannel={selectedChannelId}
+                <ChannelsSection 
+                  isLoading={isLoading}
+                  channels={channels}
+                  selectedChannelId={selectedChannelId}
                   onSelectChannel={handleSelectChannel}
                 />
               </div>
               
               <div className="md:col-span-3">
-                {accessDenied ? (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Acesso Restrito</AlertTitle>
-                    <AlertDescription>
-                      Este canal é específico para usuários associados ao mentor/empresa {currentChannel?.mentor_name}. 
-                      Você não tem permissão para acessar este conteúdo.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  selectedChannelId && userProfile?.id && (
-                    <CommunityPosts 
-                      channelId={selectedChannelId}
-                      userId={userProfile.id}
-                    />
-                  )
-                )}
+                <PostsSection 
+                  accessDenied={accessDenied}
+                  currentChannel={currentChannel}
+                  selectedChannelId={selectedChannelId}
+                  userId={userProfile?.id || ""}
+                />
               </div>
             </div>
           ) : (
