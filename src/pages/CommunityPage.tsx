@@ -21,6 +21,7 @@ const CommunityPage = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [accessDenied, setAccessDenied] = useState(false);
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -42,11 +43,12 @@ const CommunityPage = () => {
         // Fetch user profile
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("*, mentor_id")
+          .select("*, mentor_id, role")
           .eq("id", sessionData.session.user.id)
           .single();
           
         setUserProfile(profileData || null);
+        setIsAdmin(profileData?.role === 'admin');
         const userMentorId = profileData?.mentor_id || null;
 
         // Get channels - filter based on access rules
@@ -73,15 +75,22 @@ const CommunityPage = () => {
           mentor_name: channel.mentor?.name
         })) as Channel[];
         
-        // Filter channels based on access permissions
-        const accessibleChannels = typedChannels.filter(channel => {
-          // If not company specific, everyone can access
-          if (!channel.is_company_specific) {
-            return true;
-          }
-          // If company specific, only users associated with the mentor can access
-          return channel.mentor_id === userMentorId;
-        });
+        // Filter channels based on access permissions - admins can see all channels
+        let accessibleChannels;
+        if (isAdmin) {
+          // Admins see all channels
+          accessibleChannels = typedChannels;
+        } else {
+          // Regular users see public channels and those matching their mentor
+          accessibleChannels = typedChannels.filter(channel => {
+            // If not company specific, everyone can access
+            if (!channel.is_company_specific) {
+              return true;
+            }
+            // If company specific, only users associated with the mentor can access
+            return channel.mentor_id === userMentorId;
+          });
+        }
         
         setChannels(accessibleChannels);
         
@@ -122,14 +131,14 @@ const CommunityPage = () => {
     if (selectedChannel) {
       setCurrentChannel(selectedChannel);
       
-      // Check if user has access to this channel
-      if (selectedChannel.is_company_specific && selectedChannel.mentor_id !== userProfile?.mentor_id) {
+      // Check if user has access to this channel - admins always have access
+      if (!isAdmin && selectedChannel.is_company_specific && selectedChannel.mentor_id !== userProfile?.mentor_id) {
         setAccessDenied(true);
       } else {
         setAccessDenied(false);
       }
     }
-  }, [selectedChannelId, channels, userProfile]);
+  }, [selectedChannelId, channels, userProfile, isAdmin]);
 
   const handleSelectChannel = (channelId: string) => {
     setSelectedChannelId(channelId);
