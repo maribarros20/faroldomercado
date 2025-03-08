@@ -7,6 +7,8 @@ export function useUserProfile() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [accountType, setAccountType] = useState<string | null>(null);
+  const [mentorId, setMentorId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -30,6 +32,8 @@ export function useUserProfile() {
             setUserRole(profile.role);
             setAvatarUrl(profile.photo);
             setUserName(`${profile.first_name} ${profile.last_name}`);
+            setAccountType(profile.tipo_de_conta);
+            setMentorId(profile.mentor_link_id);
           }
         }
       } catch (error) {
@@ -42,5 +46,12 @@ export function useUserProfile() {
     fetchUserProfile();
   }, []);
 
-  return { userRole, avatarUrl, userName, isLoading };
+  return { 
+    userRole, 
+    avatarUrl, 
+    userName, 
+    isLoading, 
+    accountType,
+    mentorId
+  };
 }

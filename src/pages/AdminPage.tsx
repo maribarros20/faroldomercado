@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +17,8 @@ import { Shield, AlertCircle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import AdminCommunity from "@/components/admin/AdminCommunity";
 import AdminMentors from "@/components/admin/AdminMentors";
+import AdminUserManager from "@/components/admin/AdminUserManager";
+
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("subscribers");
   const navigate = useNavigate();
@@ -94,11 +97,13 @@ const AdminPage = () => {
       navigate('/dashboard');
     }
   }, [isAdmin, isLoading, navigate, toast]);
+
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">
         <Spinner size="lg" />
       </div>;
   }
+
   if (isError) {
     return <div className="flex justify-center items-center h-screen">
         <div className="text-center p-6 max-w-md">
@@ -113,6 +118,7 @@ const AdminPage = () => {
         </div>
       </div>;
   }
+
   if (!isAdmin) {
     return <div className="flex justify-center items-center h-screen">
         <div className="text-center p-6 max-w-md">
@@ -127,16 +133,18 @@ const AdminPage = () => {
         </div>
       </div>;
   }
+
   return <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-8">Painel de Administração</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-8 w-full md:w-auto flex flex-wrap">
           <TabsTrigger value="subscribers">Assinantes</TabsTrigger>
+          <TabsTrigger value="users">Usuários</TabsTrigger>
           <TabsTrigger value="materials">Materiais</TabsTrigger>
           <TabsTrigger value="videos">Vídeos</TabsTrigger>
           <TabsTrigger value="community">Comunidade</TabsTrigger>
-          <TabsTrigger value="mentors">Cadastros</TabsTrigger>
+          <TabsTrigger value="mentors">Mentores</TabsTrigger>
           <TabsTrigger value="plans">Planos</TabsTrigger>
           <TabsTrigger value="audit-logs">Logs de Auditoria</TabsTrigger>
           <TabsTrigger value="market-news">Notícias do Mercado</TabsTrigger>
@@ -147,6 +155,10 @@ const AdminPage = () => {
           <CardContent className="p-6">
             <TabsContent value="subscribers" className="mt-0">
               <AdminSubscribers />
+            </TabsContent>
+            
+            <TabsContent value="users" className="mt-0">
+              <AdminUserManager />
             </TabsContent>
             
             <TabsContent value="materials" className="mt-0">
@@ -185,4 +197,5 @@ const AdminPage = () => {
       </Tabs>
     </div>;
 };
+
 export default AdminPage;

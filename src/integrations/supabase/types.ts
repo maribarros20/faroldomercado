@@ -49,6 +49,7 @@ export type Database = {
           is_company_specific: boolean
           mentor_id: string | null
           name: string
+          owner_id: string | null
           updated_at: string
         }
         Insert: {
@@ -60,6 +61,7 @@ export type Database = {
           is_company_specific?: boolean
           mentor_id?: string | null
           name: string
+          owner_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -71,6 +73,7 @@ export type Database = {
           is_company_specific?: boolean
           mentor_id?: string | null
           name?: string
+          owner_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -385,6 +388,7 @@ export type Database = {
           likes_count: number | null
           mentor_id: string | null
           navigation_id: string | null
+          owner_id: string | null
           plan_id: string | null
           thumbnail_url: string | null
           title: string
@@ -403,6 +407,7 @@ export type Database = {
           likes_count?: number | null
           mentor_id?: string | null
           navigation_id?: string | null
+          owner_id?: string | null
           plan_id?: string | null
           thumbnail_url?: string | null
           title: string
@@ -421,6 +426,7 @@ export type Database = {
           likes_count?: number | null
           mentor_id?: string | null
           navigation_id?: string | null
+          owner_id?: string | null
           plan_id?: string | null
           thumbnail_url?: string | null
           title?: string
@@ -460,6 +466,9 @@ export type Database = {
       }
       mentors: {
         Row: {
+          can_create_content: boolean | null
+          can_create_plans: boolean | null
+          can_manage_students: boolean | null
           cnpj: string
           created_at: string
           email: string
@@ -469,6 +478,9 @@ export type Database = {
           photo: string | null
         }
         Insert: {
+          can_create_content?: boolean | null
+          can_create_plans?: boolean | null
+          can_manage_students?: boolean | null
           cnpj: string
           created_at?: string
           email: string
@@ -478,6 +490,9 @@ export type Database = {
           photo?: string | null
         }
         Update: {
+          can_create_content?: boolean | null
+          can_create_plans?: boolean | null
+          can_manage_students?: boolean | null
           cnpj?: string
           created_at?: string
           email?: string
@@ -572,9 +587,12 @@ export type Database = {
           duration_days: number
           id: string
           is_active: boolean | null
+          is_mentor_plan: boolean | null
           is_popular: boolean | null
+          mentor_id: string | null
           monthly_price: number | null
           name: string
+          requires_payment: boolean | null
           trial_days: number
           updated_at: string | null
           yearly_price: number | null
@@ -585,9 +603,12 @@ export type Database = {
           duration_days?: number
           id?: string
           is_active?: boolean | null
+          is_mentor_plan?: boolean | null
           is_popular?: boolean | null
+          mentor_id?: string | null
           monthly_price?: number | null
           name: string
+          requires_payment?: boolean | null
           trial_days?: number
           updated_at?: string | null
           yearly_price?: number | null
@@ -598,14 +619,25 @@ export type Database = {
           duration_days?: number
           id?: string
           is_active?: boolean | null
+          is_mentor_plan?: boolean | null
           is_popular?: boolean | null
+          mentor_id?: string | null
           monthly_price?: number | null
           name?: string
+          requires_payment?: boolean | null
           trial_days?: number
           updated_at?: string | null
           yearly_price?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "plans_mentor_id_fkey"
+            columns: ["mentor_id"]
+            isOneToOne: false
+            referencedRelation: "mentors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       post_comments: {
         Row: {
@@ -648,6 +680,7 @@ export type Database = {
       profiles: {
         Row: {
           cnpj: string | null
+          contrato_expiracao_data: string | null
           cpf: string | null
           date_of_birth: string
           email: string
@@ -655,15 +688,19 @@ export type Database = {
           id: string
           last_name: string
           mentor_id: string | null
+          mentor_link_id: string | null
+          owner_id: string | null
           phone: string | null
           photo: string | null
           plan_id: string | null
           role: Database["public"]["Enums"]["user_role"]
+          tipo_de_conta: string | null
           updated_at: string | null
           username: string | null
         }
         Insert: {
           cnpj?: string | null
+          contrato_expiracao_data?: string | null
           cpf?: string | null
           date_of_birth: string
           email: string
@@ -671,15 +708,19 @@ export type Database = {
           id: string
           last_name: string
           mentor_id?: string | null
+          mentor_link_id?: string | null
+          owner_id?: string | null
           phone?: string | null
           photo?: string | null
           plan_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          tipo_de_conta?: string | null
           updated_at?: string | null
           username?: string | null
         }
         Update: {
           cnpj?: string | null
+          contrato_expiracao_data?: string | null
           cpf?: string | null
           date_of_birth?: string
           email?: string
@@ -687,10 +728,13 @@ export type Database = {
           id?: string
           last_name?: string
           mentor_id?: string | null
+          mentor_link_id?: string | null
+          owner_id?: string | null
           phone?: string | null
           photo?: string | null
           plan_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          tipo_de_conta?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -698,6 +742,13 @@ export type Database = {
           {
             foreignKeyName: "profiles_mentor_id_fkey"
             columns: ["mentor_id"]
+            isOneToOne: false
+            referencedRelation: "mentors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_mentor_link_id_fkey"
+            columns: ["mentor_link_id"]
             isOneToOne: false
             referencedRelation: "mentors"
             referencedColumns: ["id"]
@@ -1038,6 +1089,7 @@ export type Database = {
           id: string
           likes: number | null
           navigation_id: string | null
+          owner_id: string | null
           source: string
           themes: Json | null
           thumbnail: string | null
@@ -1056,6 +1108,7 @@ export type Database = {
           id?: string
           likes?: number | null
           navigation_id?: string | null
+          owner_id?: string | null
           source: string
           themes?: Json | null
           thumbnail?: string | null
@@ -1074,6 +1127,7 @@ export type Database = {
           id?: string
           likes?: number | null
           navigation_id?: string | null
+          owner_id?: string | null
           source?: string
           themes?: Json | null
           thumbnail?: string | null
@@ -1154,6 +1208,7 @@ export type Database = {
           likes_count: number | null
           mentor_id: string | null
           navigation_id: string | null
+          owner_id: string | null
           plan_id: string | null
           thumbnail_url: string | null
           title: string
@@ -1177,6 +1232,7 @@ export type Database = {
           likes_count: number | null
           mentor_id: string | null
           navigation_id: string | null
+          owner_id: string | null
           plan_id: string | null
           thumbnail_url: string | null
           title: string

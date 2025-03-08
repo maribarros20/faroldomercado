@@ -130,7 +130,7 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
         const firstName = nameParts[0] || "";
         const lastName = nameParts.slice(1).join(" ") || "";
         
-        // Register with Supabase - modified to match database schema
+        // Register with Supabase - with account type
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -142,7 +142,8 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
               phone,
               cpf,
               date_of_birth: dateOfBirth,
-              role: 'user'
+              role: 'user',
+              tipo_de_conta: 'trader' // Default account type for self-registration
             }
           }
         });

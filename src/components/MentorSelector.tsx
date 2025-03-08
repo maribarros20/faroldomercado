@@ -73,9 +73,14 @@ const MentorSelector = ({ userId, currentMentorId }: MentorSelectorProps) => {
       setSelectedMentor(mentor);
       
       try {
+        // Update both mentor_id (for compatibility) and mentor_link_id (new field)
         const { error } = await supabase
           .from("profiles")
-          .update({ mentor_id: mentor.id })
+          .update({ 
+            mentor_id: mentor.id,
+            mentor_link_id: mentor.id,
+            tipo_de_conta: "aluno" // Update to set as student
+          })
           .eq("id", userId);
           
         if (error) {
