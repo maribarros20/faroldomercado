@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,34 +16,39 @@ import { Shield, AlertCircle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import AdminCommunity from "@/components/admin/AdminCommunity";
 import AdminMentors from "@/components/admin/AdminMentors";
-
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("subscribers");
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
 
   // Check if the user is an admin with enhanced error handling
-  const { data: isAdmin, isLoading, isError, error } = useQuery({
+  const {
+    data: isAdmin,
+    isLoading,
+    isError,
+    error
+  } = useQuery({
     queryKey: ['check-admin'],
     queryFn: async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
+        const {
+          data: {
+            session
+          }
+        } = await supabase.auth.getSession();
         if (!session) {
           return false;
         }
-        
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-        
+        const {
+          data,
+          error
+        } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
         if (error) {
           console.error('Erro ao verificar status de admin:', error);
           throw new Error(error.message);
         }
-        
         return data?.role === 'admin';
       } catch (err) {
         console.error('Erro ao verificar status de admin:', err);
@@ -65,14 +69,13 @@ const AdminPage = () => {
 
   // Set up auth state listener
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          navigate('/auth');
-        }
+    const {
+      data: authListener
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        navigate('/auth');
       }
-    );
-    
+    });
     return () => {
       if (authListener && authListener.subscription) {
         authListener.subscription.unsubscribe();
@@ -91,57 +94,40 @@ const AdminPage = () => {
       navigate('/dashboard');
     }
   }, [isAdmin, isLoading, navigate, toast]);
-
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
+    return <div className="flex justify-center items-center h-screen">
         <Spinner size="lg" />
-      </div>
-    );
+      </div>;
   }
-
   if (isError) {
-    return (
-      <div className="flex justify-center items-center h-screen">
+    return <div className="flex justify-center items-center h-screen">
         <div className="text-center p-6 max-w-md">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Erro ao verificar permissões</h2>
           <p className="text-gray-600 mb-4">
             {error instanceof Error ? error.message : "Ocorreu um erro ao verificar suas permissões."}
           </p>
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
+          <button onClick={() => navigate('/dashboard')} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
             Voltar para o Dashboard
           </button>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!isAdmin) {
-    return (
-      <div className="flex justify-center items-center h-screen">
+    return <div className="flex justify-center items-center h-screen">
         <div className="text-center p-6 max-w-md">
           <Shield className="h-12 w-12 text-orange-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Acesso Restrito</h2>
           <p className="text-gray-600 mb-4">
             Esta área é reservada para administradores. Você não tem permissão para acessar este conteúdo.
           </p>
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
+          <button onClick={() => navigate('/dashboard')} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
             Voltar para o Dashboard
           </button>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="container mx-auto py-8 px-4">
+  return <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-8">Painel de Administração</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -150,7 +136,7 @@ const AdminPage = () => {
           <TabsTrigger value="materials">Materiais</TabsTrigger>
           <TabsTrigger value="videos">Vídeos</TabsTrigger>
           <TabsTrigger value="community">Comunidade</TabsTrigger>
-          <TabsTrigger value="mentors">Mentores</TabsTrigger>
+          <TabsTrigger value="mentors">Cadastros</TabsTrigger>
           <TabsTrigger value="plans">Planos</TabsTrigger>
           <TabsTrigger value="audit-logs">Logs de Auditoria</TabsTrigger>
           <TabsTrigger value="market-news">Notícias do Mercado</TabsTrigger>
@@ -197,8 +183,6 @@ const AdminPage = () => {
           </CardContent>
         </Card>
       </Tabs>
-    </div>
-  );
+    </div>;
 };
-
 export default AdminPage;
