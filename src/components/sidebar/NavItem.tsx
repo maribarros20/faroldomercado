@@ -26,7 +26,7 @@ const NavItem = ({ to, icon, text, active, expanded, onClick }: NavItemProps) =>
         className={`flex items-center px-3 py-3 rounded-md transition-colors ${
           active
             ? "bg-[#0066FF] text-white"
-            : "text-gray-700 hover:bg-[#0066FF] hover:text-white"
+            : "text-gray-700 hover:bg-[#e6f0ff] hover:text-[#0066FF]"
         } ${expanded ? "justify-start" : "justify-center"} w-full text-left`}
       >
         {content}
@@ -40,7 +40,7 @@ const NavItem = ({ to, icon, text, active, expanded, onClick }: NavItemProps) =>
       className={`flex items-center px-3 py-3 rounded-md transition-colors ${
         active
           ? "bg-[#0066FF] text-white"
-          : "text-gray-700 hover:bg-[#0066FF] hover:text-white"
+          : "text-gray-700 hover:bg-[#e6f0ff] hover:text-[#0066FF]"
       } ${expanded ? "justify-start" : "justify-center"}`}
     >
       {content}

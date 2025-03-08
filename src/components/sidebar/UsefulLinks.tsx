@@ -57,7 +57,7 @@ const UsefulLinks = ({ expanded }: UsefulLinksProps) => {
   ];
   
   return (
-    <div className="bg-[#0066FF] rounded-2xl px-3 py-3 shadow-md">
+    <div className="bg-[#0066FF] rounded-2xl px-3 py-3 shadow-md mt-auto">
       {links.map((link, index) => (
         <LinkItem 
           key={index}

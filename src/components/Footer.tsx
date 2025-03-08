@@ -21,15 +21,15 @@ const Footer = ({ className = "" }: FooterProps) => {
   };
 
   return (
-    <footer className={`bg-[#0066FF] text-white dark:bg-[#0066FF] border-t border-gray-200 dark:border-gray-800 py-3 ${className} w-full right-0 transition-all duration-300 z-10 mt-auto rounded-t-2xl ${
+    <footer className={`bg-[#0066FF] text-white border-t border-[#0066FF] py-3 ${className} w-full right-0 transition-all duration-300 z-10 mt-auto rounded-t-2xl ${
       expanded ? "ml-64" : "ml-20"
     }`}>
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Company Info */}
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-white dark:text-white">Farol do Mercado</h3>
-            <p className="text-white/80 dark:text-white/80 text-xs">
+            <h3 className="text-lg font-semibold text-white">Farol do Mercado</h3>
+            <p className="text-white/80 text-xs">
               CNPJ: 40.085.415/0001-20
             </p>
             <div className="flex space-x-3">
@@ -56,25 +56,25 @@ const Footer = ({ className = "" }: FooterProps) => {
           
           {/* Quick Links */}
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-white dark:text-white">Links Rápidos</h3>
+            <h3 className="text-lg font-semibold text-white">Links Rápidos</h3>
             <ul className="space-y-1">
               <li>
-                <Link to="/dashboard" className="text-white/80 dark:text-white/80 hover:text-white dark:hover:text-white transition-colors text-xs">
+                <Link to="/dashboard" className="text-white/80 hover:text-white transition-colors text-xs">
                   Dashboard
                 </Link>
               </li>
               <li>
-                <Link to="/materials" className="text-white/80 dark:text-white/80 hover:text-white dark:hover:text-white transition-colors text-xs">
+                <Link to="/materials" className="text-white/80 hover:text-white transition-colors text-xs">
                   Materiais
                 </Link>
               </li>
               <li>
-                <Link to="/videos" className="text-white/80 dark:text-white/80 hover:text-white dark:hover:text-white transition-colors text-xs">
+                <Link to="/videos" className="text-white/80 hover:text-white transition-colors text-xs">
                   Vídeos
                 </Link>
               </li>
               <li>
-                <Link to="/community" className="text-white/80 dark:text-white/80 hover:text-white dark:hover:text-white transition-colors text-xs">
+                <Link to="/community" className="text-white/80 hover:text-white transition-colors text-xs">
                   Comunidade
                 </Link>
               </li>
@@ -83,8 +83,8 @@ const Footer = ({ className = "" }: FooterProps) => {
           
           {/* Contact/Support */}
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-white dark:text-white">Suporte</h3>
-            <p className="text-white/80 dark:text-white/80 text-xs">
+            <h3 className="text-lg font-semibold text-white">Suporte</h3>
+            <p className="text-white/80 text-xs">
               Precisa de ajuda? Entre em contato!
             </p>
             <a 
@@ -98,8 +98,8 @@ const Footer = ({ className = "" }: FooterProps) => {
           </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row justify-between items-center mt-2 pt-1 border-t border-white/20 dark:border-white/20">
-          <p className="text-xs text-white/80 dark:text-white/80">
+        <div className="flex flex-col sm:flex-row justify-between items-center mt-2 pt-1 border-t border-white/20">
+          <p className="text-xs text-white/80">
             © {currentYear} Farol do Mercado. Todos os direitos reservados.
           </p>
           
