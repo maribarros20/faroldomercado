@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface CommunityPostsProps {
   channelId: string;
@@ -23,6 +26,8 @@ interface CommunityPostsProps {
 
 const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId, userId }) => {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [commentContent, setCommentContent] = useState('');
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
@@ -32,77 +37,120 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId, userId }) =>
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const { data, error } = await supabase
+        setLoading(true);
+        setError(null);
+
+        // First, fetch all posts for the channel
+        const { data: postsData, error: postsError } = await supabase
           .from('community_posts')
-          .select(`
-            *,
-            user:profiles(id, first_name, last_name, email, photo, role, username, phone, cpf, date_of_birth)
-          `)
+          .select('*')
           .eq('channel_id', channelId)
           .order('created_at', { ascending: false });
       
-        if (error) {
-          console.error('Error fetching posts:', error);
-          toast({
-            title: "Erro ao carregar publicações",
-            description: "Não foi possível carregar as publicações. Tente novamente.",
-            variant: "destructive"
-          });
+        if (postsError) {
+          console.error('Error fetching posts:', postsError);
+          setError('Não foi possível carregar as publicações. Tente novamente.');
           return;
         }
       
-        // Check if user has liked each post
-        if (data && data.length > 0) {
-          const postsWithLikes = await Promise.all(
-            data.map(async (post) => {
-              const { data: likeData, error: likeError } = await supabase
-                .from('user_likes')
-                .select('*')
-                .eq('post_id', post.id)
-                .eq('user_id', userId)
-                .maybeSingle();
-              
-              // Handle the case when user property might be an error object
-              const userData = post.user && !('error' in post.user) ? post.user : null;
-              
-              return {
-                ...post,
-                user: userData,
-                user_has_liked: !!likeData
-              } as Post;
-            })
-          );
-          setPosts(postsWithLikes);
-        } else {
+        // If no posts, just set empty array and return
+        if (!postsData || postsData.length === 0) {
           setPosts([]);
+          setLoading(false);
+          return;
         }
+
+        // For each post, fetch the user (author)
+        const postsWithUsers = await Promise.all(
+          postsData.map(async (post) => {
+            // Fetch user profile for each post
+            const { data: userData, error: userError } = await supabase
+              .from('profiles')
+              .select('id, first_name, last_name, email, photo, role, username, phone, cpf, date_of_birth')
+              .eq('id', post.user_id)
+              .single();
+            
+            if (userError) {
+              console.error(`Error fetching user for post ${post.id}:`, userError);
+            }
+
+            // Check if current user has liked this post
+            const { data: likeData, error: likeError } = await supabase
+              .from('user_likes')
+              .select('*')
+              .eq('post_id', post.id)
+              .eq('user_id', userId)
+              .maybeSingle();
+            
+            if (likeError && likeError.code !== 'PGRST116') {
+              console.error(`Error checking like status for post ${post.id}:`, likeError);
+            }
+
+            // Count total likes for this post
+            const { count: likesCount, error: countError } = await supabase
+              .from('user_likes')
+              .select('*', { count: 'exact', head: true })
+              .eq('post_id', post.id);
+            
+            if (countError) {
+              console.error(`Error counting likes for post ${post.id}:`, countError);
+            }
+
+            // Count comments for this post
+            const { count: commentsCount, error: commentsCountError } = await supabase
+              .from('post_comments')
+              .select('*', { count: 'exact', head: true })
+              .eq('post_id', post.id);
+            
+            if (commentsCountError) {
+              console.error(`Error counting comments for post ${post.id}:`, commentsCountError);
+            }
+
+            return {
+              ...post,
+              user: userData || null,
+              user_has_liked: !!likeData,
+              likes_count: likesCount || 0,
+              comments_count: commentsCount || 0
+            } as Post;
+          })
+        );
+        
+        setPosts(postsWithUsers);
       } catch (error) {
         console.error('Error in fetchPosts:', error);
+        setError('Ocorreu um erro ao carregar as publicações. Tente novamente mais tarde.');
+      } finally {
+        setLoading(false);
       }
     };
     
     if (channelId) {
       fetchPosts();
     }
-  }, [channelId, userId, toast]);
+  }, [channelId, userId]);
   
   useEffect(() => {
     const fetchUser = async () => {
       if (!userId) return;
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Error fetching user:', error);
-        return;
-      }
-      
-      if (data) {
-        setUser(data as Profile);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error fetching user:', error);
+          return;
+        }
+        
+        if (data) {
+          setUser(data as Profile);
+        }
+      } catch (err) {
+        console.error('Error in fetchUser:', err);
       }
     };
     
@@ -236,6 +284,11 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId, userId }) =>
         
         setPosts((prevPosts) => [newPost, ...prevPosts]);
         setShowCreateDialog(false);
+        
+        toast({
+          title: "Publicação criada",
+          description: "Sua publicação foi criada com sucesso!",
+        });
       }
     } catch (error) {
       console.error('Error in handleCreatePost:', error);
@@ -308,10 +361,32 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId, userId }) =>
       setPosts(updatedPosts);
       setCommentContent('');
       setActiveCommentPostId(null);
+      
+      toast({
+        title: "Comentário adicionado",
+        description: "Seu comentário foi adicionado com sucesso!",
+      });
     } catch (error) {
       console.error('Error in handleAddComment:', error);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" className="mb-6">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div>
