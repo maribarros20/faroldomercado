@@ -1,23 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Post, Comment, Profile } from "@/types/community";
-import { MoreHorizontal, Heart, MessageSquare, HeartOff } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { supabase } from "@/integrations/supabase/client";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Post, Profile } from "@/types/community";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import PostItem from './PostItem';
+import CreatePostDialogComponent from './CreatePostDialog';
+import { 
+  fetchPosts, 
+  fetchUserProfile, 
+  createPost, 
+  toggleLike, 
+  addComment 
+} from '@/services/community/PostsService';
 
 interface CommunityPostsProps {
   channelId: string;
@@ -29,96 +25,20 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId, userId }) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [commentContent, setCommentContent] = useState('');
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
   const [user, setUser] = useState<Profile | null>(null);
   const { toast } = useToast();
 
+  // Fetch posts when channelId changes
   useEffect(() => {
-    const fetchPosts = async () => {
+    const loadPosts = async () => {
       try {
         setLoading(true);
         setError(null);
-
-        // First, fetch all posts for the channel
-        const { data: postsData, error: postsError } = await supabase
-          .from('community_posts')
-          .select('*')
-          .eq('channel_id', channelId)
-          .order('created_at', { ascending: false });
-      
-        if (postsError) {
-          console.error('Error fetching posts:', postsError);
-          setError('Não foi possível carregar as publicações. Tente novamente.');
-          return;
-        }
-      
-        // If no posts, just set empty array and return
-        if (!postsData || postsData.length === 0) {
-          setPosts([]);
-          setLoading(false);
-          return;
-        }
-
-        // For each post, fetch the user (author)
-        const postsWithUsers = await Promise.all(
-          postsData.map(async (post) => {
-            // Fetch user profile for each post
-            const { data: userData, error: userError } = await supabase
-              .from('profiles')
-              .select('id, first_name, last_name, email, photo, role, username, phone, cpf, date_of_birth')
-              .eq('id', post.user_id)
-              .single();
-            
-            if (userError) {
-              console.error(`Error fetching user for post ${post.id}:`, userError);
-            }
-
-            // Check if current user has liked this post
-            const { data: likeData, error: likeError } = await supabase
-              .from('user_likes')
-              .select('*')
-              .eq('post_id', post.id)
-              .eq('user_id', userId)
-              .maybeSingle();
-            
-            if (likeError && likeError.code !== 'PGRST116') {
-              console.error(`Error checking like status for post ${post.id}:`, likeError);
-            }
-
-            // Count total likes for this post
-            const { count: likesCount, error: countError } = await supabase
-              .from('user_likes')
-              .select('*', { count: 'exact', head: true })
-              .eq('post_id', post.id);
-            
-            if (countError) {
-              console.error(`Error counting likes for post ${post.id}:`, countError);
-            }
-
-            // Count comments for this post
-            const { count: commentsCount, error: commentsCountError } = await supabase
-              .from('post_comments')
-              .select('*', { count: 'exact', head: true })
-              .eq('post_id', post.id);
-            
-            if (commentsCountError) {
-              console.error(`Error counting comments for post ${post.id}:`, commentsCountError);
-            }
-
-            return {
-              ...post,
-              user: userData || null,
-              user_has_liked: !!likeData,
-              likes_count: likesCount || 0,
-              comments_count: commentsCount || 0
-            } as Post;
-          })
-        );
-        
-        setPosts(postsWithUsers);
+        const postsData = await fetchPosts(channelId, userId);
+        setPosts(postsData);
       } catch (error) {
-        console.error('Error in fetchPosts:', error);
+        console.error('Error loading posts:', error);
         setError('Ocorreu um erro ao carregar as publicações. Tente novamente mais tarde.');
       } finally {
         setLoading(false);
@@ -126,114 +46,49 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId, userId }) =>
     };
     
     if (channelId) {
-      fetchPosts();
+      loadPosts();
     }
   }, [channelId, userId]);
   
+  // Fetch user profile
   useEffect(() => {
-    const fetchUser = async () => {
+    const loadUserProfile = async () => {
       if (!userId) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle();
-        
-        if (error) {
-          console.error('Error fetching user:', error);
-          return;
-        }
-        
-        if (data) {
-          setUser(data as Profile);
-        }
-      } catch (err) {
-        console.error('Error in fetchUser:', err);
+      const profile = await fetchUserProfile(userId);
+      if (profile) {
+        setUser(profile);
       }
     };
     
-    fetchUser();
+    loadUserProfile();
   }, [userId]);
 
   const handleLike = async (postId: string) => {
     if (!user) return;
     
     try {
-      const { data: existingLike, error: existingLikeError } = await supabase
-        .from('user_likes')
-        .select('*')
-        .eq('post_id', postId)
-        .eq('user_id', user.id)
-        .maybeSingle();
-    
-      if (existingLikeError && existingLikeError.code !== 'PGRST116') {
-        console.error('Error checking existing like:', existingLikeError);
+      const result = await toggleLike(postId, user.id);
+      
+      // Update the local state
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post.id === postId
+            ? { 
+                ...post, 
+                likes_count: result.liked ? post.likes_count + 1 : post.likes_count - 1, 
+                user_has_liked: result.liked 
+              }
+            : post
+        )
+      );
+    } catch (error) {
+      if (error instanceof Error) {
         toast({
-          title: "Erro ao verificar curtida",
-          description: "Não foi possível verificar se você já curtiu esta publicação.",
+          title: "Erro ao processar curtida",
+          description: error.message,
           variant: "destructive"
         });
-        return;
       }
-    
-      if (existingLike) {
-        // Unlike the post
-        const { error: deleteError } = await supabase
-          .from('user_likes')
-          .delete()
-          .eq('post_id', postId)
-          .eq('user_id', user.id);
-      
-        if (deleteError) {
-          console.error('Error unliking post:', deleteError);
-          toast({
-            title: "Erro ao descurtir publicação",
-            description: "Não foi possível descurtir a publicação. Tente novamente.",
-            variant: "destructive"
-          });
-          return;
-        }
-      
-        // Update the local state
-        setPosts(prevPosts =>
-          prevPosts.map(post =>
-            post.id === postId
-              ? { ...post, likes_count: post.likes_count - 1, user_has_liked: false }
-              : post
-          )
-        );
-      } else {
-        // Like the post
-        const { error: insertError } = await supabase
-          .from('user_likes')
-          .insert({
-            post_id: postId,
-            user_id: user.id
-          });
-      
-        if (insertError) {
-          console.error('Error liking post:', insertError);
-          toast({
-            title: "Erro ao curtir publicação",
-            description: "Não foi possível curtir a publicação. Tente novamente.",
-            variant: "destructive"
-          });
-          return;
-        }
-      
-        // Update the local state
-        setPosts(prevPosts =>
-          prevPosts.map(post =>
-            post.id === postId
-              ? { ...post, likes_count: post.likes_count + 1, user_has_liked: true }
-              : post
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Error in handleLike:', error);
     }
   };
 
@@ -241,61 +96,27 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId, userId }) =>
     if (!user) return;
     
     try {
-      const { data: postData, error: postError } = await supabase
-        .from('community_posts')
-        .insert({
-          title: values.title,
-          content: values.content,
-          channel_id: channelId,
-          user_id: user.id
-        })
-        .select()
-        .single();
-    
-      if (postError) {
-        console.error('Error creating post:', postError);
+      const newPost = await createPost(channelId, user.id, values.title, values.content);
+      
+      setPosts((prevPosts) => [newPost, ...prevPosts]);
+      setShowCreateDialog(false);
+      
+      toast({
+        title: "Publicação criada",
+        description: "Sua publicação foi criada com sucesso!",
+      });
+    } catch (error) {
+      if (error instanceof Error) {
         toast({
           title: "Erro ao criar publicação",
-          description: "Não foi possível criar a publicação. Tente novamente.",
+          description: error.message,
           variant: "destructive"
         });
-        return;
       }
-    
-      if (postData) {
-        // Fetch the user data for the new post
-        const { data: userData, error: userError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, email, photo, role, username, phone, cpf, date_of_birth')
-          .eq('id', user.id)
-          .single();
-        
-        if (userError) {
-          console.error('Error fetching user data for new post:', userError);
-        }
-        
-        const newPost: Post = {
-          ...postData,
-          user: userData as Profile,
-          comments_count: 0,
-          likes_count: 0,
-          user_has_liked: false
-        };
-        
-        setPosts((prevPosts) => [newPost, ...prevPosts]);
-        setShowCreateDialog(false);
-        
-        toast({
-          title: "Publicação criada",
-          description: "Sua publicação foi criada com sucesso!",
-        });
-      }
-    } catch (error) {
-      console.error('Error in handleCreatePost:', error);
     }
   };
 
-  const handleAddComment = async (postId: string) => {
+  const handleAddComment = async (postId: string, commentContent: string) => {
     if (!user) return;
     
     if (!commentContent.trim()) {
@@ -308,42 +129,7 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId, userId }) =>
     }
     
     try {
-      const { data: commentData, error: commentError } = await supabase
-        .from('post_comments')
-        .insert({
-          post_id: postId,
-          content: commentContent,
-          user_id: user.id
-        })
-        .select()
-        .single();
-    
-      if (commentError) {
-        console.error('Error adding comment:', commentError);
-        toast({
-          title: "Erro ao adicionar comentário",
-          description: "Não foi possível adicionar o comentário. Tente novamente.",
-          variant: "destructive"
-        });
-        return;
-      }
-    
-      // Get user data for the comment
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, email, photo, role, username, phone, cpf, date_of_birth')
-        .eq('id', user.id)
-        .single();
-      
-      if (userError) {
-        console.error('Error fetching user data for comment:', userError);
-      }
-      
-      const newComment: Comment = {
-        ...commentData,
-        user: userData as Profile,
-        user_has_liked: false
-      };
+      const newComment = await addComment(postId, user.id, commentContent);
       
       // Update the post with the new comment
       const updatedPosts = posts.map(post => {
@@ -359,16 +145,24 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId, userId }) =>
       });
     
       setPosts(updatedPosts);
-      setCommentContent('');
-      setActiveCommentPostId(null);
       
       toast({
         title: "Comentário adicionado",
         description: "Seu comentário foi adicionado com sucesso!",
       });
     } catch (error) {
-      console.error('Error in handleAddComment:', error);
+      if (error instanceof Error) {
+        toast({
+          title: "Erro ao adicionar comentário",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
     }
+  };
+
+  const handleToggleComments = (postId: string) => {
+    setActiveCommentPostId(activeCommentPostId === postId ? null : postId);
   };
 
   if (loading) {
@@ -402,159 +196,25 @@ const CommunityPosts: React.FC<CommunityPostsProps> = ({ channelId, userId }) =>
         </div>
       ) : (
         posts.map((post) => (
-          <div key={post.id} className="bg-white rounded-lg shadow-md p-4 mb-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-3">
-                <Avatar>
-                  <AvatarImage src={post.user?.photo || ""} alt={`${post.user?.first_name} ${post.user?.last_name}`} />
-                  <AvatarFallback>{post.user?.first_name?.[0]}{post.user?.last_name?.[0]}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="font-semibold">{post.user?.first_name} {post.user?.last_name}</div>
-                  <div className="text-gray-500 text-sm">{new Date(post.created_at).toLocaleDateString()}</div>
-                </div>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Editar</DropdownMenuItem>
-                  <DropdownMenuItem>Deletar</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <h2 className="text-xl font-bold mt-2">{post.title}</h2>
-            <p className="text-gray-700 mt-1">{post.content}</p>
-
-            <div className="flex items-center justify-between mt-4">
-              <div className="flex items-center space-x-4">
-                <Button variant="ghost" size="sm" onClick={() => handleLike(post.id)}>
-                  {post.user_has_liked ? (
-                    <Heart className="h-5 w-5 text-red-500" />
-                  ) : (
-                    <HeartOff className="h-5 w-5" />
-                  )}
-                  <span className="ml-1">{post.likes_count}</span>
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setActiveCommentPostId(activeCommentPostId === post.id ? null : post.id)}>
-                  <MessageSquare className="h-5 w-5" />
-                  <span className="ml-1">{post.comments_count}</span>
-                </Button>
-              </div>
-            </div>
-
-            {/* Comments Section */}
-            {activeCommentPostId === post.id && (
-              <div className="mt-4">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Avatar>
-                    <AvatarImage src={user?.photo || ""} alt={`${user?.first_name} ${user?.last_name}`} />
-                    <AvatarFallback>{user?.first_name?.[0]}{user?.last_name?.[0]}</AvatarFallback>
-                  </Avatar>
-                  <Input
-                    type="text"
-                    placeholder="Adicionar um comentário..."
-                    value={commentContent}
-                    onChange={(e) => setCommentContent(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button size="sm" onClick={() => handleAddComment(post.id)}>
-                    Enviar
-                  </Button>
-                </div>
-
-                {/* Load comments when needed */}
-                {post.comments && post.comments.length > 0 ? (
-                  post.comments.map((comment) => (
-                    <div key={comment.id} className="bg-gray-100 rounded-lg p-2 mb-2">
-                      <div className="flex items-start space-x-2">
-                        <Avatar className="w-6 h-6">
-                          <AvatarImage src={comment.user?.photo || ""} alt={`${comment.user?.first_name} ${comment.user?.last_name}`} />
-                          <AvatarFallback>{comment.user?.first_name?.[0]}{comment.user?.last_name?.[0]}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-semibold text-sm">{comment.user?.first_name} {comment.user?.last_name}</div>
-                          <div className="text-gray-700 text-sm">{comment.content}</div>
-                          <div className="text-gray-500 text-xs">{new Date(comment.created_at).toLocaleDateString()}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center p-2 text-gray-500 text-sm">
-                    Seja o primeiro a comentar!
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <PostItem 
+            key={post.id}
+            post={post}
+            currentUser={user}
+            activeCommentPostId={activeCommentPostId}
+            onToggleComments={handleToggleComments}
+            onLike={handleLike}
+            onAddComment={handleAddComment}
+          />
         ))
       )}
 
       {/* Create Post Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Criar Publicação</DialogTitle>
-            <DialogDescription>
-              Compartilhe algo com a comunidade!
-            </DialogDescription>
-          </DialogHeader>
-          <CreatePostForm onSubmit={handleCreatePost} />
-          <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => setShowCreateDialog(false)}>
-              Cancelar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreatePostDialogComponent
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSubmit={handleCreatePost}
+      />
     </div>
-  );
-};
-
-interface CreatePostFormProps {
-  onSubmit: (values: { title: string; content: string }) => void;
-}
-
-const CreatePostForm: React.FC<CreatePostFormProps> = ({ onSubmit }) => {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({ title, content });
-    setTitle('');
-    setContent('');
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="title">Título</Label>
-        <Input
-          type="text"
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="content">Conteúdo</Label>
-        <Textarea
-          id="content"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          required
-        />
-      </div>
-      <Button type="submit">Publicar</Button>
-    </form>
   );
 };
 
