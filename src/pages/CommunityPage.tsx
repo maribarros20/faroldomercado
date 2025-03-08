@@ -41,14 +41,24 @@ const CommunityPage = () => {
         }
 
         // Fetch user profile
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("*, mentor_id, role")
           .eq("id", sessionData.session.user.id)
           .single();
+        
+        if (profileError) {
+          console.error("Erro ao buscar perfil:", profileError);
+        }
           
         setUserProfile(profileData || null);
-        setIsAdmin(profileData?.role === 'admin');
+        
+        // Check if user is admin - important to debug
+        const userIsAdmin = profileData?.role === 'admin';
+        console.log("User role:", profileData?.role);
+        console.log("User is admin:", userIsAdmin);
+        setIsAdmin(userIsAdmin);
+        
         const userMentorId = profileData?.mentor_id || null;
 
         // Get channels - filter based on access rules
@@ -60,6 +70,9 @@ const CommunityPage = () => {
         if (error) {
           throw error;
         }
+        
+        console.log("Channels data:", channelsData);
+        console.log("Total channels:", channelsData.length);
         
         // Transform the data to match the Channel type
         const typedChannels = channelsData.map((channel: any) => ({
@@ -77,11 +90,13 @@ const CommunityPage = () => {
         
         // Filter channels based on access permissions - admins can see all channels
         let accessibleChannels;
-        if (isAdmin) {
+        if (userIsAdmin) {
           // Admins see all channels
+          console.log("User is admin, showing all channels");
           accessibleChannels = typedChannels;
         } else {
           // Regular users see public channels and those matching their mentor
+          console.log("User is not admin, filtering channels");
           accessibleChannels = typedChannels.filter(channel => {
             // If not company specific, everyone can access
             if (!channel.is_company_specific) {
@@ -92,6 +107,7 @@ const CommunityPage = () => {
           });
         }
         
+        console.log("Accessible channels:", accessibleChannels.length);
         setChannels(accessibleChannels);
         
         // Select first channel if none selected and accessible channels exist
@@ -121,7 +137,7 @@ const CommunityPage = () => {
     };
     
     loadUserAndChannels();
-  }, [toast, selectedChannelId]);
+  }, [toast]);
 
   // Check channel access when selection changes
   useEffect(() => {
