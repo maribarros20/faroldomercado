@@ -49,6 +49,13 @@ const CommunityPage = () => {
         
         if (profileError) {
           console.error("Erro ao buscar perfil:", profileError);
+          toast({
+            title: "Erro ao carregar perfil",
+            description: "Não foi possível carregar seu perfil. Por favor, tente novamente.",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
         }
           
         setUserProfile(profileData || null);
@@ -68,6 +75,7 @@ const CommunityPage = () => {
           .order("name", { ascending: true });
           
         if (error) {
+          console.error("Erro ao buscar canais:", error);
           throw error;
         }
         
@@ -90,6 +98,8 @@ const CommunityPage = () => {
         
         // Filter channels based on access permissions - admins can see all channels
         let accessibleChannels;
+        
+        // Important: Use the userIsAdmin variable here to ensure consistency and avoid state timing issues
         if (userIsAdmin) {
           // Admins see all channels
           console.log("User is admin, showing all channels");
@@ -108,6 +118,14 @@ const CommunityPage = () => {
         }
         
         console.log("Accessible channels:", accessibleChannels.length);
+        
+        if (accessibleChannels.length === 0) {
+          console.log("No accessible channels found");
+          if (userIsAdmin) {
+            console.log("User is admin but no channels were found. This is unexpected.");
+          }
+        }
+        
         setChannels(accessibleChannels);
         
         // Select first channel if none selected and accessible channels exist
@@ -147,7 +165,7 @@ const CommunityPage = () => {
     if (selectedChannel) {
       setCurrentChannel(selectedChannel);
       
-      // Check if user has access to this channel - admins always have access
+      // Use isAdmin from state to be consistent
       if (!isAdmin && selectedChannel.is_company_specific && selectedChannel.mentor_id !== userProfile?.mentor_id) {
         setAccessDenied(true);
       } else {
