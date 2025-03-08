@@ -50,4 +50,6 @@ export type Channel = {
   created_by: string | null;
   is_company_specific: boolean;
   company_id: string | null;
+  mentor_id?: string | null;
+  mentor_name?: string | null;
 };

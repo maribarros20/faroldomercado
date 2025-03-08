@@ -26,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Channel = {
   id: string;
@@ -34,6 +35,8 @@ type Channel = {
   created_at: string;
   is_company_specific: boolean;
   post_count?: number;
+  mentor_id?: string | null;
+  mentor_name?: string | null;
 };
 
 type Post = {
@@ -48,24 +51,63 @@ type Post = {
   likes_count: number;
 };
 
+type Mentor = {
+  id: string;
+  name: string;
+  email: string;
+};
+
 const AdminCommunity = () => {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [mentors, setMentors] = useState<Mentor[]>([]);
   const [isLoadingChannels, setIsLoadingChannels] = useState(true);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [isLoadingMentors, setIsLoadingMentors] = useState(true);
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
   const [channelName, setChannelName] = useState("");
   const [channelDescription, setChannelDescription] = useState("");
   const [isCompanySpecific, setIsCompanySpecific] = useState(false);
+  const [selectedMentorId, setSelectedMentorId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("channels");
   const { toast } = useToast();
+
+  // Load mentors
+  useEffect(() => {
+    const fetchMentors = async () => {
+      try {
+        setIsLoadingMentors(true);
+        const { data, error } = await supabase.from("mentors").select("id, name, email").order("name");
+
+        if (error) {
+          throw error;
+        }
+
+        setMentors(data || []);
+      } catch (error) {
+        console.error("Error fetching mentors:", error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar os mentores.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingMentors(false);
+      }
+    };
+
+    fetchMentors();
+  }, [toast]);
 
   // Load channels
   useEffect(() => {
     const fetchChannels = async () => {
       try {
         setIsLoadingChannels(true);
-        const { data, error } = await supabase.from("community_channels").select("*").order("name");
+        const { data, error } = await supabase
+          .from("community_channels")
+          .select("*, mentors(name)")
+          .order("name");
 
         if (error) {
           throw error;
@@ -82,6 +124,7 @@ const AdminCommunity = () => {
             return {
               ...channel,
               post_count: countError ? 0 : count || 0,
+              mentor_name: channel.mentors?.name || null,
             };
           })
         );
@@ -161,11 +204,14 @@ const AdminCommunity = () => {
         return;
       }
 
-      const { data, error } = await supabase.from("community_channels").insert({
+      const newChannel = {
         name: channelName,
         description: channelDescription,
         is_company_specific: isCompanySpecific,
-      }).select();
+        mentor_id: isCompanySpecific ? selectedMentorId : null,
+      };
+
+      const { data, error } = await supabase.from("community_channels").insert(newChannel).select();
 
       if (error) {
         throw error;
@@ -176,11 +222,19 @@ const AdminCommunity = () => {
         description: "Canal criado com sucesso.",
       });
 
+      // Find mentor name if applicable
+      let mentorName = null;
+      if (isCompanySpecific && selectedMentorId) {
+        const mentor = mentors.find(m => m.id === selectedMentorId);
+        mentorName = mentor?.name || null;
+      }
+
       // Refresh channels list
-      setChannels([...channels, { ...data[0], post_count: 0 }]);
+      setChannels([...channels, { ...data[0], post_count: 0, mentor_name: mentorName }]);
       setChannelName("");
       setChannelDescription("");
       setIsCompanySpecific(false);
+      setSelectedMentorId(null);
     } catch (error) {
       console.error("Error creating channel:", error);
       toast({
@@ -202,13 +256,16 @@ const AdminCommunity = () => {
         return;
       }
 
+      const updatedChannel = {
+        name: channelName,
+        description: channelDescription,
+        is_company_specific: isCompanySpecific,
+        mentor_id: isCompanySpecific ? selectedMentorId : null,
+      };
+
       const { error } = await supabase
         .from("community_channels")
-        .update({
-          name: channelName,
-          description: channelDescription,
-          is_company_specific: isCompanySpecific,
-        })
+        .update(updatedChannel)
         .eq("id", activeChannel.id);
 
       if (error) {
@@ -220,6 +277,13 @@ const AdminCommunity = () => {
         description: "Canal atualizado com sucesso.",
       });
 
+      // Find mentor name if applicable
+      let mentorName = null;
+      if (isCompanySpecific && selectedMentorId) {
+        const mentor = mentors.find(m => m.id === selectedMentorId);
+        mentorName = mentor?.name || null;
+      }
+
       // Update local state
       setChannels(
         channels.map((c) =>
@@ -229,6 +293,8 @@ const AdminCommunity = () => {
                 name: channelName,
                 description: channelDescription,
                 is_company_specific: isCompanySpecific,
+                mentor_id: isCompanySpecific ? selectedMentorId : null,
+                mentor_name: mentorName,
               }
             : c
         )
@@ -238,6 +304,7 @@ const AdminCommunity = () => {
       setChannelName("");
       setChannelDescription("");
       setIsCompanySpecific(false);
+      setSelectedMentorId(null);
     } catch (error) {
       console.error("Error updating channel:", error);
       toast({
@@ -349,6 +416,7 @@ const AdminCommunity = () => {
     setChannelName(channel.name);
     setChannelDescription(channel.description || "");
     setIsCompanySpecific(channel.is_company_specific);
+    setSelectedMentorId(channel.mentor_id || null);
   };
 
   return (
@@ -410,16 +478,49 @@ const AdminCommunity = () => {
                         className="rounded border-gray-300"
                       />
                       <label htmlFor="is_company_specific" className="text-sm">
-                        Canal específico para empresa
+                        Específico para mentor/empresa
                       </label>
                     </div>
+                    
+                    {isCompanySpecific && (
+                      <div>
+                        <label htmlFor="mentor" className="block text-sm font-medium mb-1">
+                          Mentor/Empresa*
+                        </label>
+                        <Select
+                          value={selectedMentorId || ""}
+                          onValueChange={setSelectedMentorId}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um mentor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mentors.map((mentor) => (
+                              <SelectItem key={mentor.id} value={mentor.id}>
+                                {mentor.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {isCompanySpecific && !selectedMentorId && (
+                          <p className="text-xs text-red-500 mt-1">
+                            Selecione um mentor para canais específicos
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <DialogFooter>
                     <DialogClose asChild>
                       <Button variant="outline">Cancelar</Button>
                     </DialogClose>
                     <DialogClose asChild>
-                      <Button onClick={handleCreateChannel}>Criar Canal</Button>
+                      <Button 
+                        onClick={handleCreateChannel}
+                        disabled={isCompanySpecific && !selectedMentorId}
+                      >
+                        Criar Canal
+                      </Button>
                     </DialogClose>
                   </DialogFooter>
                 </DialogContent>
@@ -464,15 +565,48 @@ const AdminCommunity = () => {
                           className="rounded border-gray-300"
                         />
                         <label htmlFor="edit-is_company_specific" className="text-sm">
-                          Canal específico para empresa
+                          Específico para mentor/empresa
                         </label>
                       </div>
+                      
+                      {isCompanySpecific && (
+                        <div>
+                          <label htmlFor="edit-mentor" className="block text-sm font-medium mb-1">
+                            Mentor/Empresa*
+                          </label>
+                          <Select
+                            value={selectedMentorId || ""}
+                            onValueChange={setSelectedMentorId}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um mentor" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mentors.map((mentor) => (
+                                <SelectItem key={mentor.id} value={mentor.id}>
+                                  {mentor.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {isCompanySpecific && !selectedMentorId && (
+                            <p className="text-xs text-red-500 mt-1">
+                              Selecione um mentor para canais específicos
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setActiveChannel(null)}>
                         Cancelar
                       </Button>
-                      <Button onClick={handleUpdateChannel}>Atualizar Canal</Button>
+                      <Button 
+                        onClick={handleUpdateChannel}
+                        disabled={isCompanySpecific && !selectedMentorId}
+                      >
+                        Atualizar Canal
+                      </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -491,7 +625,8 @@ const AdminCommunity = () => {
                       <TableHead>Nome</TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead>Postagens</TableHead>
-                      <TableHead>Específico para Empresa</TableHead>
+                      <TableHead>Específico para Mentor/Empresa</TableHead>
+                      <TableHead>Mentor/Empresa</TableHead>
                       <TableHead>Data de Criação</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
@@ -499,7 +634,7 @@ const AdminCommunity = () => {
                   <TableBody>
                     {channels.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                           Nenhum canal encontrado
                         </TableCell>
                       </TableRow>
@@ -510,6 +645,7 @@ const AdminCommunity = () => {
                           <TableCell className="max-w-[200px] truncate">{channel.description || "-"}</TableCell>
                           <TableCell>{channel.post_count || 0}</TableCell>
                           <TableCell>{channel.is_company_specific ? "Sim" : "Não"}</TableCell>
+                          <TableCell>{channel.is_company_specific ? (channel.mentor_name || '-') : "-"}</TableCell>
                           <TableCell>{new Date(channel.created_at).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <div className="flex space-x-2">

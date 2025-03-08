@@ -47,6 +47,7 @@ export type Database = {
           description: string | null
           id: string
           is_company_specific: boolean
+          mentor_id: string | null
           name: string
           updated_at: string
         }
@@ -57,6 +58,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_company_specific?: boolean
+          mentor_id?: string | null
           name: string
           updated_at?: string
         }
@@ -67,10 +69,19 @@ export type Database = {
           description?: string | null
           id?: string
           is_company_specific?: boolean
+          mentor_id?: string | null
           name?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "community_channels_mentor_id_fkey"
+            columns: ["mentor_id"]
+            isOneToOne: false
+            referencedRelation: "mentors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       community_posts: {
         Row: {

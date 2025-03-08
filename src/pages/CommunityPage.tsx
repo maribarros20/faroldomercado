@@ -3,13 +3,15 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus } from "lucide-react";
+import { Plus, AlertCircle } from "lucide-react";
 import ChannelsList from "@/components/community/ChannelsList";
 import CommunityPosts from "@/components/community/CommunityPosts";
 import CreatePostDialog from "@/components/community/CreatePostDialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Channel } from "@/types/community"; // Import Channel type from common types
+import { Spinner } from "@/components/ui/spinner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const CommunityPage = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -17,10 +19,12 @@ const CommunityPage = () => {
   const [selectedChannelId, setSelectedChannelId] = useState<string>("");
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    const loadChannels = async () => {
+    const loadUserAndChannels = async () => {
       setIsLoading(true);
       try {
         // Get session
@@ -38,16 +42,17 @@ const CommunityPage = () => {
         // Fetch user profile
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("*")
-          .eq("id", sessionData.session.user.id as any)
+          .select("*, mentor_id")
+          .eq("id", sessionData.session.user.id)
           .single();
           
         setUserProfile(profileData || null);
+        const userMentorId = profileData?.mentor_id || null;
 
-        // Get channels
+        // Get channels - filter based on access rules
         const { data: channelsData, error } = await supabase
           .from("community_channels")
-          .select("*")
+          .select("*, mentor:mentor_id(id,name)")
           .order("name", { ascending: true });
           
         if (error) {
@@ -63,14 +68,27 @@ const CommunityPage = () => {
           updated_at: channel.updated_at,
           created_by: channel.created_by,
           is_company_specific: channel.is_company_specific,
-          company_id: channel.company_id
+          company_id: channel.company_id,
+          mentor_id: channel.mentor_id,
+          mentor_name: channel.mentor?.name
         })) as Channel[];
         
-        setChannels(typedChannels);
+        // Filter channels based on access permissions
+        const accessibleChannels = typedChannels.filter(channel => {
+          // If not company specific, everyone can access
+          if (!channel.is_company_specific) {
+            return true;
+          }
+          // If company specific, only users associated with the mentor can access
+          return channel.mentor_id === userMentorId;
+        });
         
-        // Select first channel if none selected
-        if (typedChannels.length > 0 && !selectedChannelId) {
-          setSelectedChannelId(typedChannels[0].id);
+        setChannels(accessibleChannels);
+        
+        // Select first channel if none selected and accessible channels exist
+        if (accessibleChannels.length > 0 && !selectedChannelId) {
+          setSelectedChannelId(accessibleChannels[0].id);
+          setCurrentChannel(accessibleChannels[0]);
         }
         
         // Log activity
@@ -93,8 +111,25 @@ const CommunityPage = () => {
       }
     };
     
-    loadChannels();
+    loadUserAndChannels();
   }, [toast, selectedChannelId]);
+
+  // Check channel access when selection changes
+  useEffect(() => {
+    if (!selectedChannelId || !channels.length) return;
+    
+    const selectedChannel = channels.find(channel => channel.id === selectedChannelId);
+    if (selectedChannel) {
+      setCurrentChannel(selectedChannel);
+      
+      // Check if user has access to this channel
+      if (selectedChannel.is_company_specific && selectedChannel.mentor_id !== userProfile?.mentor_id) {
+        setAccessDenied(true);
+      } else {
+        setAccessDenied(false);
+      }
+    }
+  }, [selectedChannelId, channels, userProfile]);
 
   const handleSelectChannel = (channelId: string) => {
     setSelectedChannelId(channelId);
@@ -114,7 +149,7 @@ const CommunityPage = () => {
         <h1 className="text-2xl font-bold">Comunidade</h1>
         <Button 
           onClick={() => setIsCreatePostOpen(true)}
-          disabled={isLoading || !selectedChannelId}
+          disabled={isLoading || !selectedChannelId || accessDenied}
         >
           <Plus className="mr-2 h-4 w-4" />
           Criar Postagem
@@ -132,7 +167,9 @@ const CommunityPage = () => {
           {isLoading ? (
             <Card>
               <CardContent className="p-6">
-                <div className="text-center">Carregando...</div>
+                <div className="flex justify-center">
+                  <Spinner size="lg" />
+                </div>
               </CardContent>
             </Card>
           ) : channels.length > 0 ? (
@@ -146,11 +183,22 @@ const CommunityPage = () => {
               </div>
               
               <div className="md:col-span-3">
-                {selectedChannelId && userProfile?.id && (
-                  <CommunityPosts 
-                    channelId={selectedChannelId}
-                    userId={userProfile.id}
-                  />
+                {accessDenied ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Acesso Restrito</AlertTitle>
+                    <AlertDescription>
+                      Este canal é específico para usuários associados ao mentor/empresa {currentChannel?.mentor_name}. 
+                      Você não tem permissão para acessar este conteúdo.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  selectedChannelId && userProfile?.id && (
+                    <CommunityPosts 
+                      channelId={selectedChannelId}
+                      userId={userProfile.id}
+                    />
+                  )
                 )}
               </div>
             </div>
