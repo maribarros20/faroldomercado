@@ -99,14 +99,12 @@ export const likeVideo = async (videoId: string): Promise<void> => {
       }
 
       // Decrease like count
-      const { error: updateError } = await supabase
+      await supabase
         .from('videos')
-        .update({ likes: supabase.rpc('decrement', { row_id: videoId, table_name: 'videos', column_name: 'likes' }) })
+        .update({ 
+          likes: supabase.rpc('decrement', { row_id: videoId, table_name: 'videos', column_name: 'likes' }) 
+        })
         .eq('id', videoId);
-
-      if (updateError) {
-        console.error('Error updating video like count:', updateError);
-      }
     } else {
       // User hasn't liked, so add like
       const { error: likeError } = await supabase
@@ -118,16 +116,12 @@ export const likeVideo = async (videoId: string): Promise<void> => {
       }
 
       // Increase like count
-      const { error: updateError } = await supabase
+      await supabase
         .from('videos')
         .update({ 
           likes: supabase.rpc('increment', { row_id: videoId, table_name: 'videos', column_name: 'likes' }) 
         })
         .eq('id', videoId);
-
-      if (updateError) {
-        console.error('Error updating video like count:', updateError);
-      }
     }
   } catch (error) {
     console.error('Error in likeVideo:', error);
@@ -174,7 +168,11 @@ export const getVideoComments = async (videoId: string): Promise<VideoComment[]>
         content,
         created_at,
         likes_count,
-        profiles(first_name, last_name, avatar_url)
+        profiles:user_id (
+          first_name,
+          last_name,
+          photo
+        )
       `)
       .eq('video_id', videoId)
       .order('created_at', { ascending: false });
@@ -188,8 +186,8 @@ export const getVideoComments = async (videoId: string): Promise<VideoComment[]>
       id: comment.id,
       video_id: comment.video_id,
       user_id: comment.user_id,
-      user_name: `${comment.profiles.first_name} ${comment.profiles.last_name}`,
-      user_avatar: comment.profiles.avatar_url,
+      user_name: comment.profiles ? `${comment.profiles.first_name} ${comment.profiles.last_name}` : 'Usuário',
+      user_avatar: comment.profiles?.photo || null,
       content: comment.content,
       created_at: comment.created_at,
       likes_count: comment.likes_count || 0
@@ -229,7 +227,7 @@ export const addVideoComment = async (videoId: string, content: string): Promise
     // Get user profile info
     const { data: userProfile, error: userError } = await supabase
       .from('profiles')
-      .select('first_name, last_name, avatar_url')
+      .select('first_name, last_name, photo')
       .eq('id', userId)
       .single();
 
@@ -243,7 +241,7 @@ export const addVideoComment = async (videoId: string, content: string): Promise
       video_id: data.video_id,
       user_id: data.user_id,
       user_name: `${userProfile.first_name} ${userProfile.last_name}`,
-      user_avatar: userProfile.avatar_url,
+      user_avatar: userProfile.photo,
       content: data.content,
       created_at: data.created_at,
       likes_count: 0
