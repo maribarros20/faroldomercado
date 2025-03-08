@@ -21,7 +21,7 @@ const Footer = ({ className = "" }: FooterProps) => {
   };
 
   return (
-    <footer className={`bg-[#0066FF] text-white border-t border-[#0066FF] py-3 ${className} w-full right-0 transition-all duration-300 z-10 mt-auto rounded-t-2xl ${
+    <footer className={`bg-[#0066FF] text-white border-t border-[#0066FF] py-3 ${className} w-full right-0 transition-all duration-300 z-10 mt-auto rounded-t-2xl rounded-b-none ${
       expanded ? "ml-64" : "ml-20"
     }`}>
       <div className="container mx-auto px-4">

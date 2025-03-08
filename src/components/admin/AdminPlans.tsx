@@ -13,11 +13,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Plus, 
   Edit, 
-  Trash, 
+  Trash2, 
   Check,
   X,
   Package,
-  Loader2
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -481,7 +482,7 @@ const AdminPlans = () => {
                   onClick={() => removeFeature(index)}
                   className="h-8 w-8 text-red-500"
                 >
-                  <Trash size={16} />
+                  <Trash2 size={16} />
                 </Button>
               </div>
             </div>
@@ -548,36 +549,47 @@ const AdminPlans = () => {
           <p className="text-sm text-gray-500">Configure e gerencie os planos de assinatura</p>
         </div>
         
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-trade-blue hover:bg-trade-blue/90">
-              <Plus size={16} className="mr-2" /> 
-              Adicionar Plano
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Adicionar Novo Plano</DialogTitle>
-            </DialogHeader>
-            {planFormContent}
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
-              <Button 
-                onClick={handleAddPlan} 
-                disabled={!newPlan.name || !newPlan.description || addPlanMutation.isPending}
-              >
-                {addPlanMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Adicionando...
-                  </>
-                ) : (
-                  "Adicionar"
-                )}
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="refresh" 
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['plans'] })}
+            className="flex items-center gap-1"
+          >
+            <RefreshCw size={16} />
+            Atualizar
+          </Button>
+          
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-[#0066FF] hover:bg-[#0057e0]">
+                <Plus size={16} className="mr-2" /> 
+                Adicionar Plano
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Adicionar Novo Plano</DialogTitle>
+              </DialogHeader>
+              {planFormContent}
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
+                <Button 
+                  onClick={handleAddPlan} 
+                  disabled={!newPlan.name || !newPlan.description || addPlanMutation.isPending}
+                >
+                  {addPlanMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adicionando...
+                    </>
+                  ) : (
+                    "Adicionar"
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="sm:max-w-[600px]">
@@ -607,10 +619,10 @@ const AdminPlans = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {plans.map((plan) => (
-          <Card key={plan.id} className={`border-gray-200 relative overflow-hidden ${plan.is_popular ? 'ring-2 ring-trade-blue' : ''}`}>
+          <Card key={plan.id} className={`border-gray-200 rounded-md relative overflow-hidden ${plan.is_popular ? 'ring-2 ring-[#0066FF]' : ''}`}>
             {plan.is_popular && (
               <div className="absolute top-3 right-3">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-trade-blue text-white">
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#0066FF] text-white">
                   Popular
                 </span>
               </div>
@@ -625,7 +637,7 @@ const AdminPlans = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Package className="h-5 w-5 text-trade-blue mr-2" />
+                  <Package className="h-5 w-5 text-[#0066FF] mr-2" />
                   <CardTitle>{plan.name}</CardTitle>
                 </div>
                 <span className="text-sm text-gray-500">{plan.subscribers || 0} assinantes</span>
@@ -695,7 +707,7 @@ const AdminPlans = () => {
                   onClick={() => handleDeletePlan(plan.id)}
                   disabled={deletePlanMutation.isPending}
                 >
-                  <Trash size={16} />
+                  <Trash2 size={16} />
                 </Button>
               </div>
             </CardContent>
@@ -703,7 +715,7 @@ const AdminPlans = () => {
         ))}
       </div>
 
-      <Card className="border-gray-200">
+      <Card className="border-gray-200 rounded-md">
         <CardHeader>
           <CardTitle>Comparação de Planos</CardTitle>
         </CardHeader>
@@ -716,7 +728,7 @@ const AdminPlans = () => {
                   {plans.filter(p => p.is_active).map((plan) => (
                     <TableHead key={plan.id} className="text-center">
                       {plan.name}
-                      {plan.is_popular && <span className="ml-1 text-trade-blue">(Popular)</span>}
+                      {plan.is_popular && <span className="ml-1 text-[#0066FF]">(Popular)</span>}
                     </TableHead>
                   ))}
                 </TableRow>

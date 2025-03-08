@@ -61,7 +61,7 @@ const UserProfileHeader = ({ userName, userRole, avatarUrl }: UserProfileHeaderP
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="focus:outline-none">
-        <div className="flex items-center space-x-2 cursor-pointer p-2 hover:bg-gray-100 rounded-md">
+        <div className="flex items-center space-x-2 cursor-pointer p-2 hover:bg-[#e6f0ff] hover:text-[#0066FF] rounded-md transition-colors">
           <Avatar className="h-8 w-8">
             {avatarUrl ? (
               <AvatarImage src={avatarUrl} alt={userName || "Usuário"} />
@@ -82,14 +82,16 @@ const UserProfileHeader = ({ userName, userRole, avatarUrl }: UserProfileHeaderP
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate("/profile")}>
+        <DropdownMenuItem onClick={() => navigate("/profile")}
+          className="hover:bg-[#e6f0ff] hover:text-[#0066FF] cursor-pointer">
           Perfil
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("/profile-settings")}>
+        <DropdownMenuItem onClick={() => navigate("/profile-settings")}
+          className="hover:bg-[#e6f0ff] hover:text-[#0066FF] cursor-pointer">
           Configurações
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+        <DropdownMenuItem onClick={handleLogout} className="text-red-600 hover:bg-red-50 cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sair</span>
         </DropdownMenuItem>

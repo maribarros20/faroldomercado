@@ -19,15 +19,19 @@ const NavItem = ({ to, icon, text, active, expanded, onClick }: NavItemProps) =>
     </>
   );
 
+  const baseClasses = `flex items-center px-3 py-3 rounded-md transition-colors ${
+    expanded ? "justify-start" : "justify-center"
+  } ${
+    active
+      ? "bg-[#0066FF] text-white"
+      : "text-gray-700 hover:bg-[#e6f0ff] hover:text-[#0066FF]"
+  }`;
+
   if (onClick) {
     return (
       <button
         onClick={onClick}
-        className={`flex items-center px-3 py-3 rounded-md transition-colors ${
-          active
-            ? "bg-[#0066FF] text-white"
-            : "text-gray-700 hover:bg-[#e6f0ff] hover:text-[#0066FF]"
-        } ${expanded ? "justify-start" : "justify-center"} w-full text-left`}
+        className={`${baseClasses} w-full text-left`}
       >
         {content}
       </button>
@@ -37,11 +41,7 @@ const NavItem = ({ to, icon, text, active, expanded, onClick }: NavItemProps) =>
   return (
     <Link
       to={to}
-      className={`flex items-center px-3 py-3 rounded-md transition-colors ${
-        active
-          ? "bg-[#0066FF] text-white"
-          : "text-gray-700 hover:bg-[#e6f0ff] hover:text-[#0066FF]"
-      } ${expanded ? "justify-start" : "justify-center"}`}
+      className={baseClasses}
     >
       {content}
     </Link>

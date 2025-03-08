@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,11 +21,8 @@ import AdminUserManager from "@/components/admin/AdminUserManager";
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("subscribers");
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
 
-  // Check if the user is an admin with enhanced error handling
   const {
     data: isAdmin,
     isLoading,
@@ -70,7 +66,6 @@ const AdminPage = () => {
     }
   });
 
-  // Set up auth state listener
   useEffect(() => {
     const {
       data: authListener
@@ -86,7 +81,6 @@ const AdminPage = () => {
     };
   }, [navigate]);
 
-  // Redirect if not an admin
   useEffect(() => {
     if (!isLoading && isAdmin === false) {
       toast({
@@ -138,20 +132,50 @@ const AdminPage = () => {
       <h1 className="text-3xl font-bold mb-8">Painel de Administração</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-8 w-full md:w-auto flex flex-wrap">
-          <TabsTrigger value="subscribers">Assinantes</TabsTrigger>
-          <TabsTrigger value="users">Usuários</TabsTrigger>
-          <TabsTrigger value="materials">Materiais</TabsTrigger>
-          <TabsTrigger value="videos">Vídeos</TabsTrigger>
-          <TabsTrigger value="community">Comunidade</TabsTrigger>
-          <TabsTrigger value="mentors">Mentores</TabsTrigger>
-          <TabsTrigger value="plans">Planos</TabsTrigger>
-          <TabsTrigger value="audit-logs">Logs de Auditoria</TabsTrigger>
-          <TabsTrigger value="market-news">Notícias do Mercado</TabsTrigger>
-          <TabsTrigger value="finance-spreadsheet">Planilhas Financeiras</TabsTrigger>
+        <TabsList className="mb-8 w-full md:w-auto flex flex-wrap bg-white rounded-md">
+          <TabsTrigger 
+            value="subscribers"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+          >Assinantes</TabsTrigger>
+          <TabsTrigger 
+            value="users"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+          >Usuários</TabsTrigger>
+          <TabsTrigger 
+            value="materials"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+          >Materiais</TabsTrigger>
+          <TabsTrigger 
+            value="videos"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+          >Vídeos</TabsTrigger>
+          <TabsTrigger 
+            value="community"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+          >Comunidade</TabsTrigger>
+          <TabsTrigger 
+            value="mentors"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+          >Mentores</TabsTrigger>
+          <TabsTrigger 
+            value="plans"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+          >Planos</TabsTrigger>
+          <TabsTrigger 
+            value="audit-logs"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+          >Logs de Auditoria</TabsTrigger>
+          <TabsTrigger 
+            value="market-news"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+          >Notícias do Mercado</TabsTrigger>
+          <TabsTrigger 
+            value="finance-spreadsheet"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+          >Planilhas Financeiras</TabsTrigger>
         </TabsList>
         
-        <Card>
+        <Card className="rounded-md border border-gray-200">
           <CardContent className="p-6">
             <TabsContent value="subscribers" className="mt-0">
               <AdminSubscribers />

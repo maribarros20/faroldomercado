@@ -30,18 +30,18 @@ const Sidebar = () => {
           {expanded && <Logo />}
         </div>
         <Trigger
-          className="p-2 rounded-md hover:bg-gray-100 text-[#0066FF]"
+          className="p-2 rounded-md hover:bg-[#e6f0ff] text-[#0066FF]"
           icon={expanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
         />
       </Header>
       
-      <Content className="flex-1 py-4 overflow-y-auto flex flex-col justify-between">
+      <Content className="flex-1 py-4 overflow-y-auto flex flex-col">
         <Section className="space-y-1">
           <Navigation expanded={expanded} userRole={userRole} />
         </Section>
 
         <div className="mt-auto">
-          <Section className="px-3 space-y-1 mb-4">
+          <Section className="px-3 space-y-1">
             <UsefulLinks expanded={expanded} />
           </Section>
         </div>
