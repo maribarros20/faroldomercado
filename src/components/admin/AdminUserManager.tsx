@@ -72,9 +72,10 @@ const AdminUserManager = () => {
   const { data: users, isLoading, refetch } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
+      // Update the query to properly specify the mentor relationship
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('*, mentors(id, name)');
+        .select('*, mentors!mentor_id(id, name)');
         
       if (error) {
         toast({
