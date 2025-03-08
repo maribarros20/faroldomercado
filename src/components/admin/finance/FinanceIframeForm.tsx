@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,7 +39,7 @@ type FinanceIframeFormProps = {
   onSubmit: (values: FormValues) => void;
   onCancel: () => void;
   selectedIframe: FinanceIframe | null;
-  plans: { id: string; name: string }[];
+  plans: { id: string; name: string; is_mentor_plan?: boolean }[];
   mentors: { id: string; name: string }[];
   isSubmitting: boolean;
 };
@@ -70,7 +69,6 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
     }
   });
 
-  // Reset form when selectedIframe changes
   useEffect(() => {
     const accountType = selectedIframe?.mentor_id ? "aluno" : "trader";
     setSelectedAccountType(accountType);
@@ -87,7 +85,6 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
     });
   }, [selectedIframe, form]);
 
-  // Handle account type change
   const handleAccountTypeChange = (type: string) => {
     setSelectedAccountType(type);
     form.setValue("account_type", type as "trader" | "aluno");
@@ -95,7 +92,6 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
     form.setValue("plan_id", undefined);
   };
 
-  // Handle mentor change
   const handleMentorChange = async (mentorId: string) => {
     setSelectedMentorId(mentorId);
     form.setValue("mentor_id", mentorId);
@@ -103,7 +99,6 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
     
     if (mentorId && mentorId !== "null") {
       try {
-        // Fetch plans for the selected mentor
         const { data, error } = await supabase
           .from('plans')
           .select('id, name')
@@ -121,7 +116,6 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
     }
   };
 
-  // Validate form before submission
   const onValidSubmit = (values: FormValues) => {
     if (values.account_type === "aluno" && !values.mentor_id) {
       form.setError("mentor_id", {

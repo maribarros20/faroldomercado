@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -15,12 +14,12 @@ import {
 export const useFinanceIframes = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedIframe, setSelectedIframe] = useState<FinanceIframe | null>(null);
-  const [plans, setPlans] = useState<{ id: string; name: string; is_mentor_plan?: boolean }[]>([]);
+  const [plans, setPlans] = useState<{ id: string; name: string; is_mentor_plan?: boolean; mentor_id?: string | null }[]>([]);
   const [mentors, setMentors] = useState<{ id: string; name: string }[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch plans with error handling
+  // Fetch plans with error handling - Ensure is_mentor_plan is included in the select
   useEffect(() => {
     const fetchPlans = async () => {
       try {
