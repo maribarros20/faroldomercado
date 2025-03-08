@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface NewsItem {
@@ -37,7 +38,7 @@ export const FINANCIAL_NEWS_SOURCES = [
   "CNN Money",
   "Thomson Reuters",
   "Alpha Vantage",
-  "manual" // Notícias criadas manualmente pelos administradores
+  "Farol Investe" // Alterado de "manual" para "Farol Investe"
 ];
 
 // Função para limpar texto de tags CDATA e HTML
@@ -89,6 +90,8 @@ export const getDefaultNewsImage = (source?: string): string => {
         return 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
       case 'Thomson Reuters':
         return 'https://s3.ap-southeast-1.amazonaws.com/thomson-media-resources/images/logos/tr-new.svg';
+      case 'Farol Investe':
+        return '/lovable-uploads/08c37f81-bb96-41bd-9b6e-2ade4bae59df.png';
     }
   }
   
@@ -123,7 +126,7 @@ export const fetchManualNews = async (): Promise<NewsItem[]> => {
       author: cleanTextContent(item.author),
       category: cleanTextContent(item.category),
       image_url: getValidImageUrl(item.image_url),
-      source: 'manual'
+      source: 'Farol Investe' // Alterado de "manual" para "Farol Investe"
     })) : [];
   } catch (error) {
     console.error("Erro ao buscar notícias manuais:", error);

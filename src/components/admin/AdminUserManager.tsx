@@ -40,13 +40,33 @@ const AdminUserManager = () => {
     accountType: "trader",
     dateOfBirth: "",
     phone: "",
-    cpf: ""
+    cpf: "",
+    mentorId: ""
   });
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [mentors, setMentors] = useState<any[]>([]);
+
+  // Fetch mentors
+  useEffect(() => {
+    const fetchMentors = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('mentors')
+          .select('id, name');
+          
+        if (error) throw error;
+        setMentors(data || []);
+      } catch (error: any) {
+        console.error("Error fetching mentors:", error.message);
+      }
+    };
+    
+    fetchMentors();
+  }, []);
 
   // Fetch users
   const { data: users, isLoading, refetch } = useQuery({
@@ -54,7 +74,7 @@ const AdminUserManager = () => {
     queryFn: async () => {
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('*');
+        .select('*, mentors(name)');
         
       if (error) {
         toast({
@@ -103,6 +123,26 @@ const AdminUserManager = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate password
+    if (!selectedUserId && (formData.password.length < 8)) {
+      toast({
+        title: "Senha inválida",
+        description: "A senha deve ter pelo menos 8 caracteres.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validate mentor for student account
+    if (formData.accountType === "aluno" && !formData.mentorId) {
+      toast({
+        title: "Mentor necessário",
+        description: "Para contas de aluno, é necessário selecionar um mentor.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       if (selectedUserId) {
         // Update existing user
@@ -117,6 +157,7 @@ const AdminUserManager = () => {
             phone: formData.phone,
             cpf: formData.cpf,
             date_of_birth: formData.dateOfBirth,
+            mentor_id: formData.accountType === "aluno" ? formData.mentorId : null,
             updated_at: new Date().toISOString()
           })
           .eq('id', selectedUserId);
@@ -140,7 +181,8 @@ const AdminUserManager = () => {
               tipo_de_conta: formData.accountType,
               phone: formData.phone,
               cpf: formData.cpf,
-              date_of_birth: formData.dateOfBirth
+              date_of_birth: formData.dateOfBirth,
+              mentor_id: formData.accountType === "aluno" ? formData.mentorId : null
             }
           }
         });
@@ -163,7 +205,8 @@ const AdminUserManager = () => {
         accountType: "trader",
         dateOfBirth: "",
         phone: "",
-        cpf: ""
+        cpf: "",
+        mentorId: ""
       });
       setSelectedUserId(null);
       setIsDialogOpen(false);
@@ -191,7 +234,8 @@ const AdminUserManager = () => {
       accountType: user.tipo_de_conta || "trader",
       dateOfBirth: user.date_of_birth || "",
       phone: user.phone || "",
-      cpf: user.cpf || ""
+      cpf: user.cpf || "",
+      mentorId: user.mentor_id || ""
     });
     setIsDialogOpen(true);
   };
@@ -262,7 +306,8 @@ const AdminUserManager = () => {
                     accountType: "trader",
                     dateOfBirth: "",
                     phone: "",
-                    cpf: ""
+                    cpf: "",
+                    mentorId: ""
                   });
                 }}
                 className="flex items-center gap-2"
@@ -324,7 +369,11 @@ const AdminUserManager = () => {
                         value={formData.password}
                         onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                         required={!selectedUserId}
+                        placeholder="Mínimo de 8 caracteres"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        A senha deve ter pelo menos 8 caracteres
+                      </p>
                     </div>
                   )}
                   
@@ -375,6 +424,28 @@ const AdminUserManager = () => {
                       </div>
                     </RadioGroup>
                   </div>
+                  
+                  {formData.accountType === "aluno" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="mentor">Mentor</Label>
+                      <Select 
+                        value={formData.mentorId} 
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, mentorId: value }))}
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um mentor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mentors.map((mentor) => (
+                            <SelectItem key={mentor.id} value={mentor.id}>
+                              {mentor.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   
                   <div className="space-y-2">
                     <Label>Função</Label>
@@ -484,6 +555,11 @@ const AdminUserManager = () => {
                         }`}>
                           {user.tipo_de_conta === 'aluno' ? 'Aluno' : 'Trader'}
                         </span>
+                        {user.tipo_de_conta === 'aluno' && user.mentors && (
+                          <span className="ml-2 text-xs text-gray-500">
+                            {user.mentors.name}
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs ${

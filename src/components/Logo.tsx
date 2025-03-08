@@ -10,9 +10,9 @@ const Logo = () => {
       onClick={() => navigate("/")}
     >
       <img 
-        src="/lovable-uploads/192cf71f-62e8-4e72-b336-37fda7d4683e.png" 
+        src="/lovable-uploads/3928ce87-7087-4ebf-ae30-745ce03df4bf.png" 
         alt="Farol do Mercado" 
-        className="h-12 object-contain" // Increased from h-8 to h-12
+        className="h-10 object-contain"
       />
     </div>
   );

@@ -25,6 +25,9 @@ export const NewsCard = ({ newsItem }: NewsCardProps) => {
   // Garantir que a URL da imagem seja válida
   const imageUrl = getValidImageUrl(newsItem.image_url);
 
+  // Se a fonte for "manual", mudar para "Farol Investe"
+  const displaySource = newsItem.source === "manual" ? "Farol Investe" : newsItem.source;
+
   return (
     <Card className="overflow-hidden h-full flex flex-col">
       <div className="h-48 overflow-hidden">
@@ -43,8 +46,8 @@ export const NewsCard = ({ newsItem }: NewsCardProps) => {
           {newsItem.category && (
             <Badge variant="secondary">{cleanTextContent(newsItem.category)}</Badge>
           )}
-          {newsItem.source && (
-            <Badge variant="outline">{cleanTextContent(newsItem.source)}</Badge>
+          {displaySource && (
+            <Badge variant="outline">{cleanTextContent(displaySource)}</Badge>
           )}
         </div>
         <h3 className="text-lg font-semibold mb-2">{cleanTextContent(newsItem.title)}</h3>

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -20,6 +20,9 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { FinanceIframe, FinanceIframeInput } from "@/services/FinanceIframeService";
+import { supabase } from "@/integrations/supabase/client";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
   title: z.string().min(3, "O título deve ter pelo menos 3 caracteres"),
@@ -27,6 +30,7 @@ const formSchema = z.object({
   iframe_url: z.string().url("URL inválida"),
   plan_id: z.string().optional(),
   mentor_id: z.string().optional(),
+  account_type: z.enum(["trader", "aluno"]).default("trader"),
   is_active: z.boolean().default(true)
 });
 
@@ -49,6 +53,10 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
   mentors,
   isSubmitting
 }) => {
+  const [selectedAccountType, setSelectedAccountType] = useState<string>("trader");
+  const [filteredPlans, setFilteredPlans] = useState<{ id: string; name: string }[]>([]);
+  const [selectedMentorId, setSelectedMentorId] = useState<string | undefined>(undefined);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -57,25 +65,78 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
       iframe_url: selectedIframe?.iframe_url || "",
       plan_id: selectedIframe?.plan_id || undefined,
       mentor_id: selectedIframe?.mentor_id || undefined,
+      account_type: "trader",
       is_active: selectedIframe?.is_active !== false
     }
   });
 
   // Reset form when selectedIframe changes
   useEffect(() => {
+    const accountType = selectedIframe?.mentor_id ? "aluno" : "trader";
+    setSelectedAccountType(accountType);
+    setSelectedMentorId(selectedIframe?.mentor_id);
+    
     form.reset({
       title: selectedIframe?.title || "",
       description: selectedIframe?.description || "",
       iframe_url: selectedIframe?.iframe_url || "",
       plan_id: selectedIframe?.plan_id || undefined,
       mentor_id: selectedIframe?.mentor_id || undefined,
+      account_type: accountType,
       is_active: selectedIframe?.is_active !== false
     });
   }, [selectedIframe, form]);
 
+  // Handle account type change
+  const handleAccountTypeChange = (type: string) => {
+    setSelectedAccountType(type);
+    form.setValue("account_type", type as "trader" | "aluno");
+    form.setValue("mentor_id", undefined);
+    form.setValue("plan_id", undefined);
+  };
+
+  // Handle mentor change
+  const handleMentorChange = async (mentorId: string) => {
+    setSelectedMentorId(mentorId);
+    form.setValue("mentor_id", mentorId);
+    form.setValue("plan_id", undefined);
+    
+    if (mentorId && mentorId !== "null") {
+      try {
+        // Fetch plans for the selected mentor
+        const { data, error } = await supabase
+          .from('plans')
+          .select('id, name')
+          .eq('mentor_id', mentorId)
+          .eq('is_active', true);
+          
+        if (error) throw error;
+        setFilteredPlans(data || []);
+      } catch (error) {
+        console.error('Erro ao buscar planos do mentor:', error);
+        setFilteredPlans([]);
+      }
+    } else {
+      setFilteredPlans([]);
+    }
+  };
+
+  // Validate form before submission
+  const onValidSubmit = (values: FormValues) => {
+    if (values.account_type === "aluno" && !values.mentor_id) {
+      form.setError("mentor_id", {
+        type: "manual",
+        message: "Para planilhas de aluno, é necessário selecionar um mentor."
+      });
+      return;
+    }
+    
+    onSubmit(values);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onValidSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="title"
@@ -125,48 +186,43 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="plan_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Plano (opcional)</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value || ""}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um plano" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="null">Todos os planos</SelectItem>
-                    {plans.map((plan) => (
-                      <SelectItem key={plan.id} value={plan.id}>
-                        {plan.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  Se não selecionar, estará disponível para todos os planos
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <FormField
+          control={form.control}
+          name="account_type"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel>Tipo de Conta</FormLabel>
+              <RadioGroup
+                onValueChange={(value) => handleAccountTypeChange(value)}
+                defaultValue={field.value}
+                value={field.value}
+                className="flex space-x-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="trader" id="trader-account" />
+                  <Label htmlFor="trader-account">Trader</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="aluno" id="student-account" />
+                  <Label htmlFor="student-account">Aluno</Label>
+                </div>
+              </RadioGroup>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
+        {selectedAccountType === "aluno" && (
           <FormField
             control={form.control}
             name="mentor_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Mentor (opcional)</FormLabel>
+                <FormLabel>Mentor</FormLabel>
                 <Select
-                  onValueChange={field.onChange}
+                  onValueChange={(value) => handleMentorChange(value)}
                   value={field.value || ""}
+                  required={selectedAccountType === "aluno"}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -174,7 +230,6 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="null">Todos os mentores</SelectItem>
                     {mentors.map((mentor) => (
                       <SelectItem key={mentor.id} value={mentor.id}>
                         {mentor.name}
@@ -183,13 +238,57 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  Se não selecionar, estará disponível para todos os mentores
+                  Para planilhas de aluno, é necessário selecionar um mentor
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
-        </div>
+        )}
+
+        <FormField
+          control={form.control}
+          name="plan_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Plano (opcional)</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value || ""}
+                disabled={selectedAccountType === "aluno" && !selectedMentorId}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um plano" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="null">Todos os planos</SelectItem>
+                  {selectedAccountType === "aluno" && selectedMentorId
+                    ? filteredPlans.map((plan) => (
+                        <SelectItem key={plan.id} value={plan.id}>
+                          {plan.name}
+                        </SelectItem>
+                      ))
+                    : plans
+                        .filter(plan => !plan.is_mentor_plan)
+                        .map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id}>
+                            {plan.name}
+                          </SelectItem>
+                        ))
+                  }
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                {selectedAccountType === "aluno"
+                  ? "Selecione um plano específico do mentor ou deixe em branco para todos os planos"
+                  : "Se não selecionar, estará disponível para todos os planos de trader"}
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}

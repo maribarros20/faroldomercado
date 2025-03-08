@@ -15,7 +15,7 @@ import {
 export const useFinanceIframes = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedIframe, setSelectedIframe] = useState<FinanceIframe | null>(null);
-  const [plans, setPlans] = useState<{ id: string; name: string }[]>([]);
+  const [plans, setPlans] = useState<{ id: string; name: string; is_mentor_plan?: boolean }[]>([]);
   const [mentors, setMentors] = useState<{ id: string; name: string }[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -26,7 +26,7 @@ export const useFinanceIframes = () => {
       try {
         const { data, error } = await supabase
           .from('plans')
-          .select('id, name')
+          .select('id, name, is_mentor_plan, mentor_id')
           .eq('is_active', true)
           .order('name');
         
@@ -87,14 +87,18 @@ export const useFinanceIframes = () => {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (data: FinanceIframeInput) => {
+    mutationFn: (data: any) => {
+      // Extract account_type from the form data (it's not in the model)
+      const { account_type, ...iframeData } = data;
+      
       // Processar valores nulos/undefined para campos opcionais
       const processedData = {
-        ...data,
-        plan_id: data.plan_id === "null" ? null : data.plan_id,
-        mentor_id: data.mentor_id === "null" ? null : data.mentor_id,
-        is_active: data.is_active !== undefined ? data.is_active : true
+        ...iframeData,
+        plan_id: iframeData.plan_id === "null" ? null : iframeData.plan_id,
+        mentor_id: account_type === "aluno" ? iframeData.mentor_id : null,
+        is_active: iframeData.is_active !== undefined ? iframeData.is_active : true
       };
+      
       return createFinanceIframe(processedData);
     },
     onSuccess: () => {
@@ -116,13 +120,17 @@ export const useFinanceIframes = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<FinanceIframeInput> }) => {
+    mutationFn: ({ id, data }: { id: string; data: any }) => {
+      // Extract account_type from the form data (it's not in the model)
+      const { account_type, ...iframeData } = data;
+      
       // Processar valores nulos/undefined para campos opcionais
       const processedData = {
-        ...data,
-        plan_id: data.plan_id === "null" ? null : data.plan_id,
-        mentor_id: data.mentor_id === "null" ? null : data.mentor_id
+        ...iframeData,
+        plan_id: iframeData.plan_id === "null" ? null : iframeData.plan_id,
+        mentor_id: account_type === "aluno" ? iframeData.mentor_id : null
       };
+      
       return updateFinanceIframe(id, processedData);
     },
     onSuccess: () => {
@@ -180,7 +188,9 @@ export const useFinanceIframes = () => {
     }
   }, [deleteMutation]);
 
-  const handleSubmit = useCallback((values: FinanceIframeInput) => {
+  const handleSubmit = useCallback((values: any) => {
+    console.log("Submitting values:", values);
+    
     if (selectedIframe) {
       updateMutation.mutate({
         id: selectedIframe.id,
