@@ -4,9 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import MarketNews from "@/components/admin/MarketNews";
 import FinanceSpreadsheet from "@/components/admin/FinanceSpreadsheet";
-import MarketAssets from "@/components/admin/MarketAssets";
-import MarketAlerts from "@/components/admin/MarketAlerts";
-import MarketOverview from "@/components/admin/MarketOverview";
+import MarketRadar from "@/components/admin/MarketRadar";
 import { useToast } from "@/hooks/use-toast";
 import { useUserPlan } from "@/contexts/UserPlanContext";
 
@@ -54,19 +52,7 @@ const DashboardTabs = () => {
       <Card>
         <CardContent className="p-6">
           <TabsContent value="dashboard" className="mt-0">
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-bold">Acompanhamento da Carteira</h2>
-                <p className="text-muted-foreground">Acompanhe os ativos que compõe sua carteira de investimentos e principais índices de mercado que afetam suas aplicações.</p>
-              </div>
-              
-              <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-                <MarketAssets />
-                <MarketAlerts />
-              </div>
-              
-              <MarketOverview />
-            </div>
+            <MarketRadar />
           </TabsContent>
           
           <TabsContent value="market-news" className="mt-0">
