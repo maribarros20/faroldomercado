@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const incrementVideoViews = async (videoId: string) => {
@@ -44,7 +45,7 @@ export const getVideoComments = async (videoId: string) => {
           .from('profiles')
           .select('first_name, last_name, photo')
           .eq('id', comment.user_id)
-          .single();
+          .maybeSingle();
 
         const userName = profileData 
           ? `${profileData.first_name} ${profileData.last_name}` 
@@ -74,9 +75,26 @@ export const getVideoComments = async (videoId: string) => {
 
 export const likeVideoComment = async (commentId: string) => {
   try {
-    const { error, data } = await supabase.rpc('like_video_comment', {
-      comment_id: commentId
-    });
+    // Instead of using RPC, use a direct update approach
+    // First, check if the comment exists
+    const { data: comment, error: commentError } = await supabase
+      .from('video_comments')
+      .select('likes_count')
+      .eq('id', commentId)
+      .single();
+    
+    if (commentError) {
+      console.error('Error fetching comment:', commentError);
+      throw commentError;
+    }
+    
+    // Increment likes_count by 1
+    const currentLikes = comment.likes_count || 0;
+    const { error, data } = await supabase
+      .from('video_comments')
+      .update({ likes_count: currentLikes + 1 })
+      .eq('id', commentId)
+      .select();
     
     if (error) {
       console.error('Error liking comment:', error);
@@ -92,9 +110,28 @@ export const likeVideoComment = async (commentId: string) => {
 
 export const unlikeVideoComment = async (commentId: string) => {
   try {
-    const { error, data } = await supabase.rpc('unlike_video_comment', {
-      comment_id: commentId
-    });
+    // Instead of using RPC, use a direct update approach
+    // First, check if the comment exists
+    const { data: comment, error: commentError } = await supabase
+      .from('video_comments')
+      .select('likes_count')
+      .eq('id', commentId)
+      .single();
+    
+    if (commentError) {
+      console.error('Error fetching comment:', commentError);
+      throw commentError;
+    }
+    
+    // Decrement likes_count by 1 (minimum 0)
+    const currentLikes = comment.likes_count || 0;
+    const newLikes = Math.max(0, currentLikes - 1);
+    
+    const { error, data } = await supabase
+      .from('video_comments')
+      .update({ likes_count: newLikes })
+      .eq('id', commentId)
+      .select();
     
     if (error) {
       console.error('Error unliking comment:', error);
