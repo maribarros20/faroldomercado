@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Heart, Send, User } from 'lucide-react';
 import { VideoComment } from '@/services/videos/types';
-import { getVideoComments, addVideoComment } from '@/services/videos/utils';
+import { getVideoComments, addVideoComment, likeVideoComment } from '@/services/videos/utils';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VideoCommentsProps {
   videoId: string;
@@ -19,7 +20,18 @@ const VideoComments = ({ videoId }: VideoCommentsProps) => {
   const [newComment, setNewComment] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Get current user
+    const getCurrentUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUserId(data.session?.user.id || null);
+    };
+    
+    getCurrentUser();
+  }, []);
 
   useEffect(() => {
     const loadComments = async () => {
@@ -45,11 +57,11 @@ const VideoComments = ({ videoId }: VideoCommentsProps) => {
   }, [videoId, toast]);
 
   const handleSubmitComment = async () => {
-    if (!newComment.trim()) return;
+    if (!newComment.trim() || !userId) return;
     
     setIsSubmitting(true);
     try {
-      const comment = await addVideoComment(videoId, newComment);
+      const comment = await addVideoComment(videoId, newComment, userId);
       if (comment) {
         setComments(prev => [comment, ...prev]);
         setNewComment('');
@@ -78,6 +90,33 @@ const VideoComments = ({ videoId }: VideoCommentsProps) => {
     }
   };
 
+  const handleLikeComment = async (commentId: string) => {
+    if (!userId) {
+      toast({
+        title: "Ação não permitida",
+        description: "Você precisa estar logado para curtir comentários.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      await likeVideoComment(commentId);
+      // Update the UI optimistically
+      setComments(prev => prev.map(comment => {
+        if (comment.id === commentId) {
+          return {
+            ...comment,
+            likes_count: (comment.likes_count || 0) + 1
+          };
+        }
+        return comment;
+      }));
+    } catch (error) {
+      console.error('Error liking comment:', error);
+    }
+  };
+
   return (
     <div className="mt-8">
       <h2 className="text-xl font-bold mb-4">Comentários</h2>
@@ -93,7 +132,7 @@ const VideoComments = ({ videoId }: VideoCommentsProps) => {
         <div className="flex justify-end">
           <Button 
             onClick={handleSubmitComment} 
-            disabled={!newComment.trim() || isSubmitting}
+            disabled={!newComment.trim() || isSubmitting || !userId}
             className="flex items-center"
           >
             <Send className="w-4 h-4 mr-2" />
@@ -131,7 +170,10 @@ const VideoComments = ({ videoId }: VideoCommentsProps) => {
                   <p className="text-gray-700 whitespace-pre-line">{comment.content}</p>
                   
                   <div className="flex items-center mt-2 text-xs text-gray-500">
-                    <button className="flex items-center gap-1 hover:text-gray-700">
+                    <button 
+                      className="flex items-center gap-1 hover:text-gray-700"
+                      onClick={() => handleLikeComment(comment.id)}
+                    >
                       <Heart className="w-4 h-4" />
                       {comment.likes_count > 0 && <span>{comment.likes_count}</span>}
                     </button>
