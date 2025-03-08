@@ -1,6 +1,7 @@
 
 import React from "react";
-import { Alert, AlertCircle, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import CommunityPosts from "@/components/community/CommunityPosts";
 import { Channel } from "@/types/community";
 
