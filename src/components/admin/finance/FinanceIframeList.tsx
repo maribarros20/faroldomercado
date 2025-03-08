@@ -61,6 +61,7 @@ const FinanceIframeList: React.FC<FinanceIframeListProps> = ({
                     size="sm"
                     onClick={() => onPreview(iframe.iframe_url)}
                     title="Visualizar"
+                    className="hover:bg-[#e6f0ff] hover:text-[#0066FF]"
                   >
                     <ExternalLink className="h-4 w-4" />
                   </Button>
@@ -69,6 +70,7 @@ const FinanceIframeList: React.FC<FinanceIframeListProps> = ({
                     size="sm"
                     onClick={() => onEdit(iframe)}
                     title="Editar"
+                    className="hover:bg-[#e6f0ff] hover:text-[#0066FF]"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -77,7 +79,7 @@ const FinanceIframeList: React.FC<FinanceIframeListProps> = ({
                     size="sm"
                     onClick={() => onDelete(iframe.id)}
                     title="Excluir"
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-500 hover:text-red-700 hover:bg-[#e6f0ff]"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

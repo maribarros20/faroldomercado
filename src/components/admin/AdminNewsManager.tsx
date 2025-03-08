@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
@@ -37,7 +36,6 @@ const AdminNewsManager = () => {
     publication_date: new Date().toISOString()
   });
 
-  // Buscar notícias manuais criadas pelo admin
   const { 
     data: newsList, 
     isLoading, 
@@ -47,7 +45,6 @@ const AdminNewsManager = () => {
     queryFn: fetchManualNews
   });
 
-  // Mutation para criar notícia
   const createNewsMutation = useMutation({
     mutationFn: createNews,
     onSuccess: () => {
@@ -67,7 +64,6 @@ const AdminNewsManager = () => {
     }
   });
 
-  // Mutation para atualizar notícia
   const updateNewsMutation = useMutation({
     mutationFn: ({ id, data }: { id: string, data: NewsItem }) => 
       updateNews(id, data),
@@ -88,7 +84,6 @@ const AdminNewsManager = () => {
     }
   });
 
-  // Mutation para excluir notícia
   const deleteNewsMutation = useMutation({
     mutationFn: deleteNews,
     onSuccess: () => {
@@ -107,7 +102,6 @@ const AdminNewsManager = () => {
     }
   });
 
-  // Carregar notícia para edição
   const loadNewsForEdit = async (id: string) => {
     try {
       const news = await getNewsById(id);
@@ -134,7 +128,6 @@ const AdminNewsManager = () => {
     }
   };
 
-  // Reset do formulário
   const resetForm = () => {
     setFormData({
       title: "",
@@ -150,18 +143,15 @@ const AdminNewsManager = () => {
     setIsEditing(false);
   };
 
-  // Manipular mudanças do formulário
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Manipular mudança de categoria
   const handleCategoryChange = (value: string) => {
     setFormData(prev => ({ ...prev, category: value }));
   };
 
-  // Envio do formulário
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -181,7 +171,6 @@ const AdminNewsManager = () => {
     }
   };
 
-  // Formatação de data
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
     try {
@@ -189,6 +178,11 @@ const AdminNewsManager = () => {
     } catch (e) {
       return "";
     }
+  };
+
+  const handleCreate = () => {
+    resetForm();
+    setIsEditing(false);
   };
 
   return (
@@ -200,18 +194,26 @@ const AdminNewsManager = () => {
             Crie e gerencie notícias para os usuários da plataforma
           </p>
         </div>
-        <Button 
-          onClick={() => refetch()} 
-          variant="outline" 
-          className="flex items-center gap-2"
-        >
-          <RefreshCw size={16} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={handleCreate} 
+            className="flex items-center gap-2"
+          >
+            <PlusCircle size={16} />
+            Nova Notícia
+          </Button>
+          <Button 
+            onClick={() => refetch()} 
+            variant="outline" 
+            className="flex items-center gap-2 hover:bg-[#e6f0ff] hover:text-[#0066FF]"
+          >
+            <RefreshCw size={16} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Formulário de notícias */}
         <div className="md:col-span-2">
           <Card>
             <CardHeader>
@@ -350,7 +352,6 @@ const AdminNewsManager = () => {
           </Card>
         </div>
 
-        {/* Lista de notícias */}
         <div className="md:col-span-1">
           <Card className="h-full">
             <CardHeader>
@@ -402,6 +403,7 @@ const AdminNewsManager = () => {
                             size="icon"
                             onClick={() => news.id && loadNewsForEdit(news.id)}
                             title="Editar"
+                            className="hover:bg-[#e6f0ff] hover:text-[#0066FF]"
                           >
                             <Edit size={16} />
                           </Button>
@@ -410,7 +412,7 @@ const AdminNewsManager = () => {
                             size="icon"
                             onClick={() => news.id && deleteNewsMutation.mutate(news.id)}
                             title="Excluir"
-                            className="text-destructive hover:text-destructive"
+                            className="text-destructive hover:text-destructive hover:bg-[#e6f0ff]"
                           >
                             <Trash2 size={16} />
                           </Button>
@@ -426,7 +428,7 @@ const AdminNewsManager = () => {
                 variant="outline" 
                 size="sm" 
                 onClick={() => refetch()}
-                className="text-xs"
+                className="text-xs hover:bg-[#e6f0ff] hover:text-[#0066FF]"
               >
                 <RefreshCw size={14} className="mr-1" />
                 Atualizar Lista
@@ -440,3 +442,4 @@ const AdminNewsManager = () => {
 };
 
 export default AdminNewsManager;
+

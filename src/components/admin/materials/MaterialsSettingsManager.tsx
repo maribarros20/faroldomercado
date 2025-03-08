@@ -110,6 +110,7 @@ const ItemList: React.FC<ItemListProps> = ({
             onClick={handleAdd} 
             disabled={isAdding || !newItemName.trim()}
             size="sm"
+            className="hover:bg-[#0057e0]"
           >
             {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           </Button>
@@ -140,7 +141,7 @@ const ItemList: React.FC<ItemListProps> = ({
                       size="sm"
                       onClick={() => handleDeleteClick(item.id)}
                       disabled={isDeleting && deletingId === item.id}
-                      className="h-5 w-5 p-0 ml-1 rounded-full opacity-50 group-hover:opacity-100"
+                      className="h-5 w-5 p-0 ml-1 rounded-full opacity-50 group-hover:opacity-100 hover:bg-[#e6f0ff]"
                     >
                       {isDeleting && deletingId === item.id ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -161,7 +162,7 @@ const ItemList: React.FC<ItemListProps> = ({
                       size="sm"
                       onClick={() => handleDeleteClick(item.id)}
                       disabled={isDeleting}
-                      className="h-8 w-8 p-0"
+                      className="h-8 w-8 p-0 hover:bg-[#e6f0ff]"
                     >
                       {isDeleting && deletingId === item.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -185,10 +186,10 @@ const ItemList: React.FC<ItemListProps> = ({
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel className="hover:bg-[#e6f0ff] hover:text-[#0066FF]">Cancelar</AlertDialogCancel>
               <AlertDialogAction 
                 onClick={handleConfirmDelete}
-                className="bg-red-500 hover:bg-red-600 text-white"
+                className="bg-[#323232] hover:bg-[#1a1a1a] text-white"
               >
                 Excluir
               </AlertDialogAction>
@@ -400,14 +401,24 @@ const MaterialsSettingsManager: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Gerenciamento de Atributos dos Materiais</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Gerenciamento de Atributos dos Materiais</h2>
+        <Button 
+          onClick={() => queryClient.invalidateQueries({ queryKey: ["materialCategories", "knowledgeNavigations", "materialFormats", "materialThemes"] })}
+          variant="outline"
+          className="hover:bg-[#e6f0ff] hover:text-[#0066FF]"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Atualizar Dados
+        </Button>
+      </div>
       
       <Tabs defaultValue="categories">
-        <TabsList className="mb-4">
-          <TabsTrigger value="categories">Categorias</TabsTrigger>
-          <TabsTrigger value="navigations">Navegação do Conhecimento</TabsTrigger>
-          <TabsTrigger value="formats">Formatos</TabsTrigger>
-          <TabsTrigger value="themes">Temas/Assuntos</TabsTrigger>
+        <TabsList className="mb-4 bg-white">
+          <TabsTrigger value="categories" className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]">Categorias</TabsTrigger>
+          <TabsTrigger value="navigations" className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]">Navegação do Conhecimento</TabsTrigger>
+          <TabsTrigger value="formats" className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]">Formatos</TabsTrigger>
+          <TabsTrigger value="themes" className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]">Temas/Assuntos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="categories">

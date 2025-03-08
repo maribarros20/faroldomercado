@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -135,43 +136,43 @@ const AdminPage = () => {
         <TabsList className="mb-8 w-full md:w-auto flex flex-wrap bg-white rounded-md">
           <TabsTrigger 
             value="subscribers"
-            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Assinantes</TabsTrigger>
           <TabsTrigger 
             value="users"
-            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Usuários</TabsTrigger>
           <TabsTrigger 
             value="materials"
-            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Materiais</TabsTrigger>
           <TabsTrigger 
             value="videos"
-            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Vídeos</TabsTrigger>
           <TabsTrigger 
             value="community"
-            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Comunidade</TabsTrigger>
           <TabsTrigger 
             value="mentors"
-            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Mentores</TabsTrigger>
           <TabsTrigger 
             value="plans"
-            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Planos</TabsTrigger>
           <TabsTrigger 
             value="audit-logs"
-            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Logs de Auditoria</TabsTrigger>
           <TabsTrigger 
             value="market-news"
-            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Notícias do Mercado</TabsTrigger>
           <TabsTrigger 
             value="finance-spreadsheet"
-            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Planilhas Financeiras</TabsTrigger>
         </TabsList>
         

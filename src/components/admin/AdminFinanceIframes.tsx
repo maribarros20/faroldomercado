@@ -94,10 +94,20 @@ const AdminFinanceIframes = () => {
             Gerencie as planilhas financeiras que serão exibidas para os usuários de acordo com seu plano
           </p>
         </div>
-        <Button onClick={handleCreate} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Adicionar Planilha
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleCreate} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Adicionar Planilha
+          </Button>
+          <Button 
+            onClick={() => refetch()} 
+            variant="outline" 
+            className="flex items-center gap-2 hover:bg-[#e6f0ff] hover:text-[#0066FF]"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {iframes && iframes.length > 0 ? (
