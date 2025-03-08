@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNotifications } from "@/hooks/use-notifications";
 import { supabase } from "@/integrations/supabase/client";
