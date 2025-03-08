@@ -37,7 +37,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             <div className="flex justify-end p-4">
               <QuickActions />
             </div>
-            <div className="px-4 flex-1">
+            <div className="px-4 flex-1 pb-32">
               {children}
             </div>
           </main>

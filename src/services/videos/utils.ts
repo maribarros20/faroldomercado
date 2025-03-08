@@ -98,13 +98,12 @@ export const likeVideo = async (videoId: string): Promise<void> => {
         console.error('Error removing like:', unlikeError);
       }
 
-      // Decrease like count
-      await supabase
-        .from('videos')
-        .update({ 
-          likes: supabase.rpc('decrement', { row_id: videoId, table_name: 'videos', column_name: 'likes' }) 
-        })
-        .eq('id', videoId);
+      // Decrease like count using direct update
+      await supabase.rpc('decrement', { 
+        row_id: videoId, 
+        table_name: 'videos', 
+        column_name: 'likes' 
+      });
     } else {
       // User hasn't liked, so add like
       const { error: likeError } = await supabase
@@ -115,13 +114,12 @@ export const likeVideo = async (videoId: string): Promise<void> => {
         console.error('Error adding like:', likeError);
       }
 
-      // Increase like count
-      await supabase
-        .from('videos')
-        .update({ 
-          likes: supabase.rpc('increment', { row_id: videoId, table_name: 'videos', column_name: 'likes' }) 
-        })
-        .eq('id', videoId);
+      // Increase like count using direct update
+      await supabase.rpc('increment', { 
+        row_id: videoId, 
+        table_name: 'videos', 
+        column_name: 'likes' 
+      });
     }
   } catch (error) {
     console.error('Error in likeVideo:', error);
@@ -168,7 +166,7 @@ export const getVideoComments = async (videoId: string): Promise<VideoComment[]>
         content,
         created_at,
         likes_count,
-        profiles:user_id (
+        profiles (
           first_name,
           last_name,
           photo
@@ -240,8 +238,8 @@ export const addVideoComment = async (videoId: string, content: string): Promise
       id: data.id,
       video_id: data.video_id,
       user_id: data.user_id,
-      user_name: `${userProfile.first_name} ${userProfile.last_name}`,
-      user_avatar: userProfile.photo,
+      user_name: userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : 'Usuário',
+      user_avatar: userProfile?.photo || null,
       content: data.content,
       created_at: data.created_at,
       likes_count: 0
