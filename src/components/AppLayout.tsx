@@ -8,7 +8,9 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useGreeting } from "@/hooks/use-greeting";
+import { useUserProfile } from "@/hooks/use-user-profile";
 import QuickActions from "./QuickActions";
+import UserProfileHeader from "./UserProfileHeader";
 import Footer from "./Footer";
 
 interface AppLayoutProps {
@@ -20,6 +22,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { greeting } = useGreeting(null);
+  const { userRole, avatarUrl, userName } = useUserProfile();
 
   // Only the index page should not have the sidebar layout
   const isHomePage = location.pathname === "/";
@@ -34,8 +37,18 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         <div className="flex flex-1 w-full">
           <Sidebar />
           <main className="flex-1 flex flex-col max-w-full overflow-x-hidden transition-all duration-300 ml-20 md:ml-20 lg:ml-20 pb-36">
-            <div className="flex justify-end p-4">
-              <QuickActions />
+            <div className="flex justify-between items-center p-4 border-b">
+              {/* Left side of header can be empty or have a title/breadcrumb */}
+              <div></div>
+              {/* Right side of header with user profile and quick actions */}
+              <div className="flex items-center space-x-4">
+                <UserProfileHeader 
+                  userName={userName} 
+                  userRole={userRole} 
+                  avatarUrl={avatarUrl} 
+                />
+                <QuickActions />
+              </div>
             </div>
             <div className="px-4 flex-1 pb-32">
               {children}

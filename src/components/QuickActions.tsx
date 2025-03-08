@@ -5,11 +5,9 @@ import {
   ShieldAlert, 
   Bell, 
   UserCog,
-  User,
   BellRing,
-  Lock
 } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
@@ -18,15 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import NotificationPopover from "@/components/notifications/NotificationPopover";
-import { Button } from "@/components/ui/button";
 
 // Define the tab type explicitly with onClick as optional
 interface TabItem {
@@ -38,7 +28,6 @@ interface TabItem {
 
 const QuickActions = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { unreadCount } = useNotifications();
   const { userRole } = useUserProfile();
   const [showNotifications, setShowNotifications] = React.useState(false);
@@ -48,13 +37,7 @@ const QuickActions = () => {
   
   // Create tabs configuration based on user role
   const getTabs = (): TabItem[] => {
-    const baseTabs: TabItem[] = [
-      {
-        title: "Configurações",
-        icon: Settings,
-        to: "/profile-settings"
-      }
-    ];
+    const baseTabs: TabItem[] = [];
     
     // Only show admin tab if user is admin
     if (isAdmin) {
@@ -65,28 +48,21 @@ const QuickActions = () => {
       });
     }
     
-    // Add remaining tabs
-    baseTabs.push(
-      {
-        title: "Perfil",
-        icon: UserCog,
-        to: "/profile"
-      },
-      {
-        title: "Notificações",
-        icon: Bell,
-        onClick: () => {
-          setShowNotifications(true);
-        }
+    // Add notification tab
+    baseTabs.push({
+      title: "Notificações",
+      icon: Bell,
+      onClick: () => {
+        setShowNotifications(true);
       }
-    );
+    });
     
     return baseTabs;
   };
 
   return (
     <div className="relative z-20">
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center">
         <Popover open={showNotifications} onOpenChange={setShowNotifications}>
           <PopoverTrigger asChild>
             <div className="inline-block">

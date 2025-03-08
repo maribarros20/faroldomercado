@@ -16,13 +16,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import Navigation from "./sidebar/Navigation";
 import UsefulLinks from "./sidebar/UsefulLinks";
-import UserProfile from "./sidebar/UserProfile";
 
 const Sidebar = () => {
   const location = useLocation();
   const isMobile = useIsMobile();
   const { expanded, setExpanded } = useSidebar();
-  const { userRole, avatarUrl, userName } = useUserProfile();
+  const { userRole } = useUserProfile();
 
   useEffect(() => {
     if (isMobile) {
@@ -57,12 +56,7 @@ const Sidebar = () => {
       </Content>
       
       <Footer className="border-t p-4">
-        <UserProfile 
-          expanded={expanded} 
-          userName={userName} 
-          userRole={userRole} 
-          avatarUrl={avatarUrl} 
-        />
+        {/* Footer content can go here if needed */}
       </Footer>
     </UISidebar>
   );
