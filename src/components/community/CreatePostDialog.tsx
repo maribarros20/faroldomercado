@@ -7,14 +7,27 @@ import CreatePostForm from './CreatePostForm';
 interface CreatePostDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: { title: string; content: string }) => void;
+  onSubmit?: (values: { title: string; content: string }) => void;
+  onPostCreated?: () => void;
+  channelId?: string;
 }
 
 const CreatePostDialogComponent: React.FC<CreatePostDialogProps> = ({
   open,
   onOpenChange,
-  onSubmit
+  onSubmit,
+  onPostCreated,
+  channelId
 }) => {
+  const handleSubmit = (values: { title: string; content: string }) => {
+    if (onSubmit) {
+      onSubmit(values);
+    }
+    if (onPostCreated) {
+      onPostCreated();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -24,7 +37,7 @@ const CreatePostDialogComponent: React.FC<CreatePostDialogProps> = ({
             Compartilhe algo com a comunidade!
           </DialogDescription>
         </DialogHeader>
-        <CreatePostForm onSubmit={onSubmit} />
+        <CreatePostForm onSubmit={handleSubmit} />
         <DialogFooter>
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
             Cancelar
