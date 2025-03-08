@@ -130,7 +130,7 @@ const CreatePostDialog: React.FC<CreatePostDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] rounded-md border-gray-200 shadow-sm">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Criar nova postagem</DialogTitle>
@@ -147,6 +147,7 @@ const CreatePostDialog: React.FC<CreatePostDialogProps> = ({
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Título da sua postagem"
                 required
+                className="rounded-md border-gray-200"
               />
             </div>
             
@@ -159,7 +160,7 @@ const CreatePostDialog: React.FC<CreatePostDialogProps> = ({
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Escreva sua mensagem aqui..."
-                className="min-h-[150px]"
+                className="min-h-[150px] rounded-md border-gray-200"
                 required
               />
             </div>
@@ -167,13 +168,14 @@ const CreatePostDialog: React.FC<CreatePostDialogProps> = ({
           
           <DialogFooter>
             <DialogClose asChild>
-              <Button type="button" variant="outline">
+              <Button type="button" variant="outline" className="hover:bg-[#e6f0ff] hover:text-[#0066FF]">
                 Cancelar
               </Button>
             </DialogClose>
             <Button 
               type="submit" 
               disabled={createPostMutation.isPending || !title.trim() || !content.trim()}
+              className="bg-[#0066FF] hover:bg-[#0055DD]"
             >
               {createPostMutation.isPending && (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />

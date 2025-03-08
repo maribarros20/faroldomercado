@@ -30,7 +30,7 @@ const Sidebar = () => {
           {expanded && <Logo />}
         </div>
         <Trigger
-          className="p-2 rounded-md hover:bg-[#e6f0ff] text-[#0066FF]"
+          className="p-2 rounded-md hover:bg-[#e6f0ff] hover:text-[#0066FF] text-gray-700"
           icon={expanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
         />
       </Header>

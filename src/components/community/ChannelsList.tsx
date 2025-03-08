@@ -17,7 +17,7 @@ const ChannelsList: React.FC<ChannelsListProps> = ({
   onSelectChannel
 }) => {
   return (
-    <Card>
+    <Card className="rounded-md border-gray-200 shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle>Canais</CardTitle>
       </CardHeader>
@@ -32,7 +32,7 @@ const ChannelsList: React.FC<ChannelsListProps> = ({
               <Button
                 key={channel.id}
                 variant={activeChannel === channel.id ? "default" : "ghost"}
-                className="w-full justify-start"
+                className="w-full justify-start hover:bg-[#e6f0ff] hover:text-[#0066FF]"
                 onClick={() => onSelectChannel(channel.id)}
               >
                 <MessageSquare className="h-4 w-4 mr-2" />

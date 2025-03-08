@@ -6,7 +6,7 @@ const Logo = () => {
 
   return (
     <div 
-      className="flex items-center cursor-pointer py-12" // Aumentado o padding superior
+      className="flex items-center cursor-pointer py-16" // Increased padding from py-12 to py-16
       onClick={() => navigate("/")}
     >
       <img 

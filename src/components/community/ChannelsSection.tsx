@@ -20,7 +20,7 @@ const ChannelsSection: React.FC<ChannelsSectionProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <Card>
+      <Card className="rounded-md border-gray-200 shadow-sm">
         <CardContent className="p-6">
           <div className="flex justify-center">
             <Spinner size="lg" />
@@ -32,7 +32,7 @@ const ChannelsSection: React.FC<ChannelsSectionProps> = ({
 
   if (channels.length === 0) {
     return (
-      <Card>
+      <Card className="rounded-md border-gray-200 shadow-sm">
         <CardContent className="p-6 text-center">
           <p>Nenhum canal disponível no momento.</p>
         </CardContent>
