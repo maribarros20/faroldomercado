@@ -494,7 +494,7 @@ const AdminUserManager = () => {
                           {user.role === 'admin' ? 'Admin' : 'Usuário'}
                         </span>
                       </TableCell>
-                      <TableCell>{formatDate(user.created_at || user.updated_at)}</TableCell>
+                      <TableCell>{formatDate(user.updated_at || '')}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
