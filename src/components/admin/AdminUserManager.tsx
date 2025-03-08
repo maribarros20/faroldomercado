@@ -74,7 +74,7 @@ const AdminUserManager = () => {
     queryFn: async () => {
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('*, mentors:mentor_id(id, name)');
+        .select('*, mentors(id, name)');
         
       if (error) {
         toast({
@@ -289,7 +289,7 @@ const AdminUserManager = () => {
             variant="outline" 
             className="flex items-center gap-2"
           >
-            <RefreshCw size={16} />
+            <RefreshCw className="h-4 w-4" />
             Atualizar
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

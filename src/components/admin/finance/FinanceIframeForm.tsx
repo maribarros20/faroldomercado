@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,10 +24,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
+// Modified schema to accept Google Sheets iframe URLs (including those with &amp; in them)
 const formSchema = z.object({
   title: z.string().min(3, "O título deve ter pelo menos 3 caracteres"),
   description: z.string().optional(),
-  iframe_url: z.string().url("URL inválida"),
+  iframe_url: z.string().min(5, "URL inválida"),
   plan_id: z.string().optional(),
   mentor_id: z.string().optional(),
   account_type: z.enum(["trader", "aluno"]).default("trader"),
@@ -133,55 +135,6 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
       <form onSubmit={form.handleSubmit(onValidSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Título</FormLabel>
-              <FormControl>
-                <Input placeholder="Digite o título da planilha" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Descrição (opcional)</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Descreva brevemente esta planilha" 
-                  {...field} 
-                  value={field.value || ""}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="iframe_url"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL do iframe</FormLabel>
-              <FormControl>
-                <Input placeholder="https://..." {...field} />
-              </FormControl>
-              <FormDescription>
-                URL completa do iframe que será incorporado (ex: Google Sheets, Notion, etc).
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="account_type"
           render={({ field }) => (
             <FormItem className="space-y-2">
@@ -239,6 +192,55 @@ const FinanceIframeForm: React.FC<FinanceIframeFormProps> = ({
             )}
           />
         )}
+
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Título</FormLabel>
+              <FormControl>
+                <Input placeholder="Digite o título da planilha" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Descrição (opcional)</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Descreva brevemente esta planilha" 
+                  {...field} 
+                  value={field.value || ""}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="iframe_url"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>URL do iframe</FormLabel>
+              <FormControl>
+                <Input placeholder="https://..." {...field} />
+              </FormControl>
+              <FormDescription>
+                URL completa do iframe que será incorporado (ex: Google Sheets, Notion, etc).
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
