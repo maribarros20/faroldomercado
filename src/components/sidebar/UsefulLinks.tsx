@@ -42,7 +42,7 @@ const UsefulLinks = ({
     icon: HelpCircle,
     label: "Ajuda"
   }];
-  return <div className="bg-[#0066FF] rounded-t-2xl rounded-b-none px-3 shadow-md absolute bottom-0 left-0 right-0 w-full my-[12px] py-[34px]">
+  return <div className="bg-[#0066FF] rounded-t-2xl rounded-b-none px-6 shadow-md absolute bottom-0 left-0 right-0 max-w-[calc(100%-24px)] mx-auto py-[34px]\n">
       {links.map((link, index) => <LinkItem key={index} href={link.href} icon={<link.icon className="w-5 h-5" />} label={link.label} />)}
     </div>;
 };
