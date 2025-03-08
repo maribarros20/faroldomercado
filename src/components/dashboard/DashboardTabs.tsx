@@ -7,6 +7,7 @@ import FinanceSpreadsheet from "@/components/admin/FinanceSpreadsheet";
 import MarketAssets from "@/components/admin/MarketAssets";
 import MarketAlerts from "@/components/admin/MarketAlerts";
 import MarketOverview from "@/components/admin/MarketOverview";
+import MarketRadar from "@/components/admin/MarketRadar";
 import { useToast } from "@/hooks/use-toast";
 import { useUserPlan } from "@/contexts/UserPlanContext";
 
@@ -38,6 +39,12 @@ const DashboardTabs = () => {
           Carteira
         </TabsTrigger>
         <TabsTrigger 
+          value="radar"
+          className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
+        >
+          Radar
+        </TabsTrigger>
+        <TabsTrigger 
           value="market-news"
           className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
         >
@@ -67,6 +74,10 @@ const DashboardTabs = () => {
               
               <MarketOverview />
             </div>
+          </TabsContent>
+          
+          <TabsContent value="radar" className="mt-0">
+            <MarketRadar />
           </TabsContent>
           
           <TabsContent value="market-news" className="mt-0">
