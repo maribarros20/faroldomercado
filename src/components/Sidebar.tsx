@@ -35,20 +35,18 @@ const Sidebar = () => {
         />
       </Header>
       
-      <Content className="flex-1 py-4 overflow-y-auto flex flex-col">
+      <Content className="flex-1 py-4 overflow-y-auto flex flex-col relative">
         <Section className="space-y-1">
           <Navigation expanded={expanded} userRole={userRole} />
         </Section>
 
-        <div className="mt-auto">
-          <Section className="px-3 space-y-1">
-            <UsefulLinks expanded={expanded} />
-          </Section>
+        <div className="mt-auto pb-36">
+          {/* Spacer to ensure content doesn't go behind UsefulLinks */}
         </div>
       </Content>
       
-      <Footer className="border-t p-4">
-        {/* Footer content removed as user profile is now in the header */}
+      <Footer className="relative">
+        <UsefulLinks expanded={expanded} />
       </Footer>
     </UISidebar>
   );
