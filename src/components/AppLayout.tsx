@@ -23,7 +23,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   const { toast } = useToast();
   const { greeting } = useGreeting(null);
   const { userRole, avatarUrl, userName } = useUserProfile();
-  const { expanded } = useSidebar();
 
   // Only the index page should not have the sidebar layout
   const isHomePage = location.pathname === "/";
