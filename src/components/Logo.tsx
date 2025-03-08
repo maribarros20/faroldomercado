@@ -12,7 +12,7 @@ const Logo = () => {
       <img 
         src="/lovable-uploads/3928ce87-7087-4ebf-ae30-745ce03df4bf.png" 
         alt="Farol do Mercado" 
-        className="h-14 object-contain" // Increased from h-10 to h-14
+        className="h-24 object-contain" // Increased significantly from h-14 to h-24
       />
     </div>
   );

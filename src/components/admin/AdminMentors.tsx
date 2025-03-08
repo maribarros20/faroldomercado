@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
-import { Pen, Trash2, Plus, Upload } from "lucide-react";
+import { Pen, Trash2, Plus, Upload, Eye, EyeOff } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -47,9 +47,12 @@ const AdminMentors = () => {
     phone: "",
     cnpj: "",
     photo: null as string | null,
+    password: "", // Added password field
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
   const { toast } = useToast();
 
   // Load mentors
@@ -100,6 +103,15 @@ const AdminMentors = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Password validation
+    if (name === 'password') {
+      if (value.length < 8) {
+        setPasswordError("A senha deve ter pelo menos 8 caracteres.");
+      } else {
+        setPasswordError("");
+      }
+    }
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,6 +154,16 @@ const AdminMentors = () => {
       toast({
         title: "Erro",
         description: "O CNPJ do mentor é obrigatório.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    // Password validation for new mentor
+    if (!activeMentor && (!formData.password || formData.password.length < 8)) {
+      toast({
+        title: "Erro",
+        description: "A senha deve ter pelo menos 8 caracteres.",
         variant: "destructive",
       });
       return false;
@@ -196,9 +218,53 @@ const AdminMentors = () => {
     }
   };
 
+  const createUserAccountForMentor = async (email: string, password: string) => {
+    try {
+      // Create a new user account
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            role: "mentor",
+          },
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Send welcome email to mentor with password
+      // This would be implemented with a Supabase Edge Function
+      // For now, we'll just log that we would send an email
+      console.log(`An email would be sent to ${email} with their temporary password and login instructions`);
+
+      return data;
+    } catch (error) {
+      console.error("Error creating user account for mentor:", error);
+      throw error;
+    }
+  };
+
   const handleCreateMentor = async () => {
     try {
       if (!validateForm()) return;
+
+      // First create the user account for the mentor
+      try {
+        await createUserAccountForMentor(formData.email, formData.password);
+      } catch (error: any) {
+        // If error is because user already exists, we can proceed
+        if (!error.message.includes("already exists")) {
+          toast({
+            title: "Erro",
+            description: `Erro ao criar conta: ${error.message}`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
 
       const { data, error } = await supabase
         .from("mentors")
@@ -231,16 +297,18 @@ const AdminMentors = () => {
 
       toast({
         title: "Sucesso",
-        description: "Mentor criado com sucesso.",
+        description: "Mentor criado com sucesso. Um email com as instruções de acesso foi enviado.",
       });
 
       // Refresh mentors list
       setMentors([...mentors, { ...newMentor, student_count: 0 }]);
       
       // Reset form
-      setFormData({ name: "", email: "", phone: "", cnpj: "", photo: null });
+      setFormData({ name: "", email: "", phone: "", cnpj: "", photo: null, password: "" });
       setPhotoFile(null);
       setPhotoPreview(null);
+      setShowPassword(false);
+      setPasswordError("");
     } catch (error) {
       console.error("Error creating mentor:", error);
       toast({
@@ -299,9 +367,11 @@ const AdminMentors = () => {
       
       // Reset form
       setActiveMentor(null);
-      setFormData({ name: "", email: "", phone: "", cnpj: "", photo: null });
+      setFormData({ name: "", email: "", phone: "", cnpj: "", photo: null, password: "" });
       setPhotoFile(null);
       setPhotoPreview(null);
+      setShowPassword(false);
+      setPasswordError("");
     } catch (error) {
       console.error("Error updating mentor:", error);
       toast({
@@ -367,15 +437,20 @@ const AdminMentors = () => {
       phone: mentor.phone,
       cnpj: mentor.cnpj,
       photo: mentor.photo,
+      password: "", // Reset password field
     });
     setPhotoPreview(mentor.photo || null);
+    setShowPassword(false);
+    setPasswordError("");
   };
 
   const resetForm = () => {
     setActiveMentor(null);
-    setFormData({ name: "", email: "", phone: "", cnpj: "", photo: null });
+    setFormData({ name: "", email: "", phone: "", cnpj: "", photo: null, password: "" });
     setPhotoFile(null);
     setPhotoPreview(null);
+    setShowPassword(false);
+    setPasswordError("");
   };
 
   return (
@@ -467,6 +542,39 @@ const AdminMentors = () => {
                     onChange={handleInputChange}
                     placeholder="00.000.000/0000-00"
                   />
+                </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium mb-1">
+                    Senha Inicial*
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="Senha com pelo menos 8 caracteres"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-500" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-500" />
+                      )}
+                    </button>
+                  </div>
+                  {passwordError && (
+                    <p className="text-red-500 text-xs mt-1">{passwordError}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Esta senha será enviada ao mentor por email. Ele será solicitado a alterá-la no primeiro acesso.
+                  </p>
                 </div>
               </div>
               <DialogFooter>

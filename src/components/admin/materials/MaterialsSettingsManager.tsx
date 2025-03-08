@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 interface Item {
   id: string;
@@ -34,6 +35,7 @@ interface ItemListProps {
   isAdding: boolean;
   isDeleting: boolean;
   deletingId: string | null;
+  isHashtag?: boolean;
 }
 
 const ItemList: React.FC<ItemListProps> = ({
@@ -44,7 +46,8 @@ const ItemList: React.FC<ItemListProps> = ({
   onDelete,
   isAdding,
   isDeleting,
-  deletingId
+  deletingId,
+  isHashtag = false
 }) => {
   const [newItemName, setNewItemName] = useState("");
   const [itemToDeleteId, setItemToDeleteId] = useState<string | null>(null);
@@ -52,7 +55,12 @@ const ItemList: React.FC<ItemListProps> = ({
 
   const handleAdd = () => {
     if (newItemName.trim()) {
-      onAdd(newItemName.trim());
+      // For hashtags, automatically add # if not present
+      const formattedName = isHashtag && !newItemName.startsWith('#') 
+        ? `#${newItemName.trim()}` 
+        : newItemName.trim();
+      
+      onAdd(formattedName);
       setNewItemName("");
     }
   };
@@ -70,6 +78,13 @@ const ItemList: React.FC<ItemListProps> = ({
     setIsConfirmDialogOpen(false);
   };
 
+  // Handle keypresses to add items
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && newItemName.trim()) {
+      handleAdd();
+    }
+  };
+
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-3">
@@ -77,11 +92,20 @@ const ItemList: React.FC<ItemListProps> = ({
       </CardHeader>
       <CardContent>
         <div className="flex gap-2 mb-4">
-          <Input
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-            placeholder={`Novo ${title.toLowerCase()}`}
-          />
+          <div className="relative flex-1">
+            {isHashtag && (
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Hash className="h-4 w-4 text-gray-400" />
+              </div>
+            )}
+            <Input
+              value={newItemName}
+              onChange={(e) => setNewItemName(e.target.value)}
+              placeholder={`Novo ${title.toLowerCase()}${isHashtag ? ' (adicione com ou sem #)' : ''}`}
+              className={isHashtag ? "pl-8" : ""}
+              onKeyPress={handleKeyPress}
+            />
+          </div>
           <Button 
             onClick={handleAdd} 
             disabled={isAdding || !newItemName.trim()}
@@ -101,24 +125,54 @@ const ItemList: React.FC<ItemListProps> = ({
           </div>
         ) : (
           <div className="space-y-2">
-            {items.map((item) => (
-              <div key={item.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span>{item.name}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDeleteClick(item.id)}
-                  disabled={isDeleting}
-                  className="h-8 w-8 p-0"
-                >
-                  {isDeleting && deletingId === item.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  )}
-                </Button>
+            {isHashtag ? (
+              <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded border border-gray-100 min-h-[100px]">
+                {items.map((item) => (
+                  <Badge
+                    key={item.id}
+                    variant="outline"
+                    className="flex items-center gap-1 py-1 px-2 group hover:bg-gray-100"
+                  >
+                    <Hash className="h-3 w-3" />
+                    <span>{item.name.startsWith('#') ? item.name.slice(1) : item.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteClick(item.id)}
+                      disabled={isDeleting && deletingId === item.id}
+                      className="h-5 w-5 p-0 ml-1 rounded-full opacity-50 group-hover:opacity-100"
+                    >
+                      {isDeleting && deletingId === item.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3 w-3 text-red-500" />
+                      )}
+                    </Button>
+                  </Badge>
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="space-y-2">
+                {items.map((item) => (
+                  <div key={item.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span>{item.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteClick(item.id)}
+                      disabled={isDeleting}
+                      className="h-8 w-8 p-0"
+                    >
+                      {isDeleting && deletingId === item.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      )}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -405,6 +459,7 @@ const MaterialsSettingsManager: React.FC = () => {
             isAdding={addThemeMutation.isPending}
             isDeleting={deleteThemeMutation.isPending}
             deletingId={deletingId}
+            isHashtag={true}
           />
         </TabsContent>
       </Tabs>
