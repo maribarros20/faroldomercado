@@ -36,7 +36,7 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
           description: "Cotação em Singapura"
         };
       case "IRON_DALIAN":
-        return { 
+        return {
           name: "Minério Ferro (Dalian)", 
           icon: <Mountain className="h-4 w-4 text-orange-600" />,
           description: "Cotação na China"
@@ -47,10 +47,13 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
   };
 
   return (
-    <Card className="bg-white border-none shadow-md">
+    <Card className="bg-white border-none shadow-lg">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-[#0066FF]">
-          <span>Commodities</span>
+          <span className="flex items-center">
+            <Droplet className="h-5 w-5 mr-2" />
+            Commodities
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -60,7 +63,7 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
             const isChangePositive = !commodity.change.includes("-");
             
             return (
-              <Card key={key} className="border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <Card key={key} className={`border-l-4 ${isChangePositive ? 'border-l-green-500' : 'border-l-red-500'} shadow-md hover:shadow-lg transition-shadow`}>
                 <CardContent className="p-3">
                   <div className="flex justify-between items-center mb-1">
                     <div className="flex items-center">
@@ -80,7 +83,7 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
                   <div className="text-xs text-gray-500 mb-2">{description}</div>
                   
                   <div className="flex items-center justify-between">
-                    <div className="text-xl font-bold">{commodity.value}</div>
+                    <div className="text-xl font-bold text-[#323232]">{commodity.value}</div>
                     <div className={`flex items-center ${isChangePositive ? 'text-green-600' : 'text-red-600'}`}>
                       {isChangePositive ? (
                         <ArrowUpRight className="h-4 w-4 mr-1" />

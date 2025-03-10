@@ -2,13 +2,13 @@
 const SHEET_ID = "1fPLwFZmfhfjc2muHkr58WySldsj_AmsM_TXhykMPj8I"; 
 const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
 
-// Properly formatted ranges for batch requests
+// Properly formatted ranges for batch requests with ALL required data
 const RANGES = [
-  "'v.10'!F6:AC18",  // Main data with times
-  "'v.10'!F12:AC14", // VIX data
-  "'v.10'!F16:AC18", // Alerts data
-  "'v.10'!I64:P70",  // ADRs data
-  "'v.10'!W64:AC68"  // Commodities data
+  "'v.10'!F6:AC18",   // Main data with times
+  "'v.10'!F12:AC14",  // VIX data
+  "'v.10'!F16:AC18",  // Alerts data
+  "'v.10'!I64:P70",   // ADRs data
+  "'v.10'!W64:AC68"   // Commodities data
 ];
 
 export interface MarketDataResponse {
@@ -101,7 +101,7 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
 
     console.log("Raw Google Sheets data:", data);
     
-    // Extract data from response - using proper indices
+    // Extract data from response - using proper indices according to cell references
     const mainData = data.valueRanges[0].values || [];
     const vixData = data.valueRanges[1].values || [];
     const alertsData = data.valueRanges[2].values || [];
@@ -122,7 +122,7 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
         if (index < adrNames.length) {
           adrs[adrNames[index]] = {
             name: adrNames[index],
-            time: (row[0] || "") + " " + (row[3] || ""),
+            time: (row[0] || ""),
             value: row[4] || "0",
             change: row[5] || "0%",
             prevChange: row[6] || "0%",
@@ -141,7 +141,7 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
         if (index < commodityNames.length) {
           commoditiesList[commodityNames[index]] = {
             name: commodityNames[index],
-            time: index < 2 ? ((row[0] || "") + " " + (row[3] || "")) : (index === 3 ? (row[0] || "") + " " + (row[3] || "") : ""),
+            time: index < 2 ? ((row[0] || "")) : (index === 3 ? (row[0] || "") : ""),
             value: index < 2 ? (row[4] || "") : (row[3] || ""),
             change: index < 2 ? (row[6] || "0%") : (row[4] || "0%")
           };
@@ -155,36 +155,36 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
     const adrAfterTime = (timesData[16] || "") + " " + (timesData[17] || "");
     const commoditiesTime = timesData[22] || "";
     
-    // Build structured response
+    // Build structured response according to correct cell references
     return {
       adrsCurrent: {
-        value: mainData[2] ? (mainData[2][0] || "0") + (mainData[2][1] || "%") : "0%",
-        parameter: mainData[3] ? (mainData[3][0] || "") + (mainData[3][1] || "") + (mainData[3][2] || "") : "",
+        value: mainData[2] ? (mainData[2][0] || "0") : "0%",
+        parameter: mainData[3] ? (mainData[3][0] || "") : "",
         time: adrCurrentTime,
         isNegative: mainData[2] && mainData[2][0] ? parseFloat(mainData[2][0]) < 0 : false
       },
       adrsClosing: {
-        value: mainData[2] ? (mainData[2][5] || "0") + (mainData[2][6] || "0") + (mainData[2][7] || "%") : "0%",
-        parameter: mainData[3] ? (mainData[3][5] || "") + (mainData[3][6] || "") + (mainData[3][7] || "") + (mainData[3][8] || "") + (mainData[3][9] || "") : "",
+        value: mainData[2] ? (mainData[2][5] || "0") : "0%",
+        parameter: mainData[3] ? (mainData[3][5] || "") : "",
         time: adrClosingTime,
         isPositive: mainData[2] && mainData[2][5] ? parseFloat(mainData[2][5]) > 0 : false
       },
       adrsAfterMarket: {
-        value: mainData[2] ? (mainData[2][14] || "0") + (mainData[2][15] || "%") : "0%",
-        parameter: mainData[3] ? (mainData[3][14] || "") + (mainData[3][15] || "") + (mainData[3][16] || "") + (mainData[3][17] || "") : "",
+        value: mainData[2] ? (mainData[2][14] || "0") : "0%",
+        parameter: mainData[3] ? (mainData[3][14] || "") : "",
         time: adrAfterTime,
         isPositive: mainData[2] && mainData[2][14] ? parseFloat(mainData[2][14]) > 0 : false
       },
       commodities: {
         value: mainData[2] ? (mainData[2][21] || "0%") : "0%",
-        parameter: mainData[3] ? (mainData[3][21] || "") + (mainData[3][22] || "") + (mainData[3][23] || "") : "",
+        parameter: mainData[3] ? (mainData[3][21] || "") : "",
         time: commoditiesTime,
         isNegative: mainData[2] && mainData[2][21] ? parseFloat(mainData[2][21]) < 0 : false
       },
       vix: {
-        currentValue: vixData[1] ? (vixData[1][0] || "0") + (vixData[1][1] || "") : "0",
-        currentChange: vixData[2] ? (vixData[2][0] || "0") + (vixData[2][1] || "%") : "0%",
-        currentTime: vixData[0] ? (vixData[0][0] || "") + " " + (vixData[0][4] || "") : "",
+        currentValue: vixData[1] ? (vixData[1][0] || "0") : "0",
+        currentChange: vixData[2] ? (vixData[2][0] || "0%") : "0%",
+        currentTime: vixData[0] ? (vixData[0][0] || "") : "",
         closingValue: vixData[1] ? vixData[1][8] || "0" : "0",
         closingChange: vixData[2] ? vixData[2][7] || "0%" : "0%",
         closingTime: vixData[0] ? vixData[0][7] || "" : "",
@@ -193,9 +193,9 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
         openingTime: vixData[0] ? vixData[0][9] || "" : "",
         valueParameter: vixData[1] ? vixData[1][2] || "" : "",
         resultParameter: vixData[2] ? vixData[2][2] || "" : "",
-        gapParameter: vixData[2] ? (vixData[2][7] || "") + (vixData[2][8] || "") + (vixData[2][9] || "") + (vixData[2][10] || "") + (vixData[2][11] || "") : "",
+        gapParameter: vixData[2] ? (vixData[2][7] || "") : "",
         tendencyTime: vixData[0] ? vixData[0][14] || "" : "",
-        tendencyParameter: vixData[2] ? (vixData[2][14] || "") + (vixData[2][15] || "") + (vixData[2][16] || "") + (vixData[2][17] || "") : "",
+        tendencyParameter: vixData[2] ? (vixData[2][14] || "") : "",
         chartData: vixData[1] ? vixData[1].slice(15).filter(Boolean) : []
       },
       alerts: {
@@ -224,13 +224,13 @@ const getMockMarketData = (): MarketDataResponse => {
     adrsClosing: {
       value: "7.77%",
       parameter: "MUITO POSITIVO",
-      time: "07/03/2023",
+      time: "07/03/2025",
       isPositive: true
     },
     adrsAfterMarket: {
       value: "0.26%",
       parameter: "LEVEMENTE POSITIVO",
-      time: "07/03/2023",
+      time: "07/03/2025",
       isPositive: true
     },
     commodities: {

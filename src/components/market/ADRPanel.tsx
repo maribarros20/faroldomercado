@@ -32,10 +32,13 @@ const ADRPanel: React.FC<ADRPanelProps> = ({ adrs }) => {
   };
 
   return (
-    <Card className="bg-white border-none shadow-md">
+    <Card className="bg-white border-none shadow-lg">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-[#0066FF]">
-          <span>ADRs Brasileiras</span>
+          <span className="flex items-center">
+            <ArrowUpRight className="h-5 w-5 mr-2" />
+            ADRs Brasileiras
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -63,7 +66,12 @@ const ADRPanel: React.FC<ADRPanelProps> = ({ adrs }) => {
                       <div className="font-medium">{key}</div>
                       <div className="text-xs text-gray-500">{getCompanyName(key)}</div>
                     </td>
-                    <td className="py-3 px-4 text-right text-sm text-gray-500">{adr.time}</td>
+                    <td className="py-3 px-4 text-right text-sm text-gray-500">
+                      <div className="flex items-center justify-end">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {adr.time}
+                      </div>
+                    </td>
                     <td className="py-3 px-4 text-right font-medium">${adr.value}</td>
                     <td className="py-3 px-4 text-right">
                       <div className={`flex items-center justify-end ${isChangePositive ? 'text-green-600' : 'text-red-600'}`}>
