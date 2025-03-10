@@ -1,89 +1,14 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, AlertTriangle, TrendingDown, TrendingUp } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RefreshCw, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const SHEET_ID = "183-0fe8XPxEaWZ6j7mPc8aoNCknempGt66VBa0CVK-s"; 
-const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
-const RANGE = "Validação!A8:W1500"; 
-
-interface StockData {
-  ticker: string;
-  exchange: string;
-  movingAvg5: number;
-  movingAvg20: number;
-  max10Days: number;
-  min10Days: number;
-  openPrice: number;
-  prevCloseD1: number;
-  avgVolume10Days: number;
-  lastPrice: number;
-  changePrice: number;
-  changePercent: number;
-  updateTime: string;
-  name: string;
-}
-
-interface AlertData {
-  id: string;
-  type: "success" | "info" | "danger" | "warning";
-  message: string;
-}
-
-async function fetchStockData(): Promise<StockData[]> {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
-
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-
-    console.log("Dados brutos do Google Sheets:", data);
-
-    if (!data.values || data.values.length < 1) {
-      console.error("Nenhum dado encontrado ou formato inesperado.");
-      return getMockData(); // Use mock data when real data fails
-    }
-
-    // Mapeamos os dados corretamente
-    const stocks = data.values.map((row: any[]) => ({
-      ticker: row[0] || "N/A", // Coluna A - Código do ativo
-      exchange: row[1] || "N/A", // Coluna B - Bolsa
-      movingAvg5: parseFloat(row[2]?.replace(',', '.')) || 0, // Coluna C - Média Móvel 5 Dias
-      movingAvg20: parseFloat(row[3]?.replace(',', '.')) || 0, // Coluna D - Média Móvel 20 Dias
-      max10Days: parseFloat(row[4]?.replace(',', '.')) || 0, // Coluna E - Máxima dos Últimos 10 Dias
-      min10Days: parseFloat(row[5]?.replace(',', '.')) || 0, // Coluna F - Mínima dos Últimos 10 Dias
-      openPrice: parseFloat(row[6]?.replace(',', '.')) || 0, // Coluna G - Preço de Abertura do Dia
-      prevCloseD1: parseFloat(row[10]?.replace(',', '.')) || 0, // Coluna K - Preço Fechamento D-1
-      avgVolume10Days: parseInt(row[8]?.replace(/\./g, '')) || 0, // Coluna I - Volume Médio 10 Dias
-      lastPrice: parseFloat(row[9]?.replace(',', '.')) || 0, // Coluna J - Preço Atual
-      changePrice: parseFloat(row[15]?.replace(',', '.')) || 0, // Coluna P - Variação de Preço
-      changePercent: parseFloat(row[16]?.replace("%", "")?.replace(',', '.')) || 0, // Coluna Q - % Variação
-      updateTime: row[18] || "Sem horário", // Coluna S - Hora cotação BRA
-      name: row[22]?.trim() || "Nome Indefinido", // Coluna W - Nome do Ativo
-    }));
-
-    console.log("Dados processados:", stocks);
-    return stocks.filter(stock => stock.ticker && stock.ticker !== "N/A");
-  } catch (error) {
-    console.error("Erro ao buscar dados do Google Sheets:", error);
-    return getMockData(); // Fallback para dados de exemplo
-  }
-}
-
-// Dados de exemplo para quando a API falhar
-function getMockData(): StockData[] {
-  return [
-    { ticker: "PETR4", name: "Petrobras PN", exchange: "BVMF", movingAvg5: 36.5, movingAvg20: 35.8, max10Days: 38.2, min10Days: 35.1, openPrice: 37.2, prevCloseD1: 36.9, avgVolume10Days: 45000000, lastPrice: 38.42, changePrice: 1.52, changePercent: 2.15, updateTime: "16:30" },
-    { ticker: "VALE3", name: "Vale ON", exchange: "BVMF", movingAvg5: 64.2, movingAvg20: 65.5, max10Days: 66.8, min10Days: 62.3, openPrice: 62.9, prevCloseD1: 64.1, avgVolume10Days: 42000000, lastPrice: 63.18, changePrice: -0.92, changePercent: -1.32, updateTime: "16:30" },
-    { ticker: "ITUB4", name: "Itaú Unibanco PN", exchange: "BVMF", movingAvg5: 32.1, movingAvg20: 31.8, max10Days: 33.2, min10Days: 31.1, openPrice: 32.3, prevCloseD1: 32.3, avgVolume10Days: 30000000, lastPrice: 32.56, changePrice: 0.26, changePercent: 0.75, updateTime: "16:30" },
-    { ticker: "BBAS3", name: "Banco do Brasil ON", exchange: "BVMF", movingAvg5: 55.8, movingAvg20: 54.9, max10Days: 56.2, min10Days: 53.8, openPrice: 54.9, prevCloseD1: 55.9, avgVolume10Days: 25000000, lastPrice: 52.94, changePrice: -2.96, changePercent: -5.31, updateTime: "16:30" },
-    { ticker: "WEGE3", name: "WEG ON", exchange: "BVMF", movingAvg5: 34.2, movingAvg20: 36.1, max10Days: 36.8, min10Days: 33.9, openPrice: 34.3, prevCloseD1: 34.3, avgVolume10Days: 12000000, lastPrice: 36.45, changePrice: 2.15, changePercent: 6.27, updateTime: "16:30" },
-  ];
-}
+import { fetchStockData, StockData } from "@/services/stockService";
+import { generateAlerts, AlertData } from "@/utils/alertUtils";
+import StockList from "@/components/market/StockList";
+import MarketAlerts from "@/components/market/MarketAlerts";
+import StockSelector from "@/components/market/StockSelector";
 
 export default function MarketRadar() {
   const [stocks, setStocks] = useState<StockData[]>([]);
@@ -114,42 +39,6 @@ export default function MarketRadar() {
     }
   }
 
-  const generateAlerts = (stocks: StockData[]): AlertData[] => {
-    return stocks.map(stock => {
-      let alertMessage: string | null = null;
-      let alertType: "success" | "info" | "danger" | "warning" = "info";
-      
-      if (stock.movingAvg5 > stock.movingAvg20) {
-        alertMessage = `${stock.name} (${stock.ticker}) cruzou a Média Móvel de 20 dias para cima!`;
-        alertType = "success";
-      } else if (stock.movingAvg5 < stock.movingAvg20) {
-        alertMessage = `${stock.name} (${stock.ticker}) cruzou a Média Móvel de 20 dias para baixo!`;
-        alertType = "danger";
-      }
-      
-      if (stock.lastPrice >= stock.max10Days) {
-        alertMessage = `${stock.name} (${stock.ticker}) atingiu a máxima dos últimos 10 dias!`;
-        alertType = "warning";
-      }
-      
-      if (stock.lastPrice <= stock.min10Days) {
-        alertMessage = `${stock.name} (${stock.ticker}) atingiu a mínima dos últimos 10 dias!`;
-        alertType = "danger";
-      }
-      
-      if (stock.openPrice >= stock.prevCloseD1 * 1.02 || stock.openPrice <= stock.prevCloseD1 * 0.98) {
-        alertMessage = `${stock.name} (${stock.ticker}) teve um gap de abertura significativo!`;
-        alertType = "warning";
-      }
-      
-      return alertMessage ? { 
-        id: `${stock.ticker}-${alertType}`, 
-        type: alertType, 
-        message: alertMessage
-      } : null;
-    }).filter((alert): alert is AlertData => alert !== null);
-  };
-
   const addStock = () => {
     const stockToAdd = stocks.find(stock => stock.ticker === selectedStock);
     if (stockToAdd && !userStocks.some(s => s.ticker === stockToAdd.ticker)) {
@@ -159,10 +48,6 @@ export default function MarketRadar() {
 
   const removeStock = (ticker: string) => {
     setUserStocks(prevStocks => prevStocks.filter(stock => stock.ticker !== ticker));
-  };
-
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
   return (
@@ -190,31 +75,13 @@ export default function MarketRadar() {
         </Alert>
       )}
 
-      <div className="flex flex-wrap gap-4 items-center">
-        <div className="w-full md:w-auto">
-          <Select value={selectedStock} onValueChange={setSelectedStock}>
-            <SelectTrigger className="w-full md:w-[250px]">
-              <SelectValue placeholder="Selecione um ativo" />
-            </SelectTrigger>
-            <SelectContent>
-              {stocks
-                .filter(stock => !userStocks.some(s => s.ticker === stock.ticker))
-                .map(stock => (
-                  <SelectItem key={stock.ticker} value={stock.ticker}>
-                    {stock.ticker} - {stock.name}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <Button 
-          onClick={addStock} 
-          variant="default" 
-          disabled={!selectedStock || userStocks.some(s => s.ticker === selectedStock)}
-        >
-          Adicionar Ativo
-        </Button>
-      </div>
+      <StockSelector 
+        stocks={stocks}
+        userStocks={userStocks}
+        selectedStock={selectedStock}
+        onSelectStock={setSelectedStock}
+        onAddStock={addStock}
+      />
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Lista de Ativos */}
@@ -230,61 +97,11 @@ export default function MarketRadar() {
                 ))}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Ativo</TableHead>
-                    <TableHead>Hora Cotação</TableHead>
-                    <TableHead>Atual</TableHead>
-                    <TableHead>Variação</TableHead>
-                    <TableHead>%</TableHead>
-                    <TableHead>Ação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {userStocks.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
-                        Nenhum ativo selecionado
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    userStocks.map((stock) => (
-                      <TableRow key={stock.ticker}>
-                        <TableCell>
-                          <div className="font-medium">{stock.ticker}</div>
-                          <div className="text-sm text-muted-foreground">{stock.name}</div>
-                        </TableCell>
-                        <TableCell className="text-gray-500 text-sm">{stock.updateTime}</TableCell>
-                        <TableCell>{formatCurrency(stock.lastPrice)}</TableCell>
-                        <TableCell>{stock.changePrice.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            {stock.changePercent > 0 ? (
-                              <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                            ) : stock.changePercent < 0 ? (
-                              <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
-                            ) : null}
-                            <span className={stock.changePercent >= 0 ? "text-green-600" : "text-red-600"}>
-                              {stock.changePercent.toFixed(2)}%
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            onClick={() => removeStock(stock.ticker)}
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-500 hover:bg-red-50 hover:text-red-600 p-0 h-8 w-8"
-                          >
-                            🗑
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+              <StockList 
+                stocks={userStocks} 
+                onRemoveStock={removeStock}
+                isLoading={isLoading}
+              />
             )}
           </CardContent>
         </Card>
@@ -295,55 +112,7 @@ export default function MarketRadar() {
             <CardTitle className="text-xl">Alertas de Mercado</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="animate-pulse space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-100 rounded"></div>
-                ))}
-              </div>
-            ) : alerts.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <AlertTriangle className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
-                <p>Nenhum alerta de variação significativa no momento</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {alerts.map((alert) => (
-                  <div 
-                    key={alert.id} 
-                    className={`p-3 border rounded-md flex gap-3 ${
-                      alert.type === "danger" 
-                        ? "bg-red-50 border-red-100" 
-                        : alert.type === "success"
-                        ? "bg-green-50 border-green-100"
-                        : alert.type === "warning"
-                        ? "bg-amber-50 border-amber-100"
-                        : "bg-blue-50 border-blue-100"
-                    }`}
-                  >
-                    <div className="mt-1">
-                      {alert.type === "danger" ? (
-                        <TrendingDown className="h-5 w-5 text-red-500" />
-                      ) : alert.type === "success" ? (
-                        <TrendingUp className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <AlertTriangle className="h-5 w-5 text-amber-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium">
-                        {alert.type === "danger" ? "Alerta de Queda" : 
-                         alert.type === "success" ? "Sinal de Alta" : 
-                         alert.type === "warning" ? "Alta Volatilidade" : "Notificação"}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {alert.message}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <MarketAlerts alerts={alerts} isLoading={isLoading} />
           </CardContent>
         </Card>
       </div>
