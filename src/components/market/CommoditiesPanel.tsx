@@ -54,7 +54,7 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
           {Object.entries(commodities).map(([key, commodity]) => {
             const { name, icon, description } = getCommodityDisplayInfo(key);
             const isChangePositive = !commodity.change.includes("-");
