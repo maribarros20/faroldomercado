@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RefreshCw, TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight, Info, Clock } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight, Info, Clock, Droplet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchMarketData, MarketDataResponse } from "@/services/marketDataService";
 import VixPanel from "@/components/market/VixPanel";
@@ -106,160 +105,93 @@ const MarketOverviewTab: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 pb-6 bg-gray-100 rounded-lg p-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 pb-6 bg-[#f4f4f4] rounded-lg p-6">
+      <div className="flex justify-between items-center bg-[#323232] p-4 rounded-lg text-white">
         <div>
-          <h2 className="text-2xl font-bold text-[#0066FF]">Panorama do Mercado</h2>
-          <p className="text-gray-600">Visão consolidada de ADRs, Commodities e Indicadores de Volatilidade</p>
+          <h2 className="text-2xl font-bold">Bem Vindo Faroleiro e Faroleira!</h2>
+          <p>Acompanhe os melhores dados para apoio às suas operações</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">
-            Última atualização: {lastUpdate}
+          <span className="text-sm">
+            {new Date().toLocaleDateString('pt-BR', {weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric'})}
+            {' '}
+            {lastUpdate}
           </span>
-          <Button 
-            onClick={loadData} 
-            variant="outline"
-            className="bg-white shadow-md hover:bg-blue-50"
-            disabled={isLoading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* ADRs Current Status Card */}
-        <Card className={`border-l-4 shadow-lg ${marketData.adrsCurrent.isNegative ? 'border-l-red-500' : 'border-l-green-500'} bg-white`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center justify-between text-lg">
-              <span className="flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2 text-[#0066FF]" />
-                ADRs Atual
-              </span>
-              <span className="text-sm font-normal flex items-center">
-                <Clock className="h-4 w-4 mr-1 text-gray-500" />
-                {formatTime(marketData.adrsCurrent.time)}
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              {marketData.adrsCurrent.isNegative ? (
-                <TrendingDown className="h-10 w-10 text-red-500 mr-3" />
-              ) : (
-                <TrendingUp className="h-10 w-10 text-green-500 mr-3" />
-              )}
-              <div>
-                <div className={`text-3xl font-bold ${marketData.adrsCurrent.isNegative ? 'text-red-600' : 'text-green-600'}`}>
-                  {marketData.adrsCurrent.value}
-                </div>
-                <div className="text-sm font-medium mt-1 text-[#323232]">
-                  {marketData.adrsCurrent.parameter}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-[#323232] rounded-lg p-4 shadow-xl">
+          <div className="mb-2 flex justify-between">
+            <span className="text-white text-sm">ADR'S</span>
+            <span className="text-white text-xs flex items-center">
+              <Clock className="h-3 w-3 mr-1" />
+              {formatTime(marketData.adrsCurrent.time)}
+            </span>
+          </div>
+          <div className="text-gray-300 text-xs mb-1">Hoje e partir da abertura</div>
+          <div className={`text-2xl font-bold ${marketData.adrsCurrent.isNegative ? 'text-red-500' : 'text-green-500'}`}>
+            {marketData.adrsCurrent.value}
+          </div>
+          <div className={`text-sm font-medium mt-1 ${marketData.adrsCurrent.isNegative ? 'text-red-500' : 'text-green-500'} uppercase`}>
+            {marketData.adrsCurrent.parameter}
+          </div>
+        </div>
 
         {/* ADRs Closing Status Card */}
-        <Card className={`border-l-4 shadow-lg ${!marketData.adrsClosing.isPositive ? 'border-l-red-500' : 'border-l-green-500'} bg-white`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center justify-between text-lg">
-              <span className="flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2 text-[#0066FF]" />
-                ADRs Fechamento
-              </span>
-              <span className="text-sm font-normal flex items-center">
-                <Clock className="h-4 w-4 mr-1 text-gray-500" />
-                {formatTime(marketData.adrsClosing.time)}
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              {!marketData.adrsClosing.isPositive ? (
-                <TrendingDown className="h-10 w-10 text-red-500 mr-3" />
-              ) : (
-                <TrendingUp className="h-10 w-10 text-green-500 mr-3" />
-              )}
-              <div>
-                <div className={`text-3xl font-bold ${!marketData.adrsClosing.isPositive ? 'text-red-600' : 'text-green-600'}`}>
-                  {marketData.adrsClosing.value}
-                </div>
-                <div className="text-sm font-medium mt-1 text-[#323232]">
-                  {marketData.adrsClosing.parameter}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-[#323232] rounded-lg p-4 shadow-xl">
+          <div className="mb-2 flex justify-between">
+            <span className="text-white text-sm">ADR'S</span>
+            <span className="text-white text-xs flex items-center">
+              <Clock className="h-3 w-3 mr-1" />
+              {formatTime(marketData.adrsClosing.time)}
+            </span>
+          </div>
+          <div className="text-gray-300 text-xs mb-1">Fechamento do dia anterior</div>
+          <div className={`text-2xl font-bold ${!marketData.adrsClosing.isPositive ? 'text-red-500' : 'text-green-500'}`}>
+            {marketData.adrsClosing.value}
+          </div>
+          <div className={`text-sm font-medium mt-1 ${!marketData.adrsClosing.isPositive ? 'text-red-500' : 'text-green-500'} uppercase`}>
+            {marketData.adrsClosing.parameter}
+          </div>
+        </div>
 
         {/* ADRs After Market Status Card */}
-        <Card className={`border-l-4 shadow-lg ${!marketData.adrsAfterMarket.isPositive ? 'border-l-red-500' : 'border-l-green-500'} bg-white`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center justify-between text-lg">
-              <span className="flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2 text-[#0066FF]" />
-                ADRs After Market
-              </span>
-              <span className="text-sm font-normal flex items-center">
-                <Clock className="h-4 w-4 mr-1 text-gray-500" />
-                {formatTime(marketData.adrsAfterMarket.time)}
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              {!marketData.adrsAfterMarket.isPositive ? (
-                <TrendingDown className="h-10 w-10 text-red-500 mr-3" />
-              ) : (
-                <TrendingUp className="h-10 w-10 text-green-500 mr-3" />
-              )}
-              <div>
-                <div className={`text-3xl font-bold ${!marketData.adrsAfterMarket.isPositive ? 'text-red-600' : 'text-green-600'}`}>
-                  {marketData.adrsAfterMarket.value}
-                </div>
-                <div className="text-sm font-medium mt-1 text-[#323232]">
-                  {marketData.adrsAfterMarket.parameter}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-[#323232] rounded-lg p-4 shadow-xl">
+          <div className="mb-2 flex justify-between">
+            <span className="text-white text-sm">ADR'S</span>
+            <span className="text-white text-xs flex items-center">
+              <Clock className="h-3 w-3 mr-1" />
+              {formatTime(marketData.adrsAfterMarket.time)}
+            </span>
+          </div>
+          <div className="text-gray-300 text-xs mb-1">Pós Mercado do dia anterior</div>
+          <div className={`text-2xl font-bold ${!marketData.adrsAfterMarket.isPositive ? 'text-red-500' : 'text-green-500'}`}>
+            {marketData.adrsAfterMarket.value}
+          </div>
+          <div className={`text-sm font-medium mt-1 ${!marketData.adrsAfterMarket.isPositive ? 'text-red-500' : 'text-green-500'} uppercase`}>
+            {marketData.adrsAfterMarket.parameter}
+          </div>
+        </div>
 
         {/* Commodities Status Card */}
-        <Card className={`border-l-4 shadow-lg ${marketData.commodities.isNegative ? 'border-l-red-500' : 'border-l-green-500'} bg-white`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center justify-between text-lg">
-              <span className="flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2 text-[#0066FF]" />
-                Commodities
-              </span>
-              <span className="text-sm font-normal flex items-center">
-                <Clock className="h-4 w-4 mr-1 text-gray-500" />
-                {formatTime(marketData.commodities.time)}
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              {marketData.commodities.isNegative ? (
-                <TrendingDown className="h-10 w-10 text-red-500 mr-3" />
-              ) : (
-                <TrendingUp className="h-10 w-10 text-green-500 mr-3" />
-              )}
-              <div>
-                <div className={`text-3xl font-bold ${marketData.commodities.isNegative ? 'text-red-600' : 'text-green-600'}`}>
-                  {marketData.commodities.value}
-                </div>
-                <div className="text-sm font-medium mt-1 text-[#323232]">
-                  {marketData.commodities.parameter}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-[#323232] rounded-lg p-4 shadow-xl">
+          <div className="mb-2 flex justify-between">
+            <span className="text-white text-sm">COMMODITIES</span>
+            <span className="text-white text-xs flex items-center">
+              <Clock className="h-3 w-3 mr-1" />
+              {formatTime(marketData.commodities.time)}
+            </span>
+          </div>
+          <div className="text-gray-300 text-xs mb-1">P. Brent & M.F. Dalian/Singapura</div>
+          <div className={`text-2xl font-bold ${marketData.commodities.isNegative ? 'text-red-500' : 'text-green-500'}`}>
+            {marketData.commodities.value}
+          </div>
+          <div className={`text-sm font-medium mt-1 ${marketData.commodities.isNegative ? 'text-red-500' : 'text-green-500'} uppercase`}>
+            {marketData.commodities.parameter}
+          </div>
+        </div>
       </div>
 
       {/* VIX Panel */}
@@ -273,6 +205,18 @@ const MarketOverviewTab: React.FC = () => {
 
       {/* Commodities Detail Panel */}
       <CommoditiesPanel commodities={marketData.commoditiesList} />
+
+      <div className="flex justify-end">
+        <Button 
+          onClick={loadData} 
+          variant="outline"
+          className="bg-white shadow-md"
+          disabled={isLoading}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+          Atualizar dados
+        </Button>
+      </div>
     </div>
   );
 };
