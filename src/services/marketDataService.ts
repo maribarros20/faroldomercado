@@ -1,7 +1,16 @@
 
 const SHEET_ID = "1fPLwFZmfhfjc2muHkr58WySldsj_AmsM_TXhykMPj8I"; 
 const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
-const BATCH_RANGES = "v.10!F8:AC18,v.10!F12:AC14,v.10!F16:AC18,v.10!I64:P70,v.10!W64:AC68,v.10!F6:W6";
+
+// Properly formatted ranges for batch requests
+const RANGES = [
+  "'v.10'!F8:AC18",
+  "'v.10'!F12:AC14",
+  "'v.10'!F16:AC18",
+  "'v.10'!I64:P70",
+  "'v.10'!W64:AC68",
+  "'v.10'!F6:W6"
+];
 
 export interface MarketDataResponse {
   adrsCurrent: {
@@ -72,9 +81,19 @@ export interface MarketDataResponse {
 
 export const fetchMarketData = async (): Promise<MarketDataResponse> => {
   try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?ranges=${BATCH_RANGES}&key=${API_KEY}`;
+    // Format ranges properly for the API
+    const encodedRanges = RANGES.map(range => `ranges=${encodeURIComponent(range)}`).join('&');
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${encodedRanges}&key=${API_KEY}`;
     
+    console.log("Fetching market data from:", url);
     const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("API Error:", errorData);
+      throw new Error(`API error: ${response.status} - ${errorData?.error?.message || 'Unknown error'}`);
+    }
+    
     const data = await response.json();
     
     if (!data.valueRanges || data.valueRanges.length === 0) {
@@ -83,7 +102,7 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
 
     console.log("Raw Google Sheets data:", data);
     
-    // Extract data from response
+    // Extract data from response - using proper indices
     const mainData = data.valueRanges[0].values || [];
     const vixData = data.valueRanges[1].values || [];
     const alertsData = data.valueRanges[2].values || [];
@@ -94,10 +113,10 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
     // Process ADRs data
     const adrs: any = {};
     
-    // Map ADRs data (assuming the structure is consistent)
+    // Map ADRs data with proper names
+    const adrNames = ["VALE", "PBR", "PBRA", "ITUB", "BBD", "BBDO", "BSBR"];
+    
     if (adrsListData.length > 0) {
-      const adrNames = ["VALE", "PBR", "PBRA", "ITUB", "BBD", "BBDO", "BSBR"];
-      
       adrsListData.forEach((row, index) => {
         if (index < adrNames.length) {
           adrs[adrNames[index]] = {

@@ -29,7 +29,7 @@ const DashboardTabs = () => {
 
   return (
     <Tabs defaultValue="dashboard" value={activeTab} onValueChange={handleTabChange}>
-      <TabsList className="mb-6 w-full md:w-auto flex flex-wrap bg-white">
+      <TabsList className="mb-6 w-full md:w-auto flex flex-wrap bg-white shadow-sm">
         <TabsTrigger 
           value="dashboard" 
           className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
@@ -56,8 +56,8 @@ const DashboardTabs = () => {
         </TabsTrigger>
       </TabsList>
       
-      <Card>
-        <CardContent className="p-6">
+      <Card className="border-none shadow-sm">
+        <CardContent className="p-0 overflow-hidden">
           <TabsContent value="dashboard" className="mt-0">
             <MarketRadar />
           </TabsContent>

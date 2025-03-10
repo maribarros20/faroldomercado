@@ -8,12 +8,14 @@ import VixPanel from "@/components/market/VixPanel";
 import MarketAlertPanel from "@/components/market/MarketAlertPanel";
 import ADRPanel from "@/components/market/ADRPanel";
 import CommoditiesPanel from "@/components/market/CommoditiesPanel";
+import { useToast } from "@/hooks/use-toast";
 
 const MarketOverviewTab: React.FC = () => {
   const [marketData, setMarketData] = useState<MarketDataResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string>("");
+  const { toast } = useToast();
 
   const loadData = async () => {
     setIsLoading(true);
@@ -22,9 +24,21 @@ const MarketOverviewTab: React.FC = () => {
       const data = await fetchMarketData();
       setMarketData(data);
       setLastUpdate(new Date().toLocaleTimeString());
+      
+      toast({
+        title: "Dados atualizados",
+        description: "Informações de mercado foram atualizadas com sucesso.",
+        variant: "default"
+      });
     } catch (err) {
       console.error("Error loading market data:", err);
       setError("Falha ao carregar os dados. Tente novamente mais tarde.");
+      
+      toast({
+        title: "Erro na atualização",
+        description: "Não foi possível atualizar os dados. Tente novamente.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -48,12 +62,16 @@ const MarketOverviewTab: React.FC = () => {
   if (isLoading && !marketData) {
     return (
       <div className="animate-pulse space-y-6">
-        <div className="h-64 bg-gray-100 rounded-md"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="h-48 bg-gray-100 rounded-md"></div>
-          <div className="h-48 bg-gray-100 rounded-md"></div>
+        <div className="h-16 bg-gray-100 rounded-md"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="h-32 bg-gray-100 rounded-md"></div>
+          <div className="h-32 bg-gray-100 rounded-md"></div>
+          <div className="h-32 bg-gray-100 rounded-md"></div>
         </div>
+        <div className="h-64 bg-gray-100 rounded-md"></div>
         <div className="h-32 bg-gray-100 rounded-md"></div>
+        <div className="h-96 bg-gray-100 rounded-md"></div>
+        <div className="h-96 bg-gray-100 rounded-md"></div>
       </div>
     );
   }
@@ -87,20 +105,20 @@ const MarketOverviewTab: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-6 bg-gray-50 rounded-lg p-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Panorama do Mercado</h2>
-          <p className="text-muted-foreground">Visão consolidada de ADRs, Commodities e Indicadores de Volatilidade</p>
+          <h2 className="text-2xl font-bold text-[#0066FF]">Panorama do Mercado</h2>
+          <p className="text-gray-600">Visão consolidada de ADRs, Commodities e Indicadores de Volatilidade</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-gray-600">
             Última atualização: {lastUpdate}
           </span>
           <Button 
             onClick={loadData} 
             variant="outline"
-            className="bg-white"
+            className="bg-white shadow-sm hover:bg-blue-50"
             disabled={isLoading}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />

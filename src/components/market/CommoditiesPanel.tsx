@@ -15,36 +15,52 @@ interface CommoditiesPanelProps {
 }
 
 const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
-  const getCommodityNameDisplay = (key: string) => {
+  const getCommodityDisplayInfo = (key: string) => {
     switch (key) {
       case "BRENT":
-        return { name: "Petróleo Brent", icon: <Droplet className="h-4 w-4 text-blue-500" /> };
+        return { 
+          name: "Petróleo Brent", 
+          icon: <Droplet className="h-4 w-4 text-blue-500" />,
+          description: "Referência para mercados europeus"
+        };
       case "WTI":
-        return { name: "Petróleo WTI", icon: <Droplet className="h-4 w-4 text-blue-600" /> };
+        return { 
+          name: "Petróleo WTI", 
+          icon: <Droplet className="h-4 w-4 text-blue-600" />,
+          description: "Referência para mercados americanos"
+        };
       case "IRON_SING":
-        return { name: "Minério Ferro (Singapura)", icon: <Mountain className="h-4 w-4 text-orange-500" /> };
+        return { 
+          name: "Minério Ferro (Singapura)", 
+          icon: <Mountain className="h-4 w-4 text-orange-500" />,
+          description: "Cotação em Singapura"
+        };
       case "IRON_DALIAN":
-        return { name: "Minério Ferro (Dalian)", icon: <Mountain className="h-4 w-4 text-orange-600" /> };
+        return { 
+          name: "Minério Ferro (Dalian)", 
+          icon: <Mountain className="h-4 w-4 text-orange-600" />,
+          description: "Cotação na China"
+        };
       default:
-        return { name: key, icon: null };
+        return { name: key, icon: null, description: "" };
     }
   };
 
   return (
-    <Card>
+    <Card className="bg-white border-none shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex items-center justify-between text-[#0066FF]">
           <span>Commodities</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {Object.entries(commodities).map(([key, commodity]) => {
-            const { name, icon } = getCommodityNameDisplay(key);
+            const { name, icon, description } = getCommodityDisplayInfo(key);
             const isChangePositive = !commodity.change.includes("-");
             
             return (
-              <Card key={key} className="border">
+              <Card key={key} className="border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center">
@@ -61,7 +77,9 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between mt-2">
+                  <div className="text-xs text-gray-500 mb-3">{description}</div>
+                  
+                  <div className="flex items-center justify-between">
                     <div className="text-2xl font-bold">{commodity.value}</div>
                     <div className={`flex items-center ${isChangePositive ? 'text-green-600' : 'text-red-600'}`}>
                       {isChangePositive ? (

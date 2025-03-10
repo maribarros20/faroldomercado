@@ -1,7 +1,8 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { TrendingUp, TrendingDown, Clock, Info } from "lucide-react";
+import { ResponsiveContainer, LineChart, Line, XAxis, Tooltip } from "recharts";
 
 interface VixPanelProps {
   vixData: {
@@ -24,109 +25,129 @@ interface VixPanelProps {
 }
 
 const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
-  const isVixUp = vixData.currentChange.includes("+");
+  // Helper function to determine if a value is positive or negative
+  const isPositive = (value: string) => value && value.includes("+");
+  const isNegative = (value: string) => value && value.includes("-");
   
-  const renderMiniChart = () => {
-    if (vixData.chartData.length === 0) return null;
-    
-    // Normalize chart data for display
-    const chartValues = vixData.chartData.map(val => parseFloat(val) || 0);
-    const min = Math.min(...chartValues);
-    const max = Math.max(...chartValues);
-    const range = max - min;
-    
-    // Prevent division by zero
-    const normalizedValues = range === 0 
-      ? chartValues.map(() => 50) 
-      : chartValues.map(val => ((val - min) / range) * 100);
-    
-    return (
-      <div className="h-12 flex items-end space-x-1">
-        {normalizedValues.map((val, i) => {
-          const height = Math.max(5, val); // Minimum height of 5%
-          const colorClass = chartValues[i] >= chartValues[i > 0 ? i-1 : i] 
-            ? "bg-red-400" 
-            : "bg-green-400";
-          
-          return (
-            <div 
-              key={i} 
-              className={`w-3 rounded-t ${colorClass}`} 
-              style={{ height: `${height}%` }}
-            ></div>
-          );
-        })}
-      </div>
-    );
+  // Create chart data from string values
+  const chartData = vixData.chartData.map((value, index) => ({
+    name: index.toString(),
+    value: parseFloat(value) || 0
+  }));
+  
+  // Helper for dynamic color styling
+  const getValueColor = (value: string) => {
+    if (isPositive(value)) return "text-green-600";
+    if (isNegative(value)) return "text-red-600";
+    return "text-gray-800";
+  };
+  
+  // Helper for parameter color styling
+  const getParameterColor = (parameter: string) => {
+    const lowerParam = parameter.toLowerCase();
+    if (lowerParam.includes("positiv")) return "text-green-600";
+    if (lowerParam.includes("negativ")) return "text-red-600";
+    if (lowerParam.includes("neutr")) return "text-blue-600";
+    return "text-gray-700";
   };
 
   return (
-    <Card className="bg-white">
+    <Card className="bg-white border-none shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center">
-            <span className="text-xl">VIX (CBOE VOLATILITY INDEX)</span>
-            <div className="flex items-center ml-4 text-gray-500 text-sm">
-              <Clock className="h-4 w-4 mr-1" />
-              {vixData.currentTime}
-            </div>
-          </div>
+        <CardTitle className="flex items-center justify-between text-[#0066FF]">
+          <span className="flex items-center">
+            <TrendingUp className="h-5 w-5 mr-2" />
+            VIX - Índice de Volatilidade
+          </span>
+          <span className="text-sm font-normal flex items-center">
+            <Clock className="h-4 w-4 mr-1" />
+            {vixData.currentTime || "Sem horário"}
+          </span>
         </CardTitle>
       </CardHeader>
+      
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex flex-col">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium uppercase">Atual</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className={`text-3xl font-bold ${isVixUp ? 'text-red-600' : 'text-green-600'}`}>
-                {vixData.currentValue}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Current value */}
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="text-sm text-gray-500 mb-1">VIX Atual</div>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">{vixData.currentValue}</div>
+                <div className={`flex items-center ${getValueColor(vixData.currentChange)}`}>
+                  {isPositive(vixData.currentChange) ? (
+                    <TrendingUp className="h-5 w-5 mr-1" />
+                  ) : (
+                    <TrendingDown className="h-5 w-5 mr-1" />
+                  )}
+                  <span className="font-medium">{vixData.currentChange}</span>
+                </div>
               </div>
-              <div className={`flex items-center ${isVixUp ? 'text-red-500' : 'text-green-500'}`}>
-                {isVixUp ? (
-                  <TrendingUp className="h-5 w-5 mr-1" />
-                ) : (
-                  <TrendingDown className="h-5 w-5 mr-1" />
-                )}
-                <span className="font-semibold">{vixData.currentChange}</span>
+              <div className={`text-sm mt-2 font-medium ${getParameterColor(vixData.valueParameter)}`}>
+                {vixData.valueParameter}
+              </div>
+              <div className={`text-sm mt-1 font-medium ${getParameterColor(vixData.resultParameter)}`}>
+                {vixData.resultParameter}
               </div>
             </div>
-            <div className="text-sm uppercase mt-2 font-medium">{vixData.valueParameter}</div>
-            <div className={`text-xs mt-1 uppercase font-medium ${isVixUp ? 'text-red-500' : 'text-green-500'}`}>
-              {vixData.resultParameter}
-            </div>
-          </div>
-          
-          <div className="flex flex-col">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm font-medium text-gray-600 mb-1">Fechamento</div>
-                <div className="text-xl font-semibold">{vixData.closingValue}</div>
-                <div className={`text-sm ${vixData.closingChange.includes("-") ? 'text-green-500' : 'text-red-500'}`}>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="text-xs text-gray-500 mb-1">Fechamento</div>
+                <div className="text-lg font-bold">{vixData.closingValue}</div>
+                <div className={`text-sm flex items-center ${getValueColor(vixData.closingChange)}`}>
                   {vixData.closingChange}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">{vixData.closingTime}</div>
               </div>
               
-              <div>
-                <div className="text-sm font-medium text-gray-600 mb-1">Abertura</div>
-                <div className="text-xl font-semibold">{vixData.openingValue}</div>
-                <div className={`text-sm ${vixData.openingChange.includes("-") ? 'text-green-500' : 'text-red-500'}`}>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="text-xs text-gray-500 mb-1">Abertura</div>
+                <div className="text-lg font-bold">{vixData.openingValue}</div>
+                <div className={`text-sm flex items-center ${getValueColor(vixData.openingChange)}`}>
                   {vixData.openingChange}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">{vixData.openingTime}</div>
               </div>
             </div>
-            <div className="text-sm uppercase mt-4 font-medium text-orange-500">{vixData.gapParameter}</div>
           </div>
           
-          <div className="flex flex-col">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">Tendência ({vixData.tendencyTime})</span>
+          {/* Chart */}
+          <div className="bg-gray-50 p-4 rounded-lg md:col-span-2 h-48">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium">Histórico VIX</span>
+              <div className="flex items-center text-xs text-gray-500">
+                <Clock className="h-3.5 w-3.5 mr-1" />
+                <span>{vixData.tendencyTime || "Sem horário"}</span>
+              </div>
             </div>
-            {renderMiniChart()}
-            <div className="text-sm text-red-500 mt-2 uppercase font-medium">{vixData.tendencyParameter}</div>
+            
+            <ResponsiveContainer width="100%" height="80%">
+              <LineChart data={chartData}>
+                <XAxis dataKey="name" hide />
+                <Tooltip 
+                  formatter={(value) => [parseFloat(value as string).toFixed(2), 'VIX']}
+                  contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0' }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="value" 
+                  stroke="#0066FF" 
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+            
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className={`text-xs ${getParameterColor(vixData.gapParameter)}`}>
+                {vixData.gapParameter}
+              </div>
+              <div className={`text-xs ${getParameterColor(vixData.tendencyParameter)}`}>
+                {vixData.tendencyParameter}
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>
