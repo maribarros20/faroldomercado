@@ -5,13 +5,16 @@ import { RefreshCw, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { fetchStockData, StockData } from "@/services/stockService";
-import { generateAlerts, AlertData } from "@/utils/alertUtils";
+import { generateAlerts, AlertData, markAlertAsSeen } from "@/utils/alertUtils";
 import StockList from "@/components/market/StockList";
 import MarketAlerts from "@/components/market/MarketAlerts";
 import StockSelector from "@/components/market/StockSelector";
 import StockCardCarousel from "@/components/market/StockCardCarousel";
 import MarketSnapshot from "@/components/market/MarketSnapshot";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 export default function MarketRadar() {
   const [stocks, setStocks] = useState<StockData[]>([]);
@@ -20,6 +23,9 @@ export default function MarketRadar() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStock, setSelectedStock] = useState<string>("");
+  const [snapshotStock, setSnapshotStock] = useState<StockData | null>(null);
+  const { toast } = useToast();
+  const { userId } = useUserProfile();
 
   // Get US stocks (7 magnificas)
   const getUSStocks = () => {
@@ -37,7 +43,22 @@ export default function MarketRadar() {
 
   useEffect(() => {
     loadData();
-  }, []);
+    loadUserFavorites();
+  }, [userId]);
+
+  // When stocks or selectedStock changes, update snapshotStock
+  useEffect(() => {
+    if (selectedStock && stocks.length > 0) {
+      const stock = stocks.find(s => s.ticker === selectedStock);
+      if (stock) {
+        setSnapshotStock(stock);
+      }
+    } else if (stocks.length > 0) {
+      // Default to IBOV or the first stock
+      const ibov = stocks.find(stock => stock.ticker === "IBOV");
+      setSnapshotStock(ibov || stocks[0]);
+    }
+  }, [selectedStock, stocks]);
 
   async function loadData() {
     setIsLoading(true);
@@ -45,9 +66,37 @@ export default function MarketRadar() {
     try {
       const data = await fetchStockData();
       setStocks(data);
-      // Inicialmente carregamos os primeiros 10 ativos ou menos se não houver 10
-      setUserStocks(data.slice(0, Math.min(10, data.length))); 
-      setAlerts(generateAlerts(data));
+      
+      // If we don't have user stocks already (from Supabase), 
+      // initialize with the first few stocks
+      if (userStocks.length === 0) {
+        setUserStocks(data.slice(0, Math.min(5, data.length)));
+      }
+      
+      // Generate alerts based on all stocks
+      const allAlerts = generateAlerts(data);
+      
+      // Filter out alerts the user has already seen
+      if (userId) {
+        const { data: seenAlerts, error } = await supabase
+          .from('users_alerts_seen')
+          .select('ticker, alert_type')
+          .eq('user_id', userId);
+          
+        if (!error && seenAlerts) {
+          const filteredAlerts = allAlerts.filter(alert => {
+            const [ticker, alertType] = alert.id.split('-');
+            return !seenAlerts.some(
+              seen => seen.ticker === ticker && seen.alert_type === alertType
+            );
+          });
+          setAlerts(filteredAlerts);
+        } else {
+          setAlerts(allAlerts);
+        }
+      } else {
+        setAlerts(allAlerts);
+      }
     } catch (err) {
       setError("Erro ao carregar dados. Tente novamente mais tarde.");
       console.error(err);
@@ -56,30 +105,49 @@ export default function MarketRadar() {
     }
   }
 
+  async function loadUserFavorites() {
+    if (!userId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('users_favorites')
+        .select('ticker, name, exchange')
+        .eq('user_id', userId);
+        
+      if (!error && data && data.length > 0) {
+        // Match the favorites with the full stock data
+        const favoritesWithData = data.map(fav => {
+          const stockData = stocks.find(s => s.ticker === fav.ticker);
+          return stockData || null;
+        }).filter(Boolean) as StockData[];
+        
+        if (favoritesWithData.length > 0) {
+          setUserStocks(favoritesWithData);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading favorites:", err);
+    }
+  }
+
   const addStock = () => {
     const stockToAdd = stocks.find(stock => stock.ticker === selectedStock);
     if (stockToAdd && !userStocks.some(s => s.ticker === stockToAdd.ticker)) {
       setUserStocks(prevStocks => [...prevStocks, stockToAdd]);
+      
+      // Also set this as the snapshot stock
+      setSnapshotStock(stockToAdd);
     }
   };
 
   const removeStock = (ticker: string) => {
     setUserStocks(prevStocks => prevStocks.filter(stock => stock.ticker !== ticker));
-  };
-
-  // Get main stock for snapshot (IBOV or first stock)
-  const getMainIndex = () => {
-    const ibov = stocks.find(stock => stock.ticker === "IBOV");
-    return ibov || stocks[0] || {
-      ticker: "IBOV",
-      lastPrice: 120000,
-      prevCloseD1: 121000,
-      openPrice: 120500,
-      min10Days: 115000,
-      max10Days: 125000,
-      updateTime: "16:30",
-      name: "Ibovespa"
-    };
+    
+    // If the removed stock was the snapshot stock, reset to IBOV or first stock
+    if (snapshotStock && snapshotStock.ticker === ticker) {
+      const ibov = stocks.find(stock => stock.ticker === "IBOV");
+      setSnapshotStock(ibov || stocks[0] || null);
+    }
   };
 
   // Format current date
@@ -96,7 +164,8 @@ export default function MarketRadar() {
         </div>
         <Button 
           onClick={loadData} 
-          variant="refresh"
+          variant="outline"
+          className="bg-white"
           disabled={isLoading}
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
@@ -161,18 +230,20 @@ export default function MarketRadar() {
 
         {/* Market Snapshot */}
         <div>
-          <MarketSnapshot 
-            title={`${getMainIndex().ticker} Snapshot`}
-            value={getMainIndex().lastPrice.toFixed(2)}
-            prevClose={getMainIndex().prevCloseD1}
-            open={getMainIndex().openPrice}
-            dayLow={getMainIndex().min10Days}
-            dayHigh={getMainIndex().max10Days}
-            weekLow={getMainIndex().min10Days * 0.9} 
-            weekHigh={getMainIndex().max10Days * 1.1}
-            time={getMainIndex().updateTime}
-            date={getCurrentDate()}
-          />
+          {snapshotStock && (
+            <MarketSnapshot 
+              title={`${snapshotStock.ticker} Snapshot`}
+              value={snapshotStock.lastPrice.toFixed(2)}
+              prevClose={snapshotStock.prevCloseD1}
+              open={snapshotStock.openPrice}
+              dayLow={snapshotStock.min10Days}
+              dayHigh={snapshotStock.max10Days}
+              weekLow={snapshotStock.min10Days * 0.9} 
+              weekHigh={snapshotStock.max10Days * 1.1}
+              time={snapshotStock.updateTime}
+              date={getCurrentDate()}
+            />
+          )}
 
           {/* Alertas */}
           <Card className="mt-6">
@@ -180,7 +251,17 @@ export default function MarketRadar() {
               <CardTitle className="text-xl">Alertas de Mercado</CardTitle>
             </CardHeader>
             <CardContent>
-              <MarketAlerts alerts={alerts} isLoading={isLoading} />
+              <MarketAlerts 
+                alerts={alerts} 
+                isLoading={isLoading} 
+                onAlertClick={async (alert) => {
+                  if (userId) {
+                    const [ticker, alertType] = alert.id.split('-');
+                    await markAlertAsSeen(userId, alert.id, ticker, alertType, alert.message);
+                    setAlerts(prevAlerts => prevAlerts.filter(a => a.id !== alert.id));
+                  }
+                }}
+              />
             </CardContent>
           </Card>
         </div>

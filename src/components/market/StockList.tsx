@@ -3,7 +3,10 @@ import React from "react";
 import { StockData } from "@/services/stockService";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { TrendingDown, TrendingUp } from "lucide-react";
+import { Trash2, TrendingDown, TrendingUp } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 interface StockListProps {
   stocks: StockData[];
@@ -12,16 +15,45 @@ interface StockListProps {
 }
 
 export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+    .format(value)
+    .replace("R$", "$");
 }
 
 const StockList: React.FC<StockListProps> = ({ stocks, onRemoveStock, isLoading }) => {
+  const { toast } = useToast();
+  const { userId } = useUserProfile();
+
+  const handleRemoveStock = async (ticker: string) => {
+    onRemoveStock(ticker);
+    
+    // Also delete from Supabase if authenticated
+    if (userId) {
+      try {
+        const { error } = await supabase
+          .from('users_favorites')
+          .delete()
+          .match({ user_id: userId, ticker });
+        
+        if (error) {
+          console.error("Error removing favorite:", error);
+          toast({
+            title: "Erro ao remover favorito",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
+      } catch (err) {
+        console.error("Exception removing favorite:", err);
+      }
+    }
+  };
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Ativo</TableHead>
-          <TableHead>Hora Cotação</TableHead>
           <TableHead>Atual</TableHead>
           <TableHead>Variação</TableHead>
           <TableHead>%</TableHead>
@@ -31,7 +63,7 @@ const StockList: React.FC<StockListProps> = ({ stocks, onRemoveStock, isLoading 
       <TableBody>
         {stocks.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+            <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
               Nenhum ativo selecionado
             </TableCell>
           </TableRow>
@@ -40,9 +72,8 @@ const StockList: React.FC<StockListProps> = ({ stocks, onRemoveStock, isLoading 
             <TableRow key={stock.ticker}>
               <TableCell>
                 <div className="font-medium">{stock.ticker}</div>
-                <div className="text-sm text-muted-foreground">{stock.name}</div>
+                <div className="text-xs text-muted-foreground">{stock.updateTime}</div>
               </TableCell>
-              <TableCell className="text-gray-500 text-sm">{stock.updateTime}</TableCell>
               <TableCell>{formatCurrency(stock.lastPrice)}</TableCell>
               <TableCell>{stock.changePrice.toFixed(2)}</TableCell>
               <TableCell>
@@ -59,12 +90,12 @@ const StockList: React.FC<StockListProps> = ({ stocks, onRemoveStock, isLoading 
               </TableCell>
               <TableCell>
                 <Button 
-                  onClick={() => onRemoveStock(stock.ticker)}
+                  onClick={() => handleRemoveStock(stock.ticker)}
                   variant="ghost"
                   size="sm"
                   className="text-red-500 hover:bg-red-50 hover:text-red-600 p-0 h-8 w-8"
                 >
-                  🗑
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </TableCell>
             </TableRow>

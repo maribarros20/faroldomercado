@@ -1,14 +1,15 @@
 
 import React from "react";
 import { AlertData } from "@/utils/alertUtils";
-import { AlertTriangle, TrendingDown, TrendingUp } from "lucide-react";
+import { AlertTriangle, TrendingDown, TrendingUp, XCircle } from "lucide-react";
 
 interface MarketAlertsProps {
   alerts: AlertData[];
   isLoading: boolean;
+  onAlertClick?: (alert: AlertData) => void;
 }
 
-const MarketAlerts: React.FC<MarketAlertsProps> = ({ alerts, isLoading }) => {
+const MarketAlerts: React.FC<MarketAlertsProps> = ({ alerts, isLoading, onAlertClick }) => {
   return (
     <>
       {isLoading ? (
@@ -27,7 +28,7 @@ const MarketAlerts: React.FC<MarketAlertsProps> = ({ alerts, isLoading }) => {
           {alerts.map((alert) => (
             <div 
               key={alert.id} 
-              className={`p-3 border rounded-md flex gap-3 ${
+              className={`p-3 border rounded-md flex gap-3 cursor-pointer hover:bg-opacity-80 ${
                 alert.type === "danger" 
                   ? "bg-red-50 border-red-100" 
                   : alert.type === "success"
@@ -36,6 +37,7 @@ const MarketAlerts: React.FC<MarketAlertsProps> = ({ alerts, isLoading }) => {
                   ? "bg-amber-50 border-amber-100"
                   : "bg-blue-50 border-blue-100"
               }`}
+              onClick={() => onAlertClick && onAlertClick(alert)}
             >
               <div className="mt-1">
                 {alert.type === "danger" ? (
@@ -56,6 +58,11 @@ const MarketAlerts: React.FC<MarketAlertsProps> = ({ alerts, isLoading }) => {
                   {alert.message}
                 </p>
               </div>
+              {onAlertClick && (
+                <button className="self-start text-gray-400 hover:text-gray-600" title="Marcar como visto">
+                  <XCircle className="h-4 w-4" />
+                </button>
+              )}
             </div>
           ))}
         </div>

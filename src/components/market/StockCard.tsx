@@ -2,14 +2,12 @@
 import React from "react";
 import { StockData } from "@/services/stockService";
 import { formatCurrency } from "@/components/market/StockList";
-import { ChevronRight, ChevronLeft } from "lucide-react";
 
 interface StockCardProps {
   stock: StockData;
-  color: string;
 }
 
-const StockCard: React.FC<StockCardProps> = ({ stock, color }) => {
+const StockCard: React.FC<StockCardProps> = ({ stock }) => {
   const getChangeIcon = () => {
     return stock.changePercent >= 0 ? "↗" : "↘";
   };
@@ -20,7 +18,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock, color }) => {
 
   return (
     <div 
-      className={`rounded-xl p-4 min-w-[200px] h-[120px] flex flex-col justify-between ${color}`}
+      className="rounded-xl p-4 min-w-[200px] h-[120px] flex flex-col justify-between bg-white shadow-sm border border-gray-100"
     >
       <div className="flex justify-between items-start">
         <div>

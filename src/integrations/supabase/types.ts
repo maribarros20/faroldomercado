@@ -981,6 +981,60 @@ export type Database = {
           },
         ]
       }
+      users_alerts_seen: {
+        Row: {
+          alert_message: string
+          alert_type: string
+          id: string
+          seen_at: string | null
+          ticker: string
+          user_id: string
+        }
+        Insert: {
+          alert_message: string
+          alert_type: string
+          id?: string
+          seen_at?: string | null
+          ticker: string
+          user_id: string
+        }
+        Update: {
+          alert_message?: string
+          alert_type?: string
+          id?: string
+          seen_at?: string | null
+          ticker?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      users_favorites: {
+        Row: {
+          created_at: string | null
+          exchange: string | null
+          id: string
+          name: string
+          ticker: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          exchange?: string | null
+          id?: string
+          name: string
+          ticker: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          exchange?: string | null
+          id?: string
+          name?: string
+          ticker?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       video_comments: {
         Row: {
           content: string
