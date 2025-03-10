@@ -9,6 +9,9 @@ import { generateAlerts, AlertData } from "@/utils/alertUtils";
 import StockList from "@/components/market/StockList";
 import MarketAlerts from "@/components/market/MarketAlerts";
 import StockSelector from "@/components/market/StockSelector";
+import StockCardCarousel from "@/components/market/StockCardCarousel";
+import MarketSnapshot from "@/components/market/MarketSnapshot";
+import { format } from "date-fns";
 
 export default function MarketRadar() {
   const [stocks, setStocks] = useState<StockData[]>([]);
@@ -17,6 +20,20 @@ export default function MarketRadar() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStock, setSelectedStock] = useState<string>("");
+
+  // Get US stocks (7 magnificas)
+  const getUSStocks = () => {
+    return stocks.filter(stock => 
+      ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META"].includes(stock.ticker)
+    );
+  };
+
+  // Get Brazilian stocks (top stocks)
+  const getBrazilianStocks = () => {
+    return stocks.filter(stock => 
+      ["ITUB4", "BBDC4", "VALE3", "PETR4", "PETR3", "ABEV3", "BBAS3", "B3SA3", "ITSA4"].includes(stock.ticker)
+    );
+  };
 
   useEffect(() => {
     loadData();
@@ -50,6 +67,26 @@ export default function MarketRadar() {
     setUserStocks(prevStocks => prevStocks.filter(stock => stock.ticker !== ticker));
   };
 
+  // Get main stock for snapshot (IBOV or first stock)
+  const getMainIndex = () => {
+    const ibov = stocks.find(stock => stock.ticker === "IBOV");
+    return ibov || stocks[0] || {
+      ticker: "IBOV",
+      lastPrice: 120000,
+      prevCloseD1: 121000,
+      openPrice: 120500,
+      min10Days: 115000,
+      max10Days: 125000,
+      updateTime: "16:30",
+      name: "Ibovespa"
+    };
+  };
+
+  // Format current date
+  const getCurrentDate = () => {
+    return format(new Date(), "MM/dd/yy");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -75,6 +112,20 @@ export default function MarketRadar() {
         </Alert>
       )}
 
+      {/* US Stocks Carousel */}
+      <StockCardCarousel 
+        stocks={getUSStocks()}
+        title="US Top Stocks (Magnificent 7)"
+        isLoading={isLoading}
+      />
+
+      {/* Brazilian Stocks Carousel */}
+      <StockCardCarousel 
+        stocks={getBrazilianStocks()}
+        title="Maiores Ações Brasileiras"
+        isLoading={isLoading}
+      />
+
       <StockSelector 
         stocks={stocks}
         userStocks={userStocks}
@@ -83,38 +134,56 @@ export default function MarketRadar() {
         onAddStock={addStock}
       />
 
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         {/* Lista de Ativos */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-xl">Índices e Ativos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="animate-pulse space-y-2">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-10 bg-gray-100 rounded"></div>
-                ))}
-              </div>
-            ) : (
-              <StockList 
-                stocks={userStocks} 
-                onRemoveStock={removeStock}
-                isLoading={isLoading}
-              />
-            )}
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl">Índices e Ativos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="animate-pulse space-y-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-10 bg-gray-100 rounded"></div>
+                  ))}
+                </div>
+              ) : (
+                <StockList 
+                  stocks={userStocks} 
+                  onRemoveStock={removeStock}
+                  isLoading={isLoading}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Alertas */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-xl">Alertas de Mercado</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MarketAlerts alerts={alerts} isLoading={isLoading} />
-          </CardContent>
-        </Card>
+        {/* Market Snapshot */}
+        <div>
+          <MarketSnapshot 
+            title={`${getMainIndex().ticker} Snapshot`}
+            value={getMainIndex().lastPrice.toFixed(2)}
+            prevClose={getMainIndex().prevCloseD1}
+            open={getMainIndex().openPrice}
+            dayLow={getMainIndex().min10Days}
+            dayHigh={getMainIndex().max10Days}
+            weekLow={getMainIndex().min10Days * 0.9} 
+            weekHigh={getMainIndex().max10Days * 1.1}
+            time={getMainIndex().updateTime}
+            date={getCurrentDate()}
+          />
+
+          {/* Alertas */}
+          <Card className="mt-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl">Alertas de Mercado</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MarketAlerts alerts={alerts} isLoading={isLoading} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

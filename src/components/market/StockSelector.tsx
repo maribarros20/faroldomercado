@@ -20,10 +20,10 @@ const StockSelector: React.FC<StockSelectorProps> = ({
   onAddStock
 }) => {
   return (
-    <div className="flex flex-wrap gap-4 items-center">
+    <div className="flex flex-wrap gap-4 items-center p-4 bg-white rounded-lg border shadow-sm">
       <div className="w-full md:w-auto">
         <Select value={selectedStock} onValueChange={onSelectStock}>
-          <SelectTrigger className="w-full md:w-[250px]">
+          <SelectTrigger className="w-full md:w-[250px] bg-white">
             <SelectValue placeholder="Selecione um ativo" />
           </SelectTrigger>
           <SelectContent>
