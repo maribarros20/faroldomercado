@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Clock, Info } from "lucide-react";
-import { ResponsiveContainer, LineChart, Line, XAxis, Tooltip } from "recharts";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine } from "recharts";
 
 interface VixPanelProps {
   vixData: {
@@ -51,8 +51,13 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
     return "text-gray-700";
   };
 
+  // Calculate min and max values for chart
+  const numericValues = chartData.map(item => item.value);
+  const minValue = Math.min(...numericValues) * 0.98;
+  const maxValue = Math.max(...numericValues) * 1.02;
+
   return (
-    <Card className="bg-white border-none shadow-sm">
+    <Card className="bg-white border-none shadow-md">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-[#0066FF]">
           <span className="flex items-center">
@@ -70,7 +75,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Current value */}
           <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
               <div className="text-sm text-gray-500 mb-1">VIX Atual</div>
               <div className="flex items-center justify-between">
                 <div className="text-2xl font-bold">{vixData.currentValue}</div>
@@ -92,7 +97,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
             </div>
             
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="bg-gray-50 p-3 rounded-lg shadow-sm">
                 <div className="text-xs text-gray-500 mb-1">Fechamento</div>
                 <div className="text-lg font-bold">{vixData.closingValue}</div>
                 <div className={`text-sm flex items-center ${getValueColor(vixData.closingChange)}`}>
@@ -101,7 +106,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                 <div className="text-xs text-gray-500 mt-1">{vixData.closingTime}</div>
               </div>
               
-              <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="bg-gray-50 p-3 rounded-lg shadow-sm">
                 <div className="text-xs text-gray-500 mb-1">Abertura</div>
                 <div className="text-lg font-bold">{vixData.openingValue}</div>
                 <div className={`text-sm flex items-center ${getValueColor(vixData.openingChange)}`}>
@@ -113,7 +118,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
           </div>
           
           {/* Chart */}
-          <div className="bg-gray-50 p-4 rounded-lg md:col-span-2 h-48">
+          <div className="bg-gray-50 p-4 rounded-lg shadow-sm md:col-span-2 h-48">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium">Histórico VIX</span>
               <div className="flex items-center text-xs text-gray-500">
@@ -122,23 +127,33 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
               </div>
             </div>
             
-            <ResponsiveContainer width="100%" height="80%">
-              <LineChart data={chartData}>
-                <XAxis dataKey="name" hide />
-                <Tooltip 
-                  formatter={(value) => [parseFloat(value as string).toFixed(2), 'VIX']}
-                  contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0' }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#0066FF" 
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="80%">
+                <LineChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
+                  <XAxis dataKey="name" hide />
+                  <YAxis domain={[minValue, maxValue]} hide />
+                  <Tooltip 
+                    formatter={(value) => [parseFloat(value as string).toFixed(2), 'VIX']}
+                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0' }}
+                  />
+                  <ReferenceLine y={parseFloat(vixData.openingValue)} stroke="#888" strokeDasharray="3 3" />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#0066FF" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 6 }}
+                    isAnimationActive={true}
+                    animationDuration={1000}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400">
+                Sem dados disponíveis para o gráfico
+              </div>
+            )}
             
             <div className="grid grid-cols-2 gap-2 mt-2">
               <div className={`text-xs ${getParameterColor(vixData.gapParameter)}`}>

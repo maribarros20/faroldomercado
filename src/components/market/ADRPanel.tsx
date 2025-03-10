@@ -32,7 +32,7 @@ const ADRPanel: React.FC<ADRPanelProps> = ({ adrs }) => {
   };
 
   return (
-    <Card className="bg-white border-none shadow-sm">
+    <Card className="bg-white border-none shadow-md">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-[#0066FF]">
           <span>ADRs Brasileiras</span>

@@ -50,8 +50,8 @@ const MarketOverviewTab: React.FC = () => {
     // Set up refresh interval (5 minutes)
     const intervalId = setInterval(() => {
       loadData();
-    }, 5 * 60 * 1000);
-
+    }, 5 * 60 * 1000); // 5 minutes in milliseconds
+    
     return () => clearInterval(intervalId);
   }, []);
 
@@ -128,8 +128,8 @@ const MarketOverviewTab: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ADRs Status Summary Cards */}
-        <Card className={`border-l-4 ${marketData.adrsCurrent.isNegative ? 'border-l-red-500 bg-red-50' : 'border-l-green-500 bg-green-50'}`}>
+        {/* ADRs Current Status Card */}
+        <Card className={`border-l-4 shadow-md ${marketData.adrsCurrent.isNegative ? 'border-l-red-500' : 'border-l-green-500'}`}>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-lg">
               <span>ADRs Atual</span>
@@ -155,7 +155,8 @@ const MarketOverviewTab: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className={`border-l-4 ${!marketData.adrsClosing.isPositive ? 'border-l-red-500 bg-red-50' : 'border-l-green-500 bg-green-50'}`}>
+        {/* ADRs Closing Status Card */}
+        <Card className={`border-l-4 shadow-md ${!marketData.adrsClosing.isPositive ? 'border-l-red-500' : 'border-l-green-500'}`}>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-lg">
               <span>ADRs Fechamento</span>
@@ -181,26 +182,27 @@ const MarketOverviewTab: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className={`border-l-4 ${marketData.commodities.isNegative ? 'border-l-red-500 bg-red-50' : 'border-l-green-500 bg-green-50'}`}>
+        {/* ADRs After Market Status Card */}
+        <Card className={`border-l-4 shadow-md ${!marketData.adrsAfterMarket.isPositive ? 'border-l-red-500' : 'border-l-green-500'}`}>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-lg">
-              <span>Commodities</span>
-              <span className="text-sm font-normal">{formatTime(marketData.commodities.time)}</span>
+              <span>ADRs After Market</span>
+              <span className="text-sm font-normal">{formatTime(marketData.adrsAfterMarket.time)}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
-              {marketData.commodities.isNegative ? (
+              {!marketData.adrsAfterMarket.isPositive ? (
                 <TrendingDown className="h-8 w-8 text-red-500 mr-3" />
               ) : (
                 <TrendingUp className="h-8 w-8 text-green-500 mr-3" />
               )}
               <div>
-                <div className={`text-2xl font-bold ${marketData.commodities.isNegative ? 'text-red-600' : 'text-green-600'}`}>
-                  {marketData.commodities.value}
+                <div className={`text-2xl font-bold ${!marketData.adrsAfterMarket.isPositive ? 'text-red-600' : 'text-green-600'}`}>
+                  {marketData.adrsAfterMarket.value}
                 </div>
                 <div className="text-sm font-medium uppercase mt-1">
-                  {marketData.commodities.parameter}
+                  {marketData.adrsAfterMarket.parameter}
                 </div>
               </div>
             </div>

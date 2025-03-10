@@ -4,12 +4,11 @@ const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k";
 
 // Properly formatted ranges for batch requests
 const RANGES = [
-  "'v.10'!F8:AC18",
-  "'v.10'!F12:AC14",
-  "'v.10'!F16:AC18",
-  "'v.10'!I64:P70",
-  "'v.10'!W64:AC68",
-  "'v.10'!F6:W6"
+  "'v.10'!F6:AC18",  // Main data with times
+  "'v.10'!F12:AC14", // VIX data
+  "'v.10'!F16:AC18", // Alerts data
+  "'v.10'!I64:P70",  // ADRs data
+  "'v.10'!W64:AC68"  // Commodities data
 ];
 
 export interface MarketDataResponse {
@@ -108,7 +107,9 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
     const alertsData = data.valueRanges[2].values || [];
     const adrsListData = data.valueRanges[3].values || [];
     const commoditiesListData = data.valueRanges[4].values || [];
-    const timesData = data.valueRanges[5].values || [];
+    
+    // Extract times from mainData (F6:AC6 row)
+    const timesData = mainData[0] || [];
     
     // Process ADRs data
     const adrs: any = {};
@@ -140,52 +141,52 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
         if (index < commodityNames.length) {
           commoditiesList[commodityNames[index]] = {
             name: commodityNames[index],
-            time: index < 2 ? ((row[0] || "") + " " + (row[3] || "")) : "",
-            value: (row[4] || "") + (row[5] || ""),
-            change: row[6] || "0%"
+            time: index < 2 ? ((row[0] || "") + " " + (row[3] || "")) : (index === 3 ? (row[0] || "") + " " + (row[3] || "") : ""),
+            value: index < 2 ? (row[4] || "") : (row[3] || ""),
+            change: index < 2 ? (row[6] || "0%") : (row[4] || "0%")
           };
         }
       });
     }
     
     // Extract times from timesData
-    const adrCurrentTime = timesData[0] ? timesData[0][2] || "" : "";
-    const adrClosingTime = timesData[0] ? (timesData[0][8] || "") + " " + (timesData[0][9] || "") : "";
-    const adrAfterTime = timesData[0] ? (timesData[0][16] || "") + " " + (timesData[0][17] || "") : "";
-    const commoditiesTime = timesData[0] ? timesData[0][22] || "" : "";
+    const adrCurrentTime = timesData[2] || "";
+    const adrClosingTime = (timesData[8] || "") + " " + (timesData[9] || "");
+    const adrAfterTime = (timesData[16] || "") + " " + (timesData[17] || "");
+    const commoditiesTime = timesData[22] || "";
     
     // Build structured response
     return {
       adrsCurrent: {
-        value: mainData[0] ? (mainData[0][0] || "0") + (mainData[0][1] || "%") : "0%",
-        parameter: mainData[1] ? (mainData[1][0] || "") + (mainData[1][1] || "") + (mainData[1][2] || "") : "",
+        value: mainData[2] ? (mainData[2][0] || "0") + (mainData[2][1] || "%") : "0%",
+        parameter: mainData[3] ? (mainData[3][0] || "") + (mainData[3][1] || "") + (mainData[3][2] || "") : "",
         time: adrCurrentTime,
-        isNegative: mainData[0] && mainData[0][0] ? parseFloat(mainData[0][0]) < 0 : false
+        isNegative: mainData[2] && mainData[2][0] ? parseFloat(mainData[2][0]) < 0 : false
       },
       adrsClosing: {
-        value: mainData[0] ? (mainData[0][5] || "0") + (mainData[0][6] || "0") + (mainData[0][7] || "%") : "0%",
-        parameter: mainData[1] ? (mainData[1][5] || "") + (mainData[1][6] || "") + (mainData[1][7] || "") + (mainData[1][8] || "") + (mainData[1][9] || "") : "",
+        value: mainData[2] ? (mainData[2][5] || "0") + (mainData[2][6] || "0") + (mainData[2][7] || "%") : "0%",
+        parameter: mainData[3] ? (mainData[3][5] || "") + (mainData[3][6] || "") + (mainData[3][7] || "") + (mainData[3][8] || "") + (mainData[3][9] || "") : "",
         time: adrClosingTime,
-        isPositive: mainData[0] && mainData[0][5] ? parseFloat(mainData[0][5]) > 0 : false
+        isPositive: mainData[2] && mainData[2][5] ? parseFloat(mainData[2][5]) > 0 : false
       },
       adrsAfterMarket: {
-        value: mainData[0] ? (mainData[0][14] || "0") + (mainData[0][15] || "%") : "0%",
-        parameter: mainData[1] ? (mainData[1][14] || "") + (mainData[1][15] || "") + (mainData[1][16] || "") + (mainData[1][17] || "") : "",
+        value: mainData[2] ? (mainData[2][14] || "0") + (mainData[2][15] || "%") : "0%",
+        parameter: mainData[3] ? (mainData[3][14] || "") + (mainData[3][15] || "") + (mainData[3][16] || "") + (mainData[3][17] || "") : "",
         time: adrAfterTime,
-        isPositive: mainData[0] && mainData[0][14] ? parseFloat(mainData[0][14]) > 0 : false
+        isPositive: mainData[2] && mainData[2][14] ? parseFloat(mainData[2][14]) > 0 : false
       },
       commodities: {
-        value: mainData[0] ? (mainData[0][21] || "0%") : "0%",
-        parameter: mainData[1] ? (mainData[1][21] || "") + (mainData[1][22] || "") + (mainData[1][23] || "") : "",
+        value: mainData[2] ? (mainData[2][21] || "0%") : "0%",
+        parameter: mainData[3] ? (mainData[3][21] || "") + (mainData[3][22] || "") + (mainData[3][23] || "") : "",
         time: commoditiesTime,
-        isNegative: mainData[0] && mainData[0][21] ? parseFloat(mainData[0][21]) < 0 : false
+        isNegative: mainData[2] && mainData[2][21] ? parseFloat(mainData[2][21]) < 0 : false
       },
       vix: {
         currentValue: vixData[1] ? (vixData[1][0] || "0") + (vixData[1][1] || "") : "0",
         currentChange: vixData[2] ? (vixData[2][0] || "0") + (vixData[2][1] || "%") : "0%",
-        currentTime: vixData[0] ? (vixData[0][0] || "") + (vixData[0][4] || "") : "",
+        currentTime: vixData[0] ? (vixData[0][0] || "") + " " + (vixData[0][4] || "") : "",
         closingValue: vixData[1] ? vixData[1][8] || "0" : "0",
-        closingChange: vixData[1] ? vixData[1][7] || "0%" : "0%",
+        closingChange: vixData[2] ? vixData[2][7] || "0%" : "0%",
         closingTime: vixData[0] ? vixData[0][7] || "" : "",
         openingValue: vixData[1] ? vixData[1][10] || "0" : "0",
         openingChange: vixData[1] ? vixData[1][9] || "0%" : "0%",
@@ -194,13 +195,13 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
         resultParameter: vixData[2] ? vixData[2][2] || "" : "",
         gapParameter: vixData[2] ? (vixData[2][7] || "") + (vixData[2][8] || "") + (vixData[2][9] || "") + (vixData[2][10] || "") + (vixData[2][11] || "") : "",
         tendencyTime: vixData[0] ? vixData[0][14] || "" : "",
-        tendencyParameter: vixData[2] ? (vixData[2][13] || "") + (vixData[2][14] || "") + (vixData[2][15] || "") + (vixData[2][16] || "") : "",
-        chartData: vixData[0] ? vixData[0].slice(15).filter(Boolean) : []
+        tendencyParameter: vixData[2] ? (vixData[2][14] || "") + (vixData[2][15] || "") + (vixData[2][16] || "") + (vixData[2][17] || "") : "",
+        chartData: vixData[1] ? vixData[1].slice(15).filter(Boolean) : []
       },
       alerts: {
-        volatility: alertsData[0] ? alertsData[0].join(" ") : "",
-        footprint: alertsData[2] ? alertsData[2].slice(0, 10).join(" ") : "",
-        indexation: alertsData[2] ? alertsData[2].slice(14).join(" ") : ""
+        volatility: alertsData[0] ? alertsData[0].filter(Boolean).join(" ") : "",
+        footprint: alertsData[2] ? alertsData[2].slice(0, 10).filter(Boolean).join(" ") : "",
+        indexation: alertsData[2] ? alertsData[2].slice(14).filter(Boolean).join(" ") : ""
       },
       adrs,
       commoditiesList
