@@ -73,8 +73,11 @@ export default function MarketRadar() {
         setUserStocks(data.slice(0, Math.min(5, data.length)));
       }
       
-      // Generate alerts based on all stocks
-      const allAlerts = generateAlerts(data);
+      // Get the tickers of user's selected stocks
+      const userStockTickers = userStocks.map(stock => stock.ticker);
+      
+      // Generate alerts based on all stocks, prioritizing user's stocks
+      const allAlerts = generateAlerts(data, userStockTickers);
       
       // Filter out alerts the user has already seen
       if (userId) {
@@ -255,10 +258,23 @@ export default function MarketRadar() {
                 alerts={alerts} 
                 isLoading={isLoading} 
                 onAlertClick={async (alert) => {
+                  // Find and set the stock for this alert as the snapshot stock
+                  const stock = stocks.find(s => s.ticker === alert.ticker);
+                  if (stock) {
+                    setSnapshotStock(stock);
+                  }
+                }}
+                onDismissAlert={async (alert) => {
                   if (userId) {
                     const [ticker, alertType] = alert.id.split('-');
                     await markAlertAsSeen(userId, alert.id, ticker, alertType, alert.message);
                     setAlerts(prevAlerts => prevAlerts.filter(a => a.id !== alert.id));
+                    
+                    toast({
+                      title: "Alerta marcado como visto",
+                      description: "Este alerta não será exibido novamente",
+                      variant: "default"
+                    });
                   }
                 }}
               />
