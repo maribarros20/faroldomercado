@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import MarketNews from "@/components/admin/MarketNews";
 import FinanceSpreadsheet from "@/components/admin/FinanceSpreadsheet";
 import MarketRadar from "@/components/admin/MarketRadar";
+import MarketOverviewTab from "@/components/market/MarketOverviewTab";
 import { useToast } from "@/hooks/use-toast";
 import { useUserPlan } from "@/contexts/UserPlanContext";
 
@@ -36,6 +37,12 @@ const DashboardTabs = () => {
           Carteira
         </TabsTrigger>
         <TabsTrigger 
+          value="market-overview"
+          className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
+        >
+          Panorama
+        </TabsTrigger>
+        <TabsTrigger 
           value="market-news"
           className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
         >
@@ -53,6 +60,10 @@ const DashboardTabs = () => {
         <CardContent className="p-6">
           <TabsContent value="dashboard" className="mt-0">
             <MarketRadar />
+          </TabsContent>
+          
+          <TabsContent value="market-overview" className="mt-0">
+            <MarketOverviewTab />
           </TabsContent>
           
           <TabsContent value="market-news" className="mt-0">

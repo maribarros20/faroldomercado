@@ -2,12 +2,12 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { 
-  LayoutDashboard, 
+  ActivitySquare, 
   BookOpen, 
   Video, 
   Users, 
   CreditCard, 
-  TrendingUp
+  BarChart3
 } from "lucide-react";
 import NavItem from "./NavItem";
 
@@ -26,7 +26,7 @@ const Navigation = ({ expanded, userRole }: NavigationProps) => {
     <div className="space-y-1 px-3">
       <NavItem
         to="/dashboard"
-        icon={<LayoutDashboard size={20} />}
+        icon={<BarChart3 size={20} />}
         text="Radar"
         active={isActive("/dashboard")}
         expanded={expanded}
@@ -50,7 +50,7 @@ const Navigation = ({ expanded, userRole }: NavigationProps) => {
       
       <NavItem
         to="/progress"
-        icon={<TrendingUp size={20} />}
+        icon={<ActivitySquare size={20} />}
         text="Desempenho"
         active={isActive("/progress")}
         expanded={expanded}
