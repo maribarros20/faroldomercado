@@ -25,7 +25,7 @@ const MarketAlertPanel: React.FC<MarketAlertPanelProps> = ({ alerts }) => {
   };
 
   return (
-    <Card className="border-0 bg-[#323232] shadow-xl">
+    <Card className="border-[#323232] bg-gray-800 shadow-lg">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center text-white">
           <AlertTriangle className="h-5 w-5 mr-2" />
@@ -34,7 +34,7 @@ const MarketAlertPanel: React.FC<MarketAlertPanelProps> = ({ alerts }) => {
       </CardHeader>
       <CardContent className="space-y-4">
         {alerts.volatility && (
-          <div className={`p-4 border-l-4 rounded-md shadow-md ${getAlertColor(alerts.volatility)}`}>
+          <div className={`p-4 border rounded-md shadow-md ${getAlertColor(alerts.volatility)}`}>
             <div className="flex items-start">
               <Hash className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-[#323232]" />
               <div>
@@ -47,7 +47,7 @@ const MarketAlertPanel: React.FC<MarketAlertPanelProps> = ({ alerts }) => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {alerts.footprint && (
-            <div className={`p-4 border-l-4 rounded-md shadow-md ${getAlertColor(alerts.footprint)}`}>
+            <div className={`p-4 border rounded-md shadow-md ${getAlertColor(alerts.footprint)}`}>
               <div className="flex items-start">
                 <Hash className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-[#323232]" />
                 <div>
@@ -59,7 +59,7 @@ const MarketAlertPanel: React.FC<MarketAlertPanelProps> = ({ alerts }) => {
           )}
           
           {alerts.indexation && (
-            <div className={`p-4 border-l-4 rounded-md shadow-md ${getAlertColor(alerts.indexation)}`}>
+            <div className={`p-4 border rounded-md shadow-md ${getAlertColor(alerts.indexation)}`}>
               <div className="flex items-start">
                 <Hash className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-[#323232]" />
                 <div>

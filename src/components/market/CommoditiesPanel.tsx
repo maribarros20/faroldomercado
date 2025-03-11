@@ -19,27 +19,27 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
     switch (key) {
       case "BRENT":
         return { 
-          name: "Brent", 
+          name: "Petróleo Brent", 
           icon: <Droplet className="h-4 w-4 text-blue-500" />,
-          description: "Londres"
+          description: "Referência para mercados europeus"
         };
       case "WTI":
         return { 
-          name: "WTI", 
+          name: "Petróleo WTI", 
           icon: <Droplet className="h-4 w-4 text-blue-600" />,
-          description: "NY/CME"
+          description: "Referência para mercados americanos"
         };
       case "IRON_SING":
         return { 
-          name: "M. Ferro", 
+          name: "Minério Ferro (Singapura)", 
           icon: <Mountain className="h-4 w-4 text-orange-500" />,
-          description: "Singapura"
+          description: "Cotação em Singapura"
         };
       case "IRON_DALIAN":
         return {
-          name: "M Ferro", 
+          name: "Minério Ferro (Dalian)", 
           icon: <Mountain className="h-4 w-4 text-orange-600" />,
-          description: "Dalian"
+          description: "Cotação na China"
         };
       default:
         return { name: key, icon: null, description: "" };
@@ -47,9 +47,9 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
   };
 
   return (
-    <Card className="bg-white shadow-xl border-0">
+    <Card className="bg-white border-none shadow-lg">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between text-lg text-[#323232]">
+        <CardTitle className="flex items-center justify-between text-[#0066FF]">
           <span className="flex items-center">
             <Droplet className="h-5 w-5 mr-2" />
             Commodities
@@ -57,18 +57,18 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
           {Object.entries(commodities).map(([key, commodity]) => {
             const { name, icon, description } = getCommodityDisplayInfo(key);
             const isChangePositive = !commodity.change.includes("-");
             
             return (
               <Card key={key} className={`border-l-4 ${isChangePositive ? 'border-l-green-500' : 'border-l-red-500'} shadow-md hover:shadow-lg transition-shadow`}>
-                <CardContent className="p-2">
-                  <div className="flex justify-between items-center mb-0.5">
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-center mb-1">
                     <div className="flex items-center">
                       {icon}
-                      <span className="ml-1 font-medium text-xs">{name}</span>
+                      <span className="ml-1 font-medium text-sm">{name}</span>
                     </div>
                     <div className="text-xs text-gray-500 flex items-center">
                       {commodity.time && (
@@ -80,10 +80,10 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
                     </div>
                   </div>
                   
-                  <div className="text-xs text-gray-500 mb-1">{description}</div>
+                  <div className="text-xs text-gray-500 mb-2">{description}</div>
                   
                   <div className="flex items-center justify-between">
-                    <div className="text-lg font-bold text-[#323232]">{commodity.value}</div>
+                    <div className="text-xl font-bold text-[#323232]">{commodity.value}</div>
                     <div className={`flex items-center ${isChangePositive ? 'text-green-600' : 'text-red-600'}`}>
                       {isChangePositive ? (
                         <ArrowUpRight className="h-4 w-4 mr-1" />
