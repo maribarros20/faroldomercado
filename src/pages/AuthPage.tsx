@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,12 +8,12 @@ import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import ForgotPassword from "@/components/ForgotPassword";
 import { supabase } from "@/integrations/supabase/client";
-
 interface AuthPageProps {
   isRegister?: boolean;
 }
-
-const AuthPage = ({ isRegister = false }: AuthPageProps) => {
+const AuthPage = ({
+  isRegister = false
+}: AuthPageProps) => {
   const [isLogin, setIsLogin] = useState(!isRegister);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [name, setName] = useState("");
@@ -29,21 +28,23 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     // Check if user is already logged in
     const checkSession = async () => {
       try {
         setCheckingSession(true);
-        const { data, error } = await supabase.auth.getSession();
-        
+        const {
+          data,
+          error
+        } = await supabase.auth.getSession();
         if (error) {
           console.error("Session check error:", error);
           setCheckingSession(false);
           return;
         }
-        
         if (data.session) {
           navigate("/dashboard");
         } else {
@@ -54,19 +55,15 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
         setCheckingSession(false);
       }
     };
-    
     checkSession();
   }, [navigate]);
-
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
     setShowForgotPassword(false);
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
     try {
       // Validate form before submission
       if (isLogin) {
@@ -74,33 +71,34 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
           toast({
             title: "Campos obrigatórios",
             description: "Por favor, preencha todos os campos",
-            variant: "destructive",
+            variant: "destructive"
           });
           setLoading(false);
           return;
         }
-        
+
         // Login with Supabase
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const {
+          data,
+          error
+        } = await supabase.auth.signInWithPassword({
           email,
-          password,
+          password
         });
-        
         if (error) {
           toast({
             title: "Erro ao fazer login",
             description: error.message,
-            variant: "destructive",
+            variant: "destructive"
           });
           setLoading(false);
           return;
         }
-        
         toast({
           title: "Login realizado com sucesso!",
-          description: "Você será redirecionado para o dashboard.",
+          description: "Você será redirecionado para o dashboard."
         });
-        
+
         // Navigate to dashboard after login
         navigate("/dashboard");
       } else {
@@ -109,29 +107,31 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
           toast({
             title: "Campos obrigatórios",
             description: "Por favor, preencha todos os campos obrigatórios",
-            variant: "destructive",
+            variant: "destructive"
           });
           setLoading(false);
           return;
         }
-        
         if (password.length < 8) {
           toast({
             title: "Senha fraca",
             description: "A senha deve ter pelo menos 8 caracteres",
-            variant: "destructive",
+            variant: "destructive"
           });
           setLoading(false);
           return;
         }
-        
+
         // Extract first and last name for database
         const nameParts = name.split(" ");
         const firstName = nameParts[0] || "";
         const lastName = nameParts.slice(1).join(" ") || "";
-        
+
         // Register with Supabase - with account type
-        const { data, error } = await supabase.auth.signUp({
+        const {
+          data,
+          error
+        } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -147,33 +147,31 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
             }
           }
         });
-        
         if (error) {
           toast({
             title: "Erro ao criar conta",
             description: error.message,
-            variant: "destructive",
+            variant: "destructive"
           });
           setLoading(false);
           return;
         }
-        
+
         // Check if user already exists (Supabase returns empty identities array)
         if (data?.user?.identities?.length === 0) {
           toast({
             title: "E-mail já cadastrado",
             description: "Este e-mail já está cadastrado no sistema. Tente fazer login ou recuperar sua senha.",
-            variant: "destructive",
+            variant: "destructive"
           });
           setLoading(false);
           return;
         }
-        
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: "Verifique seu e-mail para confirmar o cadastro.",
+          description: "Verifique seu e-mail para confirmar o cadastro."
         });
-        
+
         // Optional: redirect to dashboard if email confirmation is disabled in Supabase
         if (data.session) {
           navigate("/dashboard");
@@ -187,27 +185,22 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
       toast({
         title: "Erro no processo de autenticação",
         description: "Ocorreu um erro ao processar sua solicitação. Tente novamente.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
   if (checkingSession) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
+    return <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900 mx-auto mb-4"></div>
           <p>Verificando sessão...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (showForgotPassword) {
-    return (
-      <div className="min-h-screen flex flex-col md:flex-row">
+    return <div className="min-h-screen flex flex-col md:flex-row">
         {/* Left Panel */}
         <div className="w-full md:w-2/5 lg:w-1/3 bg-blue-400 p-8 flex flex-col">
           <div className="mb-6">
@@ -232,24 +225,18 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
         
         {/* Right Panel */}
         <div className="w-full md:w-3/5 lg:w-2/3 p-4 md:p-8 lg:p-12 flex items-center justify-center">
-          <ForgotPassword 
-            onBack={() => setShowForgotPassword(false)} 
-            onReset={() => {
-              setShowForgotPassword(false);
-              setIsLogin(true);
-              toast({
-                title: "E-mail enviado",
-                description: "Verifique seu e-mail para redefinir sua senha.",
-              });
-            }}
-          />
+          <ForgotPassword onBack={() => setShowForgotPassword(false)} onReset={() => {
+          setShowForgotPassword(false);
+          setIsLogin(true);
+          toast({
+            title: "E-mail enviado",
+            description: "Verifique seu e-mail para redefinir sua senha."
+          });
+        }} />
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+  return <div className="min-h-screen flex flex-col md:flex-row">
       {/* Left Panel */}
       <div className="w-full md:w-2/5 lg:w-1/3 bg-blue-400 p-8 flex flex-col">
         <div className="mb-6">
@@ -276,31 +263,27 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
       
       {/* Right Panel */}
       <div className="w-full md:w-3/5 lg:w-2/3 p-4 md:p-8 lg:p-12 flex items-center justify-center">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
-        >
+        <motion.div initial={{
+        opacity: 0,
+        y: 20
+      }} animate={{
+        opacity: 1,
+        y: 0
+      }} transition={{
+        duration: 0.5
+      }} className="w-full max-w-md">
           {/* Back button and auth toggle */}
           <div className="flex justify-between items-center mb-8">
-            <button 
-              onClick={() => navigate("/")} 
-              className="text-primary flex items-center gap-2"
-            >
+            <button onClick={() => navigate("/")} className="text-primary flex items-center gap-2">
               <ArrowLeft size={20} />
               <span>Voltar</span>
             </button>
             <div className="text-gray-700">
-              {isLogin ? (
-                <span>
+              {isLogin ? <span>
                   Não tem conta? <button onClick={toggleAuthMode} className="text-primary font-medium">Cadastrar</button>
-                </span>
-              ) : (
-                <span>
+                </span> : <span>
                   Já tem conta? <button onClick={toggleAuthMode} className="text-primary font-medium">Entrar</button>
-                </span>
-              )}
+                </span>}
             </div>
           </div>
         
@@ -311,52 +294,28 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
         
           {/* Auth Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {!isLogin && (
-              <>
+            {!isLogin && <>
                 <div className="space-y-2">
                   <Label htmlFor="name">Primeiro e último nome *</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                    <Input 
-                      id="name" 
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Digite seu nome completo"
-                      className="pl-10"
-                      required
-                    />
+                    <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Digite seu nome completo" className="pl-10" required />
                   </div>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="dateOfBirth">Data de Nascimento *</Label>
                   <div className="relative">
-                    <Input 
-                      id="dateOfBirth" 
-                      type="date"
-                      value={dateOfBirth}
-                      onChange={(e) => setDateOfBirth(e.target.value)}
-                      className="pl-3"
-                      required
-                    />
+                    <Input id="dateOfBirth" type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} className="pl-3" required />
                   </div>
                 </div>
-              </>
-            )}
+              </>}
             
             <div className="space-y-2">
               <Label htmlFor="email">E-mail *</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <Input 
-                  id="email" 
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Digite seu e-mail"
-                  className="pl-10"
-                  required
-                />
+                <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Digite seu e-mail" className="pl-10" required />
               </div>
             </div>
             
@@ -364,37 +323,19 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
               <Label htmlFor="password">Senha *</Label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <Input 
-                  id="password" 
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Digite sua senha"
-                  className="pl-10"
-                  required
-                />
+                <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Digite sua senha" className="pl-10" required />
               </div>
-              {!isLogin && (
-                <p className="text-xs text-gray-500 mt-1">
+              {!isLogin && <p className="text-xs text-gray-500 mt-1">
                   A senha deve ter pelo menos 8 caracteres, sendo 1 número, 1 letra maiúscula e 1 caractere especial
-                </p>
-              )}
+                </p>}
             </div>
             
-            {!isLogin && (
-              <>
+            {!isLogin && <>
                 <div className="space-y-2">
                   <Label htmlFor="cpf">CPF *</Label>
                   <div className="relative">
                     <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                    <Input 
-                      id="cpf" 
-                      value={cpf}
-                      onChange={(e) => setCpf(e.target.value)}
-                      placeholder="Digite seu CPF"
-                      className="pl-10"
-                      required
-                    />
+                    <Input id="cpf" value={cpf} onChange={e => setCpf(e.target.value)} placeholder="Digite seu CPF" className="pl-10" required />
                   </div>
                 </div>
 
@@ -402,13 +343,7 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
                   <Label htmlFor="company">Empresa ou Mentor</Label>
                   <div className="relative">
                     <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                    <Input 
-                      id="company" 
-                      value={company}
-                      onChange={(e) => setCompany(e.target.value)}
-                      placeholder="Digite o nome da empresa ou mentor"
-                      className="pl-10"
-                    />
+                    <Input id="company" value={company} onChange={e => setCompany(e.target.value)} placeholder="Digite o nome da empresa ou mentor" className="pl-10" />
                   </div>
                 </div>
                 
@@ -416,13 +351,7 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
                   <Label htmlFor="cnpj">CNPJ da empresa ou do mentor</Label>
                   <div className="relative">
                     <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                    <Input 
-                      id="cnpj" 
-                      value={cnpj}
-                      onChange={(e) => setCnpj(e.target.value)}
-                      placeholder="Digite o CNPJ da empresa ou do mentor"
-                      className="pl-10"
-                    />
+                    <Input id="cnpj" value={cnpj} onChange={e => setCnpj(e.target.value)} placeholder="Digite o CNPJ da empresa ou do mentor" className="pl-10" />
                   </div>
                 </div>
                 
@@ -430,58 +359,31 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
                   <Label htmlFor="phone">Celular *</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                    <Input 
-                      id="phone" 
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Digite seu celular"
-                      className="pl-10"
-                      required
-                    />
+                    <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Digite seu celular" className="pl-10" required />
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="terms"
-                    className="rounded border-gray-300 text-primary focus:ring-primary"
-                    checked={acceptTerms}
-                    onChange={(e) => setAcceptTerms(e.target.checked)}
-                    required
-                  />
+                  <input type="checkbox" id="terms" className="rounded border-gray-300 text-primary focus:ring-primary" checked={acceptTerms} onChange={e => setAcceptTerms(e.target.checked)} required />
                   <label htmlFor="terms" className="text-sm text-gray-700">
                     Eu aceito os <a href="#" className="text-primary">Termos e Condições</a>
                   </label>
                 </div>
-              </>
-            )}
+              </>}
             
-            {isLogin && (
-              <div className="flex justify-between items-center">
-                <button 
-                  type="button" 
-                  className="text-sm text-primary"
-                  onClick={() => setShowForgotPassword(true)}
-                >
+            {isLogin && <div className="flex justify-between items-center">
+                <button type="button" className="text-sm text-primary" onClick={() => setShowForgotPassword(true)}>
                   Esqueceu a senha?
                 </button>
-              </div>
-            )}
+              </div>}
             
-            <Button 
-              type="submit" 
-              className="w-full bg-primary hover:bg-primary/90 text-white py-6"
-              disabled={loading}
-            >
+            <Button type="submit" disabled={loading} className="w-full text-white py-6 bg-[#0066ff]">
               {isLogin ? "Entrar" : "Cadastrar acesso"}
               {loading && <span className="ml-2 animate-spin">◌</span>}
             </Button>
           </form>
         </motion.div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default AuthPage;
