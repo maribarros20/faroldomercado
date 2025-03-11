@@ -8,8 +8,6 @@ import VixPanel from "@/components/market/VixPanel";
 import MarketAlertPanel from "@/components/market/MarketAlertPanel";
 import ADRPanel from "@/components/market/ADRPanel";
 import CommoditiesPanel from "@/components/market/CommoditiesPanel";
-import AdditionalMarketDataPanel from "@/components/market/AdditionalMarketDataPanel";
-import MarketMetricsPanel from "@/components/market/MarketMetricsPanel";
 import { useToast } from "@/hooks/use-toast";
 
 const MarketOverviewTab: React.FC = () => {
@@ -269,12 +267,6 @@ const MarketOverviewTab: React.FC = () => {
 
       {/* Market Alerts */}
       <MarketAlertPanel alerts={marketData.alerts} />
-
-      {/* Additional Market Data (New Panel) */}
-      <AdditionalMarketDataPanel marketData={marketData.additionalMarketData} />
-
-      {/* Market Metrics (New Panel) */}
-      <MarketMetricsPanel marketMetrics={marketData.marketMetrics} />
 
       {/* ADR Detail Panel */}
       <ADRPanel adrs={marketData.adrs} />

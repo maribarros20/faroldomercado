@@ -8,9 +8,7 @@ const RANGES = [
   "'v.10'!F12:AC14",  // VIX data
   "'v.10'!F16:AC18",  // Alerts data
   "'v.10'!I64:P70",   // ADRs data
-  "'v.10'!W64:AC68",  // Commodities data
-  "'v.10'!F16:AC33",  // Additional market data
-  "'v.10'!T35:AC40"   // Market metrics
+  "'v.10'!W64:AC68"   // Commodities data
 ];
 
 export interface MarketDataResponse {
@@ -78,21 +76,6 @@ export interface MarketDataResponse {
       change: string;
     };
   };
-  additionalMarketData: {
-    rows: {
-      label: string;
-      values: string[];
-      time?: string;
-    }[];
-    headers: string[];
-  };
-  marketMetrics: {
-    rows: {
-      label: string;
-      values: string[];
-    }[];
-    headers: string[];
-  };
 }
 
 export const fetchMarketData = async (): Promise<MarketDataResponse> => {
@@ -124,8 +107,6 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
     const alertsData = data.valueRanges[2].values || [];
     const adrsListData = data.valueRanges[3].values || [];
     const commoditiesListData = data.valueRanges[4].values || [];
-    const additionalMarketData = data.valueRanges[5].values || [];
-    const marketMetricsData = data.valueRanges[6].values || [];
     
     // Extract times from mainData (F6:AC6 row)
     const timesData = mainData[0] || [];
@@ -166,51 +147,6 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
           };
         }
       });
-    }
-    
-    // Process Additional Market Data (F16:AC33)
-    const additionalMarketDataProcessed = {
-      rows: [] as any[],
-      headers: [] as string[]
-    };
-    
-    if (additionalMarketData.length > 0) {
-      // Extract headers from the first row
-      additionalMarketDataProcessed.headers = additionalMarketData[0].map((header: string) => header || "");
-      
-      // Process data rows
-      for (let i = 1; i < additionalMarketData.length; i++) {
-        const row = additionalMarketData[i];
-        if (row && row.length > 0) {
-          additionalMarketDataProcessed.rows.push({
-            label: row[0] || `Row ${i}`,
-            values: row.slice(1) || [],
-            time: row[1] || "" // Assuming the second column has time information
-          });
-        }
-      }
-    }
-    
-    // Process Market Metrics Data (T35:AC40)
-    const marketMetricsProcessed = {
-      rows: [] as any[],
-      headers: [] as string[]
-    };
-    
-    if (marketMetricsData.length > 0) {
-      // Extract headers from the first row
-      marketMetricsProcessed.headers = marketMetricsData[0].map((header: string) => header || "");
-      
-      // Process data rows
-      for (let i = 1; i < marketMetricsData.length; i++) {
-        const row = marketMetricsData[i];
-        if (row && row.length > 0) {
-          marketMetricsProcessed.rows.push({
-            label: row[0] || `Row ${i}`,
-            values: row.slice(1) || []
-          });
-        }
-      }
     }
     
     // Extract times from timesData
@@ -268,9 +204,7 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
         indexation: alertsData[2] ? alertsData[2].slice(14).filter(Boolean).join(" ") : ""
       },
       adrs,
-      commoditiesList,
-      additionalMarketData: additionalMarketDataProcessed,
-      marketMetrics: marketMetricsProcessed
+      commoditiesList
     };
   } catch (error) {
     console.error("Error fetching data from Google Sheets:", error);
@@ -410,52 +344,6 @@ const getMockMarketData = (): MarketDataResponse => {
         value: "782.50",
         change: "-1.24%"
       }
-    },
-    additionalMarketData: {
-      headers: ["Indicador", "Valor Atual", "Variação", "Status", "Tendência"],
-      rows: [
-        {
-          label: "IBOV",
-          values: ["127.450", "-1.25%", "NEGATIVO", "QUEDA"],
-          time: "17:40:00"
-        },
-        {
-          label: "Dólar",
-          values: ["5.12", "+0.75%", "POSITIVO", "ALTA"],
-          time: "17:40:00"
-        },
-        {
-          label: "S&P 500",
-          values: ["5.230", "-0.65%", "NEUTRO", "LATERAL"],
-          time: "17:40:00"
-        },
-        {
-          label: "Nasdaq",
-          values: ["16.430", "-0.92%", "NEGATIVO", "QUEDA"],
-          time: "17:40:00"
-        }
-      ]
-    },
-    marketMetrics: {
-      headers: ["Métrica", "Valor", "Status", "Impacto"],
-      rows: [
-        {
-          label: "Put/Call Ratio",
-          values: ["1.25", "ALTO", "NEGATIVO"]
-        },
-        {
-          label: "Volatilidade Implícita",
-          values: ["22.5%", "ELEVADA", "CAUTELA"]
-        },
-        {
-          label: "Volume Médio",
-          values: ["85%", "ABAIXO", "NEUTRO"]
-        },
-        {
-          label: "Índice de Força",
-          values: ["42", "FRACO", "NEGATIVO"]
-        }
-      ]
     }
   };
 };
