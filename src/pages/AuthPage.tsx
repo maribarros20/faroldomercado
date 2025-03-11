@@ -38,6 +38,7 @@ const AuthPage = ({
     const checkSession = async () => {
       try {
         setCheckingSession(true);
+        console.log("Checking session...");
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -46,9 +47,13 @@ const AuthPage = ({
           return;
         }
         
+        console.log("Session check result:", data);
+        
         if (data.session) {
+          console.log("User is logged in, redirecting to dashboard");
           navigate("/dashboard");
         } else {
+          console.log("No active session found");
           setCheckingSession(false);
         }
       } catch (error) {
@@ -92,14 +97,38 @@ const AuthPage = ({
         
         if (error) {
           console.error("Login error details:", error);
+          
+          // Show more user-friendly error messages
+          if (error.message.includes("Invalid login credentials")) {
+            toast({
+              title: "Credenciais inválidas",
+              description: "E-mail ou senha incorretos. Por favor, tente novamente.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Erro ao fazer login",
+              description: error.message,
+              variant: "destructive"
+            });
+          }
+          
+          setLoading(false);
+          return;
+        }
+        
+        if (!data.session) {
+          console.error("No session returned after successful login");
           toast({
-            title: "Erro ao fazer login",
-            description: error.message,
+            title: "Erro de sessão",
+            description: "Não foi possível iniciar sua sessão. Por favor, tente novamente.",
             variant: "destructive"
           });
           setLoading(false);
           return;
         }
+        
+        console.log("Login successful:", data);
         
         toast({
           title: "Login realizado com sucesso!",
@@ -184,8 +213,10 @@ const AuthPage = ({
         
         // If email confirmation is disabled in Supabase and we have a session
         if (data.session) {
+          console.log("Registration successful with session, redirecting to dashboard");
           // Navigation happens via auth listener in App.tsx
         } else {
+          console.log("Registration successful, email confirmation required");
           // Switch to login after registration if no session (email confirmation required)
           setIsLogin(true);
         }
@@ -201,6 +232,24 @@ const AuthPage = ({
       setLoading(false);
     }
   };
+  
+  useEffect(() => {
+    const clearStaleSession = async () => {
+      try {
+        // Check if there's a stale session token in localStorage but no valid session
+        const { data } = await supabase.auth.getSession();
+        
+        if (!data.session && localStorage.getItem('supabase.auth.token')) {
+          console.log("Found stale session token, clearing it");
+          await supabase.auth.signOut();
+        }
+      } catch (error) {
+        console.error("Error clearing stale session:", error);
+      }
+    };
+    
+    clearStaleSession();
+  }, []);
   
   if (checkingSession) {
     return <div className="flex items-center justify-center min-h-screen">
