@@ -1,4 +1,3 @@
-
 const SHEET_ID = "1fPLwFZmfhfjc2muHkr58WySldsj_AmsM_TXhykMPj8I"; 
 const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
 
@@ -7,8 +6,8 @@ const RANGES = [
   "'v.10'!F6:AC18",   // Main data with times
   "'v.10'!F12:AC14",  // VIX data
   "'v.10'!F16:AC18",  // Alerts data
-  "'v.10'!I64:P70",   // ADRs data
-  "'v.10'!W64:AC68",  // Commodities data
+  "'v.10'!I45:P51",   // ADRs data (corrected to be within sheet limits)
+  "'v.10'!W45:AC49",  // Commodities data (corrected to be within sheet limits)
   "'v.10'!F16:AC33",  // Additional market data
   "'v.10'!T35:AC40"   // Market metrics
 ];
@@ -279,7 +278,7 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
 };
 
 // Mock data for testing or when API fails
-const getMockMarketData = (): MarketDataResponse => {
+function getMockMarketData(): MarketDataResponse {
   return {
     adrsCurrent: {
       value: "-9.29%",
@@ -458,4 +457,4 @@ const getMockMarketData = (): MarketDataResponse => {
       ]
     }
   };
-};
+}

@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TrendingUp, BarChart } from "lucide-react";
+import { BarChart } from "lucide-react";
 
 interface MarketMetricsProps {
   marketMetrics: {
