@@ -33,10 +33,13 @@ const LoginForm = ({ setShowForgotPassword, loading, setLoading }: LoginFormProp
         return;
       }
 
-      console.log("Attempting login with:", { email });
+      console.log(`Attempting login with: ${email} (trimmed: ${email.trim()})`);
+      
+      // Make sure to trim the email address to remove any potential whitespace
+      const trimmedEmail = email.trim();
       
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: trimmedEmail,
         password
       });
       
@@ -46,7 +49,7 @@ const LoginForm = ({ setShowForgotPassword, loading, setLoading }: LoginFormProp
         if (error.message.includes("Invalid login credentials")) {
           toast({
             title: "Credenciais inválidas",
-            description: "E-mail ou senha incorretos. Por favor, tente novamente.",
+            description: "E-mail ou senha incorretos. Por favor, verifique suas credenciais e tente novamente.",
             variant: "destructive"
           });
         } else {
@@ -78,6 +81,11 @@ const LoginForm = ({ setShowForgotPassword, loading, setLoading }: LoginFormProp
         title: "Login realizado com sucesso!",
         description: "Você será redirecionado para o dashboard."
       });
+      
+      // Ensure redirection happens
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1500);
       
     } catch (error) {
       console.error("Login error:", error);
