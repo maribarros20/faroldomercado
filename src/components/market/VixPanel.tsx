@@ -1,9 +1,7 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Clock, Info } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine } from "recharts";
-
 interface VixPanelProps {
   vixData: {
     currentValue: string;
@@ -23,25 +21,26 @@ interface VixPanelProps {
     chartData: string[];
   };
 }
-
-const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
+const VixPanel: React.FC<VixPanelProps> = ({
+  vixData
+}) => {
   // Helper function to determine if a value is positive or negative
   const isPositive = (value: string) => value && value.includes("+");
   const isNegative = (value: string) => value && value.includes("-");
-  
+
   // Create chart data from string values
   const chartData = vixData.chartData.map((value, index) => ({
     name: index.toString(),
     value: parseFloat(value) || 0
   }));
-  
+
   // Helper for dynamic color styling
   const getValueColor = (value: string) => {
     if (isPositive(value)) return "text-green-600";
     if (isNegative(value)) return "text-red-600";
     return "text-[#323232]";
   };
-  
+
   // Helper for parameter color styling
   const getParameterColor = (parameter: string) => {
     const lowerParam = parameter.toLowerCase();
@@ -55,9 +54,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
   const numericValues = chartData.map(item => item.value);
   const minValue = Math.min(...numericValues) * 0.98;
   const maxValue = Math.max(...numericValues) * 1.02;
-
-  return (
-    <Card className="bg-white border-none shadow-lg">
+  return <Card className="bg-white border-none shadow-lg">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-[#0066FF]">
           <span className="flex items-center">
@@ -80,11 +77,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
               <div className="flex items-center justify-between">
                 <div className="text-2xl font-bold text-[#323232]">{vixData.currentValue}</div>
                 <div className={`flex items-center ${getValueColor(vixData.currentChange)}`}>
-                  {isPositive(vixData.currentChange) ? (
-                    <TrendingUp className="h-5 w-5 mr-1" />
-                  ) : (
-                    <TrendingDown className="h-5 w-5 mr-1" />
-                  )}
+                  {isPositive(vixData.currentChange) ? <TrendingUp className="h-5 w-5 mr-1" /> : <TrendingDown className="h-5 w-5 mr-1" />}
                   <span className="font-medium">{vixData.currentChange}</span>
                 </div>
               </div>
@@ -100,26 +93,15 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
               <div className="bg-gray-50 p-3 rounded-lg shadow-md border-l-4 border-l-blue-500">
                 <div className="text-xs text-gray-600 mb-1">Fechamento</div>
                 <div className="text-lg font-bold text-[#323232]">{vixData.closingValue}</div>
-                <div className={`text-sm flex items-center ${getValueColor(vixData.closingChange)}`}>
-                  {isPositive(vixData.closingChange) ? (
-                    <TrendingUp className="h-4 w-4 mr-1" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4 mr-1" />
-                  )}
-                  {vixData.closingChange}
-                </div>
-                <div className="text-xs text-gray-600 mt-1">{vixData.closingTime}</div>
+                
+                <div className="text-xs text-gray-600 mt-1 mx-0 px-0 my-0">{vixData.closingTime}</div>
               </div>
               
               <div className="bg-gray-50 p-3 rounded-lg shadow-md border-l-4 border-l-blue-500">
                 <div className="text-xs text-gray-600 mb-1">Abertura</div>
                 <div className="text-lg font-bold text-[#323232]">{vixData.openingValue}</div>
                 <div className={`text-sm flex items-center ${getValueColor(vixData.openingChange)}`}>
-                  {isPositive(vixData.openingChange) ? (
-                    <TrendingUp className="h-4 w-4 mr-1" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4 mr-1" />
-                  )}
+                  {isPositive(vixData.openingChange) ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
                   {vixData.openingChange}
                 </div>
                 <div className="text-xs text-gray-600 mt-1">{vixData.openingTime}</div>
@@ -137,38 +119,30 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
               </div>
             </div>
             
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="70%">
-                <LineChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+            {chartData.length > 0 ? <ResponsiveContainer width="100%" height="70%">
+                <LineChart data={chartData} margin={{
+              top: 5,
+              right: 5,
+              bottom: 5,
+              left: 5
+            }}>
                   <XAxis dataKey="name" hide />
                   <YAxis domain={[minValue, maxValue]} hide />
-                  <Tooltip 
-                    formatter={(value) => [parseFloat(value as string).toFixed(2), 'VIX']}
-                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0' }}
-                  />
+                  <Tooltip formatter={value => [parseFloat(value as string).toFixed(2), 'VIX']} contentStyle={{
+                backgroundColor: 'white',
+                border: '1px solid #e2e8f0'
+              }} />
                   <ReferenceLine y={parseFloat(vixData.openingValue)} stroke="#888" strokeDasharray="3 3" />
-                  <Line 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#0066FF" 
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 6 }}
-                    isAnimationActive={true}
-                    animationDuration={1000}
-                  />
+                  <Line type="monotone" dataKey="value" stroke="#0066FF" strokeWidth={2} dot={false} activeDot={{
+                r: 6
+              }} isAnimationActive={true} animationDuration={1000} />
                 </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-gray-400">
+              </ResponsiveContainer> : <div className="h-full flex items-center justify-center text-gray-400 my-0 mx-[2px] px-0 py-0">
                 Sem dados disponíveis para o gráfico
-              </div>
-            )}
+              </div>}
             
             <div className="grid grid-cols-2 gap-2 mt-2">
-              <div className={`text-xs ${getParameterColor(vixData.gapParameter)}`}>
-                {vixData.gapParameter}
-              </div>
+              
               <div className={`text-xs ${getParameterColor(vixData.tendencyParameter)}`}>
                 {vixData.tendencyParameter}
               </div>
@@ -176,8 +150,6 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
           </div>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default VixPanel;
