@@ -8,6 +8,10 @@ import VixPanel from "@/components/market/VixPanel";
 import MarketAlertPanel from "@/components/market/MarketAlertPanel";
 import ADRPanel from "@/components/market/ADRPanel";
 import CommoditiesPanel from "@/components/market/CommoditiesPanel";
+import FutureIndicesPanel from "@/components/market/FutureIndicesPanel";
+import SecurityAssetsPanel from "@/components/market/SecurityAssetsPanel";
+import MarketIndicesPanel from "@/components/market/MarketIndicesPanel";
+import EconomicDataPanel from "@/components/market/EconomicDataPanel";
 import { useToast } from "@/hooks/use-toast";
 
 const MarketOverviewTab: React.FC = () => {
@@ -267,6 +271,21 @@ const MarketOverviewTab: React.FC = () => {
 
       {/* Market Alerts */}
       <MarketAlertPanel alerts={marketData.alerts} />
+
+      {/* New components for additional data */}
+      <FutureIndicesPanel 
+        indices={marketData.futureIndices} 
+        parameter={marketData.futureIndicesParameter} 
+      />
+      
+      <SecurityAssetsPanel 
+        assets={marketData.securityAssets} 
+        parameter={marketData.securityAssetsParameter} 
+      />
+      
+      <MarketIndicesPanel indices={marketData.marketIndices} />
+      
+      <EconomicDataPanel economicData={marketData.economicData} />
 
       {/* ADR Detail Panel */}
       <ADRPanel adrs={marketData.adrs} />
