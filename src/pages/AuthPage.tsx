@@ -8,9 +8,11 @@ import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import ForgotPassword from "@/components/ForgotPassword";
 import { supabase } from "@/integrations/supabase/client";
+
 interface AuthPageProps {
   isRegister?: boolean;
 }
+
 const AuthPage = ({
   isRegister = false
 }: AuthPageProps) => {
@@ -27,24 +29,23 @@ const AuthPage = ({
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+  
   useEffect(() => {
     // Check if user is already logged in
     const checkSession = async () => {
       try {
         setCheckingSession(true);
-        const {
-          data,
-          error
-        } = await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getSession();
+        
         if (error) {
           console.error("Session check error:", error);
           setCheckingSession(false);
           return;
         }
+        
         if (data.session) {
           navigate("/dashboard");
         } else {
@@ -55,15 +56,19 @@ const AuthPage = ({
         setCheckingSession(false);
       }
     };
+    
     checkSession();
   }, [navigate]);
+  
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
     setShowForgotPassword(false);
   };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
     try {
       // Validate form before submission
       if (isLogin) {
@@ -77,15 +82,16 @@ const AuthPage = ({
           return;
         }
 
+        console.log("Attempting login with:", { email });
+        
         // Login with Supabase
-        const {
-          data,
-          error
-        } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password
         });
+        
         if (error) {
+          console.error("Login error details:", error);
           toast({
             title: "Erro ao fazer login",
             description: error.message,
@@ -94,15 +100,15 @@ const AuthPage = ({
           setLoading(false);
           return;
         }
+        
         toast({
           title: "Login realizado com sucesso!",
           description: "Você será redirecionado para o dashboard."
         });
 
-        // Navigate to dashboard after login
-        navigate("/dashboard");
+        // Navigation happens via auth listener in App.tsx
       } else {
-        // Registration validation for required fields based on profiles table
+        // Registration validation for required fields
         if (!name || !email || !password || !phone || !cpf || !dateOfBirth || !acceptTerms) {
           toast({
             title: "Campos obrigatórios",
@@ -112,6 +118,7 @@ const AuthPage = ({
           setLoading(false);
           return;
         }
+        
         if (password.length < 8) {
           toast({
             title: "Senha fraca",
@@ -126,12 +133,11 @@ const AuthPage = ({
         const nameParts = name.split(" ");
         const firstName = nameParts[0] || "";
         const lastName = nameParts.slice(1).join(" ") || "";
+        
+        console.log("Attempting registration with:", { email, firstName, lastName });
 
-        // Register with Supabase - with account type
-        const {
-          data,
-          error
-        } = await supabase.auth.signUp({
+        // Register with Supabase
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -143,10 +149,13 @@ const AuthPage = ({
               cpf,
               date_of_birth: dateOfBirth,
               role: 'user',
-              tipo_de_conta: 'trader' // Default account type for self-registration
+              tipo_de_conta: 'trader' // Default account type
             }
           }
         });
+        
+        console.log("Registration response:", { data, error });
+        
         if (error) {
           toast({
             title: "Erro ao criar conta",
@@ -156,9 +165,9 @@ const AuthPage = ({
           setLoading(false);
           return;
         }
-
+        
         // Check if user already exists (Supabase returns empty identities array)
-        if (data?.user?.identities?.length === 0) {
+        if (data?.user?.identities && data.user.identities.length === 0) {
           toast({
             title: "E-mail já cadastrado",
             description: "Este e-mail já está cadastrado no sistema. Tente fazer login ou recuperar sua senha.",
@@ -167,16 +176,17 @@ const AuthPage = ({
           setLoading(false);
           return;
         }
+        
         toast({
           title: "Cadastro realizado com sucesso!",
           description: "Verifique seu e-mail para confirmar o cadastro."
         });
-
-        // Optional: redirect to dashboard if email confirmation is disabled in Supabase
+        
+        // If email confirmation is disabled in Supabase and we have a session
         if (data.session) {
-          navigate("/dashboard");
+          // Navigation happens via auth listener in App.tsx
         } else {
-          // Go to login after registration if no session (email confirmation required)
+          // Switch to login after registration if no session (email confirmation required)
           setIsLogin(true);
         }
       }
@@ -191,6 +201,7 @@ const AuthPage = ({
       setLoading(false);
     }
   };
+  
   if (checkingSession) {
     return <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -199,6 +210,7 @@ const AuthPage = ({
         </div>
       </div>;
   }
+  
   if (showForgotPassword) {
     return <div className="min-h-screen flex flex-col md:flex-row">
         {/* Left Panel */}
@@ -236,6 +248,7 @@ const AuthPage = ({
         </div>
       </div>;
   }
+  
   return <div className="min-h-screen flex flex-col md:flex-row">
       {/* Left Panel */}
       <div className="w-full md:w-2/5 lg:w-1/3 bg-blue-400 p-8 flex flex-col">
@@ -379,11 +392,12 @@ const AuthPage = ({
             
             <Button type="submit" disabled={loading} className="w-full text-white py-6 bg-[#0066ff]">
               {isLogin ? "Entrar" : "Cadastrar acesso"}
-              {loading && <span className="ml-2 animate-spin">◌</span>}
+              {loading ? <span className="ml-2 animate-spin">◌</span> : null}
             </Button>
           </form>
         </motion.div>
       </div>
     </div>;
 };
+
 export default AuthPage;
