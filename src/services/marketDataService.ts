@@ -1,3 +1,4 @@
+
 const SHEET_ID = "1fPLwFZmfhfjc2muHkr58WySldsj_AmsM_TXhykMPj8I"; 
 const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
 
@@ -7,9 +8,7 @@ const RANGES = [
   "'v.10'!F12:AC14",  // VIX data
   "'v.10'!F16:AC18",  // Alerts data
   "'v.10'!I64:P70",   // ADRs data
-  "'v.10'!W64:AC68",  // Commodities data
-  "'v.10'!F16:AC33",  // New range: Additional market data
-  "'v.10'!T35:AC40"   // New range: Market metrics
+  "'v.10'!W64:AC68"   // Commodities data
 ];
 
 export interface MarketDataResponse {
@@ -77,22 +76,6 @@ export interface MarketDataResponse {
       change: string;
     };
   };
-  additionalMarketData: {
-    rows: Array<{
-      title?: string;
-      data: string[];
-      isHeader?: boolean;
-    }>;
-    time?: string;
-  };
-  marketMetrics: {
-    rows: Array<{
-      title?: string;
-      data: string[];
-      isHeader?: boolean;
-    }>;
-    time?: string;
-  };
 }
 
 export const fetchMarketData = async (): Promise<MarketDataResponse> => {
@@ -124,8 +107,6 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
     const alertsData = data.valueRanges[2].values || [];
     const adrsListData = data.valueRanges[3].values || [];
     const commoditiesListData = data.valueRanges[4].values || [];
-    const additionalMarketData = data.valueRanges[5]?.values || [];
-    const marketMetricsData = data.valueRanges[6]?.values || [];
     
     // Extract times from mainData (F6:AC6 row)
     const timesData = mainData[0] || [];
@@ -167,30 +148,6 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
         }
       });
     }
-    
-    // Process Additional Market Data
-    const processedAdditionalData = {
-      rows: additionalMarketData.map((row, index) => {
-        return {
-          title: row[0] || "",
-          data: row.slice(1).filter(Boolean),
-          isHeader: index === 0
-        };
-      }),
-      time: additionalMarketData[0] && additionalMarketData[0][0] ? additionalMarketData[0][0] : ""
-    };
-
-    // Process Market Metrics Data
-    const processedMarketMetrics = {
-      rows: marketMetricsData.map((row, index) => {
-        return {
-          title: row[0] || "",
-          data: row.slice(1).filter(Boolean),
-          isHeader: index === 0
-        };
-      }),
-      time: marketMetricsData[0] && marketMetricsData[0][0] ? marketMetricsData[0][0] : ""
-    };
     
     // Extract times from timesData
     const adrCurrentTime = timesData[2] || "";
@@ -247,9 +204,7 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
         indexation: alertsData[2] ? alertsData[2].slice(14).filter(Boolean).join(" ") : ""
       },
       adrs,
-      commoditiesList,
-      additionalMarketData: processedAdditionalData,
-      marketMetrics: processedMarketMetrics
+      commoditiesList
     };
   } catch (error) {
     console.error("Error fetching data from Google Sheets:", error);
@@ -389,23 +344,6 @@ const getMockMarketData = (): MarketDataResponse => {
         value: "782.50",
         change: "-1.24%"
       }
-    },
-    additionalMarketData: {
-      rows: [
-        { title: "Título", data: ["Coluna 1", "Coluna 2", "Coluna 3"], isHeader: true },
-        { title: "Linha 1", data: ["Valor 1", "Valor 2", "Valor 3"] },
-        { title: "Linha 2", data: ["Valor 4", "Valor 5", "Valor 6"] }
-      ],
-      time: "17:40:00"
-    },
-    marketMetrics: {
-      rows: [
-        { title: "Métricas", data: ["Valor Atual", "Tendência", "Status"], isHeader: true },
-        { title: "Métrica 1", data: ["85.5", "↑", "Positivo"] },
-        { title: "Métrica 2", data: ["42.3", "↓", "Negativo"] }
-      ],
-      time: "17:45:00"
     }
   };
 };
-
