@@ -80,8 +80,8 @@ const MarketIndicesPanel: React.FC<MarketIndicesPanelProps> = ({ indices }) => {
                 </div>
               </div>
               
-              {/* Simple line representation for chart data */}
-              {index.chart && index.chart.length > 0 && (
+              {/* Simple line representation for chart data - only display if chart exists */}
+              {index.chart && Array.isArray(index.chart) && index.chart.length > 0 && (
                 <div className="mt-3 h-8 w-full flex items-end">
                   {index.chart.map((value, i) => (
                     <div 
