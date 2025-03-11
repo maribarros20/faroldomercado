@@ -21,6 +21,18 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
   const [checkingSession, setCheckingSession] = useState(true);
   
   const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    // Check URL for password reset parameters
+    const url = new URL(window.location.href);
+    const reset = url.searchParams.get("reset");
+    const type = url.searchParams.get("type");
+    
+    if (reset === "true" || type === "recovery") {
+      setShowForgotPassword(true);
+    }
+  }, []);
   
   useEffect(() => {
     const checkSession = async () => {
@@ -69,6 +81,25 @@ const AuthPage = ({ isRegister = false }: AuthPageProps) => {
     
     clearStaleSession();
   }, []);
+  
+  useEffect(() => {
+    // Listen for auth changes from reset password flow
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth event:", event);
+      
+      if (event === 'PASSWORD_RECOVERY') {
+        setShowForgotPassword(true);
+        toast({
+          title: "Recuperação de senha",
+          description: "Você pode redefinir sua senha agora.",
+        });
+      }
+    });
+    
+    return () => {
+      data.subscription.unsubscribe();
+    };
+  }, [toast]);
   
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);

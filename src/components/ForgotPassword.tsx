@@ -15,12 +15,26 @@ interface ForgotPasswordProps {
 
 const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
   const [email, setEmail] = useState("");
-  const [step, setStep] = useState<"email" | "code" | "newPassword">("email");
-  const [code, setCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetToken, setResetToken] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Check for reset token in URL on component mount
+  useState(() => {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get("type");
+    const accessToken = hashParams.get("access_token");
+    
+    if (type === "recovery" && accessToken) {
+      setResetToken(accessToken);
+      toast({
+        title: "Token de recuperação detectado",
+        description: "Digite sua nova senha para concluir a recuperação.",
+      });
+    }
+  });
 
   const handleSubmitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,11 +52,12 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
     
     try {
       // Send password reset email
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + "/auth?step=reset-password",
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: window.location.origin + "/auth?reset=true",
       });
       
       if (error) {
+        console.error("Reset password error:", error);
         toast({
           title: "Erro",
           description: error.message,
@@ -54,10 +69,9 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
       
       toast({
         title: "E-mail enviado",
-        description: "Um link de recuperação foi enviado para seu e-mail",
+        description: "Um link de recuperação foi enviado para seu e-mail. Por favor, verifique sua caixa de entrada e spam.",
       });
       
-      setStep("code");
     } catch (error) {
       console.error("Reset password error:", error);
       toast({
@@ -70,25 +84,11 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
     }
   };
 
-  const handleSubmitCode = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!code || code.length < 6) {
-      toast({
-        title: "Erro",
-        description: "Por favor, digite o código de 6 dígitos",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setStep("newPassword");
-  };
-
   const handleSubmitNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
-    if (!newPassword || newPassword.length < 8) {
+    if (!password || password.length < 8) {
       toast({
         title: "Erro",
         description: "A senha deve ter pelo menos 8 caracteres",
@@ -98,7 +98,7 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
       return;
     }
     
-    if (newPassword !== confirmPassword) {
+    if (password !== confirmPassword) {
       toast({
         title: "Erro",
         description: "As senhas não coincidem",
@@ -109,11 +109,25 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
     }
     
     try {
-      // In a real implementation, this would use the token from the URL
-      // to update the password. For now, we'll just show a success message
+      // Update the password
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      });
+      
+      if (error) {
+        console.error("Update password error:", error);
+        toast({
+          title: "Erro",
+          description: error.message,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      
       toast({
         title: "Senha redefinida",
-        description: "Sua senha foi atualizada com sucesso",
+        description: "Sua senha foi atualizada com sucesso. Você será redirecionado para o login.",
       });
       
       // Return to login
@@ -151,7 +165,7 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
         Recuperar <span className="text-primary">senha</span>
       </h1>
 
-      {step === "email" && (
+      {!resetToken ? (
         <form onSubmit={handleSubmitEmail} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="recovery-email">E-mail</Label>
@@ -168,7 +182,7 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
               />
             </div>
             <p className="text-sm text-gray-500">
-              Digite o e-mail associado à sua conta para receber um código de recuperação.
+              Digite o e-mail associado à sua conta para receber um link de recuperação.
             </p>
           </div>
           
@@ -177,45 +191,11 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
             className="w-full bg-primary hover:bg-primary/90 text-white py-6"
             disabled={loading}
           >
-            Enviar código
+            Enviar link de recuperação
             {loading && <span className="ml-2 animate-spin">◌</span>}
           </Button>
         </form>
-      )}
-
-      {step === "code" && (
-        <form onSubmit={handleSubmitCode} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="recovery-code">Código de recuperação</Label>
-            <div className="relative">
-              <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <Input 
-                id="recovery-code" 
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="Digite o código de 6 dígitos"
-                className="pl-10"
-                maxLength={6}
-                required
-              />
-            </div>
-            <p className="text-sm text-gray-500">
-              Digite o código de 6 dígitos enviado para {email}
-            </p>
-          </div>
-          
-          <Button 
-            type="submit" 
-            className="w-full bg-primary hover:bg-primary/90 text-white py-6"
-            disabled={loading}
-          >
-            Verificar código
-            {loading && <span className="ml-2 animate-spin">◌</span>}
-          </Button>
-        </form>
-      )}
-
-      {step === "newPassword" && (
+      ) : (
         <form onSubmit={handleSubmitNewPassword} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="new-password">Nova senha</Label>
@@ -224,8 +204,8 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
               <Input 
                 id="new-password" 
                 type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Digite sua nova senha"
                 className="pl-10"
                 required

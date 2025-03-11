@@ -85,6 +85,13 @@ function App() {
             title: "Bem-vindo!",
             description: "Login realizado com sucesso.",
           });
+        } else if (event === 'PASSWORD_RECOVERY') {
+          // Handle password recovery event
+          navigate('/auth?reset=true');
+          toast({
+            title: "Recuperação de senha",
+            description: "Você pode redefinir sua senha agora.",
+          });
         }
       }
     );
