@@ -45,7 +45,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
   const chartData = useMemo(() => {
     // If we have real data, use it
     if (stockHistory && stockHistory.prices.length > 0) {
-      // FIXED: Reverse the data so newest dates are on the right
+      // Reverse the data so newest dates are on the right
       const prices = [...stockHistory.prices].reverse(); 
       const dates = [...stockHistory.dates].reverse();
       return generateNormalizedChartPoints(prices, stock.changePercent >= 0, dates);
@@ -76,16 +76,29 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
     // Find the closest point
     let closestPoint = chartData[0];
     let closestDistance = Math.abs(closestPoint.x - x);
+    let closestIndex = 0;
     
     for (let i = 1; i < chartData.length; i++) {
       const distance = Math.abs(chartData[i].x - x);
       if (distance < closestDistance) {
         closestDistance = distance;
         closestPoint = chartData[i];
+        closestIndex = i;
       }
     }
     
-    setHoveredPoint(closestPoint);
+    // Only show tooltip if the point is at index divisible by 3 (every 3rd point)
+    if (closestIndex % 3 === 0) {
+      setHoveredPoint(closestPoint);
+    } else {
+      // Find the nearest point that is divisible by 3
+      const mod3Index = Math.round(closestIndex / 3) * 3;
+      if (mod3Index < chartData.length) {
+        setHoveredPoint(chartData[mod3Index]);
+      } else {
+        setHoveredPoint(null);
+      }
+    }
   };
 
   const handleMouseLeave = () => {
@@ -179,7 +192,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
                 fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
               />
               
-              {/* Improved tooltip without a box - just show the price directly */}
+              {/* Simplified tooltip - just value text, lighter style */}
               {hoveredPoint && (
                 <>
                   {/* Vertical tracking line */}
@@ -203,25 +216,24 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
                     strokeWidth="1.5"
                   />
                   
-                  {/* Just show price text without a background box */}
+                  {/* Price value - simple text, no background, gray color like timestamp */}
                   <text
                     x={hoveredPoint.x < 70 ? hoveredPoint.x + 5 : hoveredPoint.x - 5}
-                    y={hoveredPoint.y - 10}
-                    fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
+                    y={hoveredPoint.y - 15}
+                    fill="rgba(100, 100, 100, 0.8)"
                     fontSize="9"
-                    fontWeight="bold"
                     textAnchor={hoveredPoint.x < 70 ? "start" : "end"}
                     dominantBaseline="middle"
                   >
                     {hoveredPoint.value.toFixed(2)}
                   </text>
                   
-                  {/* Date text without background */}
+                  {/* Date text - small gray font like timestamp */}
                   {hoveredPoint.date && (
                     <text
                       x={hoveredPoint.x < 70 ? hoveredPoint.x + 5 : hoveredPoint.x - 5}
-                      y={hoveredPoint.y + 12}
-                      fill={stock.changePercent >= 0 ? "rgba(34, 197, 94, 0.8)" : "rgba(239, 68, 68, 0.8)"}
+                      y={hoveredPoint.y + 15}
+                      fill="rgba(100, 100, 100, 0.8)"
                       fontSize="7"
                       textAnchor={hoveredPoint.x < 70 ? "start" : "end"}
                       dominantBaseline="middle"
