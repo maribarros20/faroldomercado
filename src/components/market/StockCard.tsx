@@ -1,4 +1,3 @@
-
 import React, { useMemo } from "react";
 import { StockData } from "@/services/stockService";
 import { useQuery } from "@tanstack/react-query";
@@ -49,9 +48,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
   };
 
   const getBorderColor = () => {
-    if (stock.changePercent > 0) return "border-l-green-500";
-    if (stock.changePercent < 0) return "border-l-red-500";
-    return "border-l-blue-500"; // Neutral case
+    return stock.changePercent >= 0 ? "border-l-green-500" : "border-l-red-500";
   };
 
   return (
@@ -80,108 +77,70 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
           <Skeleton className="w-full h-full rounded-md" />
         ) : normalizedPrices.length > 0 ? (
           <div className="relative w-full h-full">
-            {/* Main curved line */}
-            <svg className="w-full h-full absolute inset-0" preserveAspectRatio="none" viewBox={`0 0 ${normalizedPrices.length} 100`}>
-              {/* Gradient fill under the curve */}
+            <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
               <defs>
                 <linearGradient id={`gradient-${stock.ticker}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor={stock.changePercent >= 0 ? "#4ade80" : "#f87171"} stopOpacity="0.3" />
-                  <stop offset="100%" stopColor={stock.changePercent >= 0 ? "#4ade80" : "#f87171"} stopOpacity="0.05" />
+                  <stop 
+                    offset="0%" 
+                    stopColor={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"} 
+                    stopOpacity="0.2"
+                  />
+                  <stop 
+                    offset="100%" 
+                    stopColor={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"} 
+                    stopOpacity="0.02"
+                  />
                 </linearGradient>
               </defs>
-              
-              {/* Area fill */}
+
+              {/* Área preenchida com gradiente */}
               <path
                 d={`
-                  M0,${100 - normalizedPrices[0]}
-                  ${normalizedPrices.map((height, i) => {
-                    // Use curve control points for a smoother line
-                    if (i === 0) return "";
-                    const prev = normalizedPrices[i-1];
-                    return `C${i-0.5},${100-prev} ${i-0.5},${100-height} ${i},${100-height}`;
-                  }).join(' ')}
-                  L${normalizedPrices.length-1},100 L0,100 Z
+                  M 0,${100 - normalizedPrices[0]}
+                  ${normalizedPrices.map((price, i) => {
+                    const x = (i / (normalizedPrices.length - 1)) * 100;
+                    return `L ${x},${100 - price}`;
+                  }).join(" ")}
+                  L 100,100 L 0,100 Z
                 `}
                 fill={`url(#gradient-${stock.ticker})`}
                 strokeWidth="0"
               />
-              
-              {/* Smooth curved line on top */}
+
+              {/* Linha principal com sombra */}
               <path
                 d={`
-                  M0,${100 - normalizedPrices[0]}
-                  ${normalizedPrices.map((height, i) => {
-                    // Use curve control points for a smoother line
-                    if (i === 0) return "";
-                    const prev = normalizedPrices[i-1];
-                    return `C${i-0.5},${100-prev} ${i-0.5},${100-height} ${i},${100-height}`;
-                  }).join(' ')}
+                  M 0,${100 - normalizedPrices[0]}
+                  ${normalizedPrices.map((price, i) => {
+                    const x = (i / (normalizedPrices.length - 1)) * 100;
+                    return `L ${x},${100 - price}`;
+                  }).join(" ")}
                 `}
                 fill="none"
                 stroke={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
-                strokeWidth="1.5"
+                strokeWidth="2"
                 strokeLinecap="round"
+                filter="drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.1))"
+              />
+
+              {/* Pontos nos valores extremos */}
+              <circle
+                cx="0"
+                cy={100 - normalizedPrices[0]}
+                r="2"
+                fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
+              />
+              <circle
+                cx="100"
+                cy={100 - normalizedPrices[normalizedPrices.length - 1]}
+                r="2"
+                fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
               />
             </svg>
           </div>
         ) : (
-          // Fallback with sample data
-          <div className="relative w-full h-full">
-            <svg className="w-full h-full absolute inset-0" preserveAspectRatio="none" viewBox="0 0 100 100">
-              {/* Gradient fill */}
-              <defs>
-                <linearGradient id={`gradient-${stock.ticker}-fallback`} x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor={stock.changePercent >= 0 ? "#4ade80" : "#f87171"} stopOpacity="0.3" />
-                  <stop offset="100%" stopColor={stock.changePercent >= 0 ? "#4ade80" : "#f87171"} stopOpacity="0.05" />
-                </linearGradient>
-              </defs>
-              
-              {/* Generate a sample curve shape */}
-              {(() => {
-                const points = [];
-                const numPoints = 20;
-                for (let i = 0; i < numPoints; i++) {
-                  points.push(50 + (Math.sin(i/3) * 15) + (Math.random() * 5));
-                }
-                
-                // If negative trend, invert the curve
-                if (stock.changePercent < 0) {
-                  points.reverse();
-                }
-                
-                // Create a smooth path with the points
-                const pathData = `
-                  M0,${100 - points[0]}
-                  ${points.map((height, i) => {
-                    if (i === 0) return "";
-                    const x = (i / (numPoints-1)) * 100;
-                    const prevX = ((i-1) / (numPoints-1)) * 100;
-                    const prev = points[i-1];
-                    return `C${prevX+5},${100-prev} ${x-5},${100-height} ${x},${100-height}`;
-                  }).join(' ')}
-                `;
-                
-                return (
-                  <>
-                    {/* Area fill */}
-                    <path
-                      d={`${pathData} L100,100 L0,100 Z`}
-                      fill={`url(#gradient-${stock.ticker}-fallback)`}
-                      strokeWidth="0"
-                    />
-                    
-                    {/* Line on top */}
-                    <path
-                      d={pathData}
-                      fill="none"
-                      stroke={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
-                  </>
-                );
-              })()}
-            </svg>
+          <div className="flex items-center justify-center h-full text-gray-400 text-xs">
+            Sem dados históricos
           </div>
         )}
       </div>
