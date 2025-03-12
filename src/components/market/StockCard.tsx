@@ -179,57 +179,73 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
                 fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
               />
               
-              {/* Tooltip marker and dot */}
+              {/* Improved tooltip marker and dot with better visibility */}
               {hoveredPoint && (
                 <>
+                  {/* Vertical tracking line */}
+                  <line 
+                    x1={hoveredPoint.x} 
+                    y1="0" 
+                    x2={hoveredPoint.x} 
+                    y2="100" 
+                    stroke="rgba(100, 100, 100, 0.3)" 
+                    strokeWidth="1" 
+                    strokeDasharray="2,2"
+                  />
+                  
+                  {/* Hover point with larger radius */}
                   <circle
                     cx={hoveredPoint.x}
                     cy={hoveredPoint.y}
-                    r="3"
-                    fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
+                    r="3.5"
+                    fill="#fff"
+                    stroke={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
+                    strokeWidth="1.5"
                   />
-                  {/* Improved tooltip background */}
+                  
+                  {/* Improved price tooltip */}
                   <rect
-                    x={hoveredPoint.x - 25}
-                    y={hoveredPoint.y - 30}
-                    width="50"
+                    x={hoveredPoint.x < 70 ? hoveredPoint.x : hoveredPoint.x - 40}
+                    y={hoveredPoint.y < 30 ? hoveredPoint.y + 5 : hoveredPoint.y - 25}
+                    width="40"
                     height="20"
                     rx="3"
-                    fill="rgba(0, 0, 0, 0.7)"
+                    fill="rgba(0, 0, 0, 0.8)"
                   />
-                  {/* Price value */}
+                  
+                  {/* Price value with better positioning */}
                   <text
-                    x={hoveredPoint.x}
-                    y={hoveredPoint.y - 16}
+                    x={hoveredPoint.x < 70 ? hoveredPoint.x + 20 : hoveredPoint.x - 20}
+                    y={hoveredPoint.y < 30 ? hoveredPoint.y + 15 : hoveredPoint.y - 15}
                     fill="white"
-                    fontSize="8"
+                    fontSize="10"
                     fontWeight="bold"
                     textAnchor="middle"
                     dominantBaseline="middle"
                   >
-                    {hoveredPoint.value?.toFixed(2)}
+                    {hoveredPoint.value.toFixed(2)}
                   </text>
                   
-                  {/* Date tooltip - only show if we have a date */}
+                  {/* Date tooltip - positioned to avoid edge clipping */}
                   {hoveredPoint.date && (
                     <>
                       <rect
-                        x={hoveredPoint.x - 30}
-                        y={hoveredPoint.y - 50}
-                        width="60"
-                        height="15"
+                        x={hoveredPoint.x < 70 ? hoveredPoint.x : hoveredPoint.x - 50}
+                        y={hoveredPoint.y < 30 ? hoveredPoint.y + 30 : hoveredPoint.y - 50}
+                        width="50"
+                        height="18"
                         rx="3"
-                        fill="rgba(0, 0, 0, 0.5)"
+                        fill="rgba(0, 0, 0, 0.7)"
                       />
                       <text
-                        x={hoveredPoint.x}
-                        y={hoveredPoint.y - 40}
+                        x={hoveredPoint.x < 70 ? hoveredPoint.x + 25 : hoveredPoint.x - 25}
+                        y={hoveredPoint.y < 30 ? hoveredPoint.y + 39 : hoveredPoint.y - 41}
                         fill="white"
-                        fontSize="7"
+                        fontSize="8"
                         textAnchor="middle"
                         dominantBaseline="middle"
                       >
-                        {hoveredPoint.date}
+                        {hoveredPoint.date.split(' ')[0]}
                       </text>
                     </>
                   )}

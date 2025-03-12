@@ -146,10 +146,23 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
       "TSLA": 46,  // Column AU
     };
     
+    // Detailed logging of raw data
+    console.log("Checking raw data for a few stocks:");
+    for (const [ticker, colIndex] of Object.entries(stockColumns)) {
+      const sample = data.values.slice(0, 3).map(row => {
+        return {date: row[0], price: row[colIndex]};
+      });
+      console.log(`${ticker} sample data (first 3 rows):`, sample);
+    }
+    
     // Process data for each stock
     const historicalData: StockHistoricalData[] = [];
     
     for (const [ticker, colIndex] of Object.entries(stockColumns)) {
+      // Extract all raw price values for debugging
+      const rawPrices = data.values.map(row => row[colIndex]?.toString().replace(',', '.'));
+      console.log(`${ticker} raw prices (sample):`, rawPrices.slice(0, 5));
+      
       const prices = data.values
         .map(row => {
           const rawValue = row[colIndex]?.toString().replace(',', '.');
@@ -177,10 +190,19 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
     
     console.log("Processed historical data count:", historicalData.length);
     if (historicalData.length > 0) {
-      const sampleStock = historicalData[0];
-      console.log(`Sample stock ${sampleStock.ticker} full data:`, {
-        dates: sampleStock.dates,
-        prices: sampleStock.prices,
+      // Log full data for a few sample stocks to verify everything is correct
+      ["AAPL", "MSFT", "PETR4", "VALE3"].forEach(ticker => {
+        const stockData = historicalData.find(item => item.ticker === ticker);
+        if (stockData) {
+          console.log(`Complete data for ${ticker}:`, {
+            dates: stockData.dates,
+            prices: stockData.prices,
+            startDate: stockData.dates[0],
+            endDate: stockData.dates[stockData.dates.length - 1],
+            startPrice: stockData.prices[0],
+            endPrice: stockData.prices[stockData.prices.length - 1]
+          });
+        }
       });
     }
     
