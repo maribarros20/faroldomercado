@@ -120,7 +120,7 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
     // Extract dates from the first column
     const dates = data.values.map(row => row[0]).filter(Boolean);
     
-    // Correct mapping of column indices for different stocks according to the provided information
+    // Correct mapping of column indices for different stocks
     const stockColumns = {
       "ABEV3": 1,  // Column B
       "B3SA3": 3,  // Column D
@@ -152,6 +152,7 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
         historicalData.push({
           ticker,
           dates: dates.slice(0, prices.length),
+          // The data from the sheet is already in chronological order (oldest first)
           prices: prices
         });
       }
@@ -213,7 +214,7 @@ function getMockHistoricalData(): StockHistoricalData[] {
   
   const mockHistoricalData: StockHistoricalData[] = [];
   
-  // Generate 30 days of mock data for each ticker
+  // Generate 30 days of mock data for each ticker - in chronological order (oldest first)
   tickers.forEach(ticker => {
     const dates = [];
     const prices = [];
@@ -222,11 +223,11 @@ function getMockHistoricalData(): StockHistoricalData[] {
     const basePrice = ticker.charCodeAt(0) + ticker.charCodeAt(ticker.length - 1);
     let currentPrice = basePrice;
     
-    // Generate 30 days of data
+    // Generate 30 days of data - in chronological order (oldest first)
     for (let i = 0; i < 30; i++) {
       // Create a date string
       const date = new Date();
-      date.setDate(date.getDate() - (29 - i));
+      date.setDate(date.getDate() - (29 - i)); // Start with oldest date
       dates.push(date.toISOString().split('T')[0]);
       
       // Generate a price with some random variation
@@ -244,4 +245,3 @@ function getMockHistoricalData(): StockHistoricalData[] {
   
   return mockHistoricalData;
 }
-

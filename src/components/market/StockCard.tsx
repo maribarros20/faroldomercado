@@ -28,7 +28,8 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
   const chartData = useMemo(() => {
     // If we have real data, use it
     if (stockHistory && stockHistory.prices.length > 0) {
-      const prices = [...stockHistory.prices].reverse(); // Reverse to show newest data on right
+      // Use the original order (do not reverse - data is already ordered oldest first)
+      const prices = [...stockHistory.prices]; 
       return generateNormalizedChartPoints(prices, stock.changePercent >= 0);
     }
     
@@ -160,7 +161,7 @@ function generateNormalizedChartPoints(prices: number[], isPositive: boolean) {
   // Otherwise normalize based on actual price data
   for (let i = 0; i < prices.length; i++) {
     points.push({
-      x: (i / (prices.length - 1)) * 100,
+      x: (i / (prices.length - 1)) * 100, // Older data on left (0), newer on right (100)
       y: 20 + ((prices[i] - min) / range) * 60
     });
   }
@@ -174,9 +175,9 @@ function generateMockChartPoints(changePercent: number) {
   const numPoints = 10;
   const isPositive = changePercent >= 0;
   
-  // Starting and ending positions
-  const startY = isPositive ? 60 : 40;
-  const endY = isPositive ? 40 : 60;
+  // Starting and ending positions (start low, end high for positive trend)
+  const startY = isPositive ? 60 : 40;  // For positive trend: start at bottom (60)
+  const endY = isPositive ? 40 : 60;    // For positive trend: end at top (40)
   
   // Create points with a curve that matches the trend
   for (let i = 0; i < numPoints; i++) {
