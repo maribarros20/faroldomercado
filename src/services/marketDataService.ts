@@ -784,4 +784,220 @@ const getMockMarketData = (): MarketDataResponse => {
         parameter: "LEVEMENTE POSITIVO"
       },
       "EURO_STOXX": {
-        name: "Euro Stoxx 5
+        name: "Euro Stoxx 50",
+        time: "17:15:01",
+        value: "5,440.25",
+        change: "+0.42%",
+        parameter: "LEVEMENTE POSITIVO"
+      }
+    },
+    safetyAssets: additionalMockData.safetyAssets || {},
+    economicDataUS: additionalMockData.economicDataUS || {},
+    economicDataBrazil: additionalMockData.economicDataBrazil || {}
+  };
+};
+
+// Mock additional data
+const getMockAdditionalData = () => {
+  return {
+    adrs: {
+      "VALE": {
+        name: "VALE",
+        time: "17:40:00",
+        value: "15.24",
+        change: "-1.62%",
+        prevChange: "-0.85%",
+        afterChange: "-0.25%"
+      },
+      "PBR": {
+        name: "PBR",
+        time: "17:40:00",
+        value: "14.88",
+        change: "-0.67%",
+        prevChange: "-1.20%",
+        afterChange: "+0.45%"
+      },
+      "PBRA": {
+        name: "PBRA",
+        time: "17:40:00",
+        value: "13.76",
+        change: "-0.94%",
+        prevChange: "-1.35%",
+        afterChange: "+0.22%"
+      },
+      "ITUB": {
+        name: "ITUB",
+        time: "17:40:00",
+        value: "6.81",
+        change: "-0.87%",
+        prevChange: "-1.02%",
+        afterChange: "-0.15%"
+      },
+      "BBD": {
+        name: "BBD",
+        time: "17:40:00",
+        value: "4.94",
+        change: "-1.20%",
+        prevChange: "-0.80%",
+        afterChange: "-0.40%"
+      },
+      "BBDO": {
+        name: "BBDO",
+        time: "17:40:00",
+        value: "4.87",
+        change: "-1.22%",
+        prevChange: "-0.82%",
+        afterChange: "-0.41%"
+      },
+      "BSBR": {
+        name: "BSBR",
+        time: "17:40:00",
+        value: "7.89",
+        change: "-0.76%",
+        prevChange: "-0.51%",
+        afterChange: "-0.13%"
+      }
+    },
+    commoditiesList: {
+      "BRENT": {
+        name: "Petróleo Brent",
+        time: "17:40:00",
+        value: "82.89",
+        change: "-1.85%"
+      },
+      "WTI": {
+        name: "Petróleo WTI",
+        time: "17:40:00",
+        value: "77.65",
+        change: "-2.06%"
+      },
+      "IRON_SING": {
+        name: "Minério de Ferro Singapura",
+        time: "",
+        value: "110.25",
+        change: "-0.75%"
+      },
+      "IRON_DALIAN": {
+        name: "Minério de Ferro Dalian",
+        time: "17:40:00",
+        value: "782.50",
+        change: "-1.24%"
+      }
+    },
+    marketIndices: {
+      "SP500": {
+        name: "S&P 500",
+        time: "17:15:01",
+        value: "5,435.02",
+        change: "+0.34%",
+        parameter: "LEVEMENTE POSITIVO",
+        chart: ["5420", "5425", "5430", "5435", "5440", "5445"]
+      },
+      "DOW": {
+        name: "Dow Jones",
+        time: "17:15:01",
+        value: "39,876.55",
+        change: "+0.21%",
+        parameter: "LEVEMENTE POSITIVO"
+      },
+      "NASDAQ": {
+        name: "Nasdaq 100",
+        time: "17:15:01",
+        value: "19,235.87",
+        change: "+0.47%",
+        parameter: "LEVEMENTE POSITIVO"
+      },
+      "US_FUTURES": {
+        name: "US Futures",
+        time: "17:15:01",
+        value: "5,440.25",
+        change: "+0.42%",
+        parameter: "LEVEMENTE POSITIVO"
+      },
+      "EURO_STOXX": {
+        name: "Euro Stoxx 50",
+        time: "17:15:01",
+        value: "5,440.25",
+        change: "+0.42%",
+        parameter: "LEVEMENTE POSITIVO"
+      }
+    },
+    safetyAssets: {
+      "GOLD": {
+        name: "Ouro",
+        time: "17:40:00",
+        value: "1,000",
+        change: "-0.5%",
+        parameter: "LEVEMENTE NEGATIVO"
+      },
+      "DOLLAR": {
+        name: "Dólar",
+        time: "17:40:00",
+        value: "5.50",
+        change: "-0.2%",
+        parameter: "LEVEMENTE NEGATIVO"
+      },
+      "TREA_2Y": {
+        name: "Treasury 2Y",
+        time: "17:40:00",
+        value: "1.20",
+        change: "-0.1%",
+        parameter: "LEVEMENTE NEGATIVO"
+      },
+      "TREA_5Y": {
+        name: "Treasury 5Y",
+        time: "17:40:00",
+        value: "1.50",
+        change: "-0.3%",
+        parameter: "LEVEMENTE NEGATIVO"
+      },
+      "TREA_10Y": {
+        name: "Treasury 10Y",
+        time: "17:40:00",
+        value: "1.80",
+        change: "-0.4%",
+        parameter: "LEVEMENTE NEGATIVO"
+      },
+      "TREA_30Y": {
+        name: "Treasury 30Y",
+        time: "17:40:00",
+        value: "2.00",
+        change: "-0.5%",
+        parameter: "LEVEMENTE NEGATIVO"
+      }
+    },
+    economicDataUS: {
+      "US_RATE": {
+        name: "Taxa de Juros EUA",
+        time: "17:40:00",
+        value: "3.50",
+        change: "+0.1%",
+        parameter: "LEVEMENTE POSITIVO"
+      },
+      "US_CPI": {
+        name: "Inflação EUA (CPI)",
+        time: "17:40:00",
+        value: "2.50",
+        change: "+0.2%",
+        parameter: "LEVEMENTE POSITIVO"
+      }
+    },
+    economicDataBrazil: {
+      "BR_SELIC": {
+        name: "Taxa Selic",
+        time: "17:40:00",
+        value: "12.00",
+        change: "+0.3%",
+        parameter: "LEVEMENTE POSITIVO"
+      },
+      "BR_IPCA": {
+        name: "Inflação (IPCA)",
+        time: "17:40:00",
+        value: "1.80",
+        change: "+0.4%",
+        parameter: "LEVEMENTE POSITIVO"
+      }
+    },
+    vixChartData: ["23.1", "23.4", "23.8", "24.2", "24.6", "25.1", "25.8", "26.5", "27.1", "27.8"]
+  };
+};
