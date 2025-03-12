@@ -33,9 +33,11 @@ export default function MarketRadar() {
     staleTime: 1000 * 60 * 5, // Consider data stale after 5 minutes
     refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
     refetchOnWindowFocus: true,
-    onError: (err) => {
-      setError("Erro ao carregar dados. Tente novamente mais tarde.");
-      console.error(err);
+    meta: {
+      onError: (err: Error) => {
+        setError("Erro ao carregar dados. Tente novamente mais tarde.");
+        console.error(err);
+      }
     },
     onSuccess: (data) => {
       if (userStocks.length === 0) {
