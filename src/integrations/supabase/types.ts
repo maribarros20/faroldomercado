@@ -205,6 +205,45 @@ export type Database = {
         }
         Relationships: []
       }
+      market_indices: {
+        Row: {
+          change_value: string | null
+          chart: string[] | null
+          created_at: string | null
+          id: string
+          key: string
+          name: string
+          parameter: string | null
+          time_data: string | null
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          change_value?: string | null
+          chart?: string[] | null
+          created_at?: string | null
+          id?: string
+          key: string
+          name: string
+          parameter?: string | null
+          time_data?: string | null
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          change_value?: string | null
+          chart?: string[] | null
+          created_at?: string | null
+          id?: string
+          key?: string
+          name?: string
+          parameter?: string | null
+          time_data?: string | null
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       market_news: {
         Row: {
           author: string | null
@@ -1209,6 +1248,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vix_data: {
+        Row: {
+          chart_data: string[] | null
+          closing_change: string | null
+          closing_time_data: string | null
+          closing_value: string | null
+          created_at: string | null
+          curr_change: string
+          curr_change_parameter: string | null
+          curr_time: string | null
+          curr_value: string
+          curr_value_parameter: string | null
+          id: string
+          opening_change: string | null
+          opening_change_parameter: string | null
+          opening_time_data: string | null
+          opening_value: string | null
+          tendency_parameter: string | null
+          tendency_time_data: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          chart_data?: string[] | null
+          closing_change?: string | null
+          closing_time_data?: string | null
+          closing_value?: string | null
+          created_at?: string | null
+          curr_change: string
+          curr_change_parameter?: string | null
+          curr_time?: string | null
+          curr_value: string
+          curr_value_parameter?: string | null
+          id?: string
+          opening_change?: string | null
+          opening_change_parameter?: string | null
+          opening_time_data?: string | null
+          opening_value?: string | null
+          tendency_parameter?: string | null
+          tendency_time_data?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          chart_data?: string[] | null
+          closing_change?: string | null
+          closing_time_data?: string | null
+          closing_value?: string | null
+          created_at?: string | null
+          curr_change?: string
+          curr_change_parameter?: string | null
+          curr_time?: string | null
+          curr_value?: string
+          curr_value_parameter?: string | null
+          id?: string
+          opening_change?: string | null
+          opening_change_parameter?: string | null
+          opening_time_data?: string | null
+          opening_value?: string | null
+          tendency_parameter?: string | null
+          tendency_time_data?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {

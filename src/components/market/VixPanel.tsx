@@ -3,28 +3,75 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ActivitySquare, ArrowDownRight, ArrowUpRight, Clock, TrendingUp, TrendingDown } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-interface VixPanelProps {
-  vixData: {
-    currentValue: string;
-    currentChange: string;
-    currentTime: string;
-    currentValueParameter: string;
-    currentChangeParameter: string;
-    closingValue: string;
-    closingChange: string;
-    closingTime: string;
-    openingValue: string;
-    openingChange: string;
-    openingTime: string;
-    openingChangeParameter: string;
-    tendencyTime: string;
-    tendencyParameter: string;
-    chartData: string[];
-  };
+interface VixData {
+  curr_value: string;
+  curr_change: string;
+  curr_time: string;
+  curr_value_parameter: string;
+  curr_change_parameter: string;
+  closing_value: string;
+  closing_change: string;
+  closing_time_data: string;
+  opening_value: string;
+  opening_change: string;
+  opening_time_data: string;
+  opening_change_parameter: string;
+  tendency_time_data: string;
+  tendency_parameter: string;
+  chart_data: string[];
 }
 
-const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
+async function fetchVixData() {
+  console.log("Fetching VIX data from Supabase...");
+  const { data, error } = await supabase
+    .from('vix_data')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  
+  if (error) {
+    console.error("Error fetching VIX data:", error);
+    throw error;
+  }
+
+  // Fallback to market data service if no data in database
+  if (!data) {
+    console.log("No data in Supabase, falling back to market data service");
+    const { fetchMarketData } = await import("@/services/marketDataService");
+    const marketData = await fetchMarketData();
+    return {
+      curr_value: marketData.vix.currentValue,
+      curr_change: marketData.vix.currentChange,
+      curr_time: marketData.vix.currentTime,
+      curr_value_parameter: marketData.vix.currentValueParameter,
+      curr_change_parameter: marketData.vix.currentChangeParameter,
+      closing_value: marketData.vix.closingValue,
+      closing_change: marketData.vix.closingChange,
+      closing_time_data: marketData.vix.closingTime,
+      opening_value: marketData.vix.openingValue,
+      opening_change: marketData.vix.openingChange,
+      opening_time_data: marketData.vix.openingTime,
+      opening_change_parameter: marketData.vix.openingChangeParameter,
+      tendency_time_data: marketData.vix.tendencyTime,
+      tendency_parameter: marketData.vix.tendencyParameter,
+      chart_data: marketData.vix.chartData,
+    };
+  }
+
+  return data as VixData;
+}
+
+const VixPanel: React.FC = () => {
+  const { data: vixData, isLoading, error } = useQuery({
+    queryKey: ['vixData'],
+    queryFn: fetchVixData,
+    refetchInterval: 60000, // Refetch every minute
+  });
+
   const parseChartData = (chartData: string[] | undefined) => {
     if (!chartData || !Array.isArray(chartData) || chartData.length === 0) return [];
     
@@ -34,10 +81,19 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
     }));
   };
 
-  const chartData = parseChartData(vixData.chartData);
-  const isCurrentNegative = vixData.currentChange.includes('-');
-  const isClosingNegative = vixData.closingChange.includes('-');
-  const isOpeningNegative = vixData.openingChange.includes('-');
+  if (isLoading) {
+    return <div className="p-4 text-center">Carregando dados do VIX...</div>;
+  }
+
+  if (error || !vixData) {
+    console.error("Error loading VIX data:", error);
+    return <div className="p-4 text-center text-red-500">Erro ao carregar dados do VIX</div>;
+  }
+
+  const chartData = parseChartData(vixData.chart_data);
+  const isCurrentNegative = vixData.curr_change.includes('-');
+  const isClosingNegative = vixData.closing_change.includes('-');
+  const isOpeningNegative = vixData.opening_change.includes('-');
 
   return (
     <Card className="shadow-lg bg-white">
@@ -59,7 +115,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                     <span className="text-sm font-medium">VIX Atual</span>
                     <span className="text-xs text-gray-500 flex items-center">
                       <Clock className="h-3 w-3 mr-1" />
-                      {vixData.currentTime || "Sem horário"}
+                      {vixData.curr_time || "Sem horário"}
                     </span>
                   </div>
                 </CardHeader>
@@ -72,12 +128,12 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                     )}
                     <div>
                       <div className="text-xl font-bold flex items-center">
-                        {vixData.currentValue}
-                        <span className="ml-2 text-xs text-gray-600">{vixData.currentValueParameter}</span>
+                        {vixData.curr_value}
+                        <span className="ml-2 text-xs text-gray-600">{vixData.curr_value_parameter}</span>
                       </div>
                       <div className={`text-sm font-medium flex items-center ${isCurrentNegative ? 'text-green-600' : 'text-red-600'}`}>
-                        {vixData.currentChange}
-                        <span className="ml-2 text-xs text-gray-600">{vixData.currentChangeParameter}</span>
+                        {vixData.curr_change}
+                        <span className="ml-2 text-xs text-gray-600">{vixData.curr_change_parameter}</span>
                       </div>
                     </div>
                   </div>
@@ -91,7 +147,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                     <span className="text-sm font-medium">VIX Fechamento</span>
                     <span className="text-xs text-gray-500 flex items-center">
                       <Clock className="h-3 w-3 mr-1" />
-                      {vixData.closingTime || "Sem data"}
+                      {vixData.closing_time_data || "Sem data"}
                     </span>
                   </div>
                 </CardHeader>
@@ -103,9 +159,9 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                       <TrendingUp className="h-8 w-8 text-red-500 mr-2" />
                     )}
                     <div>
-                      <div className="text-xl font-bold">{vixData.closingValue}</div>
+                      <div className="text-xl font-bold">{vixData.closing_value}</div>
                       <div className={`text-sm font-medium ${isClosingNegative ? 'text-green-600' : 'text-red-600'}`}>
-                        {vixData.closingChange}
+                        {vixData.closing_change}
                       </div>
                     </div>
                   </div>
@@ -119,7 +175,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                     <span className="text-sm font-medium">VIX Abertura</span>
                     <span className="text-xs text-gray-500 flex items-center">
                       <Clock className="h-3 w-3 mr-1" />
-                      {vixData.openingTime || "Sem data"}
+                      {vixData.opening_time_data || "Sem data"}
                     </span>
                   </div>
                 </CardHeader>
@@ -131,10 +187,10 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                       <TrendingUp className="h-8 w-8 text-red-500 mr-2" />
                     )}
                     <div>
-                      <div className="text-xl font-bold">{vixData.openingValue}</div>
+                      <div className="text-xl font-bold">{vixData.opening_value}</div>
                       <div className={`text-sm font-medium flex items-center ${isOpeningNegative ? 'text-green-600' : 'text-red-600'}`}>
-                        {vixData.openingChange}
-                        <span className="ml-2 text-xs text-gray-600">{vixData.openingChangeParameter}</span>
+                        {vixData.opening_change}
+                        <span className="ml-2 text-xs text-gray-600">{vixData.opening_change_parameter}</span>
                       </div>
                     </div>
                   </div>
@@ -148,10 +204,10 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                 Tendência
                 <span className="text-xs text-gray-500 ml-2 flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {vixData.tendencyTime || "Sem horário"}
+                  {vixData.tendency_time_data || "Sem horário"}
                 </span>
               </div>
-              <div className="text-gray-700">{vixData.tendencyParameter}</div>
+              <div className="text-gray-700">{vixData.tendency_parameter}</div>
             </div>
           </div>
           

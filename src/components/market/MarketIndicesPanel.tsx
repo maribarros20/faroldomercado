@@ -1,24 +1,59 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart4, Clock, TrendingDown, TrendingUp } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
-interface MarketIndicesPanelProps {
-  indices: {
-    [key: string]: {
-      name: string;
-      time: string;
-      value: string;
-      change: string;
-      parameter?: string;
-      chart?: string[];
-    };
-  };
+interface MarketIndex {
+  key: string;
+  name: string;
+  time_data: string;
+  value: string;
+  change_value: string;
+  parameter?: string;
+  chart?: string[];
 }
 
-const MarketIndicesPanel: React.FC<MarketIndicesPanelProps> = ({ indices }) => {
+async function fetchMarketIndices() {
+  console.log("Fetching market indices from Supabase...");
+  const { data, error } = await supabase
+    .from('market_indices')
+    .select('*');
+  
+  if (error) {
+    console.error("Error fetching market indices:", error);
+    throw error;
+  }
+
+  // Fallback to market data service if no data in database
+  if (!data || data.length === 0) {
+    console.log("No data in Supabase, falling back to market data service");
+    const { fetchMarketData } = await import("@/services/marketDataService");
+    const marketData = await fetchMarketData();
+    return Object.entries(marketData.marketIndices).map(([key, index]) => ({
+      key,
+      name: index.name,
+      time_data: index.time,
+      value: index.value,
+      change_value: index.change,
+      parameter: index.parameter,
+      chart: index.chart
+    }));
+  }
+
+  return data as MarketIndex[];
+}
+
+const MarketIndicesPanel: React.FC = () => {
+  const { data: indices = [], isLoading, error } = useQuery({
+    queryKey: ['marketIndices'],
+    queryFn: fetchMarketIndices,
+    refetchInterval: 60000, // Refetch every minute
+  });
+  
   const formatTime = (time: string) => {
     return time || "Sem horário";
   };
@@ -39,18 +74,26 @@ const MarketIndicesPanel: React.FC<MarketIndicesPanelProps> = ({ indices }) => {
   };
 
   // Filter indices for display - only US, European and international futures
-  const displayIndices = ['SP500', 'DOW', 'NASDAQ', 'EURO_STOXX', 'FTSE100', 'CHINA_A50']
-    .filter(key => indices[key])
-    .map(key => indices[key]);
+  const displayIndices = indices
+    .filter(index => ['SP500', 'DOW', 'NASDAQ', 'EURO_STOXX', 'FTSE100', 'CHINA_A50'].includes(index.key))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   // Create array of charts to show: IBOV, VALE3, PETR4, EWZ, BIT_FUT
-  const chartIndices = ['IBOV', 'VALE3', 'PETR4', 'EWZ', 'BIT_FUT']
-    .filter(key => indices[key])
-    .map(key => ({
-      ...indices[key],
-      key,
-      chartData: parseChartData(indices[key].chart)
+  const chartIndices = indices
+    .filter(index => ['IBOV', 'VALE3', 'PETR4', 'EWZ', 'BIT_FUT'].includes(index.key))
+    .map(index => ({
+      ...index,
+      chartData: parseChartData(index.chart)
     }));
+
+  if (isLoading) {
+    return <div className="p-4 text-center">Carregando dados do mercado...</div>;
+  }
+
+  if (error) {
+    console.error("Error loading market indices:", error);
+    return <div className="p-4 text-center text-red-500">Erro ao carregar dados do mercado</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -72,18 +115,26 @@ const MarketIndicesPanel: React.FC<MarketIndicesPanelProps> = ({ indices }) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {displayIndices.map((index, idx) => (
-                <TableRow key={idx} className="hover:bg-gray-50">
-                  <TableCell className="font-medium">{index.name}</TableCell>
-                  <TableCell className="text-right">{index.value}</TableCell>
-                  <TableCell 
-                    className={`text-right font-medium ${isNegative(index.change) ? 'text-red-600' : 'text-green-600'}`}
-                  >
-                    {index.change}
+              {displayIndices.length > 0 ? (
+                displayIndices.map((index, idx) => (
+                  <TableRow key={idx} className="hover:bg-gray-50">
+                    <TableCell className="font-medium">{index.name}</TableCell>
+                    <TableCell className="text-right">{index.value}</TableCell>
+                    <TableCell 
+                      className={`text-right font-medium ${isNegative(index.change_value) ? 'text-red-600' : 'text-green-600'}`}
+                    >
+                      {index.change_value}
+                    </TableCell>
+                    <TableCell className="text-right text-gray-500 text-sm">{formatTime(index.time_data)}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-4">
+                    Nenhum dado disponível
                   </TableCell>
-                  <TableCell className="text-right text-gray-500 text-sm">{formatTime(index.time)}</TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -98,20 +149,20 @@ const MarketIndicesPanel: React.FC<MarketIndicesPanelProps> = ({ indices }) => {
                 <CardTitle className="text-base font-medium">{index.name}</CardTitle>
                 <div className="text-xs text-gray-500 flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {formatTime(index.time)}
+                  {formatTime(index.time_data)}
                 </div>
               </div>
             </CardHeader>
             <CardContent className="p-4">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-lg font-bold">{index.value}</span>
-                <span className={`text-sm font-medium ${isNegative(index.change) ? 'text-red-600' : 'text-green-600'}`}>
-                  {isNegative(index.change) ? (
+                <span className={`text-sm font-medium ${isNegative(index.change_value) ? 'text-red-600' : 'text-green-600'}`}>
+                  {isNegative(index.change_value) ? (
                     <TrendingDown className="h-4 w-4 inline mr-1" />
                   ) : (
                     <TrendingUp className="h-4 w-4 inline mr-1" />
                   )}
-                  {index.change}
+                  {index.change_value}
                 </span>
               </div>
               
@@ -122,7 +173,7 @@ const MarketIndicesPanel: React.FC<MarketIndicesPanelProps> = ({ indices }) => {
                       <Line 
                         type="monotone" 
                         dataKey="value" 
-                        stroke={isNegative(index.change) ? '#ef4444' : '#22c55e'}
+                        stroke={isNegative(index.change_value) ? '#ef4444' : '#22c55e'}
                         strokeWidth={1.5}
                         dot={false}
                       />
