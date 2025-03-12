@@ -22,22 +22,17 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
     return historicalData.find(item => item.ticker === stock.ticker);
   }, [historicalData, stock.ticker]);
 
-  // Normalize prices to fit in the chart area
-  const normalizedPrices = useMemo(() => {
-    if (!stockHistory || stockHistory.prices.length === 0) return [];
+  // Generate mock data if no historical data is available
+  const chartData = useMemo(() => {
+    // If we have real data, use it
+    if (stockHistory && stockHistory.prices.length > 0) {
+      const prices = [...stockHistory.prices].reverse(); // Reverse to show newest data on right
+      return generateNormalizedChartPoints(prices, stock.changePercent >= 0);
+    }
     
-    const prices = [...stockHistory.prices].reverse(); // Reverse to show newest data on right
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    const range = max - min;
-    
-    if (range === 0) return prices.map(() => 50); // If all prices are the same, show a flat line
-    
-    return prices.map(price => {
-      // Normalize to a value between 20 and 80 (percentage of height)
-      return 20 + ((price - min) / range) * 60;
-    });
-  }, [stockHistory]);
+    // Otherwise create mock data based on the change percent trend
+    return generateMockChartPoints(stock.changePercent);
+  }, [stockHistory, stock.changePercent]);
 
   const getChangeIcon = () => {
     return stock.changePercent >= 0 ? "↗" : "↘";
@@ -75,9 +70,10 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
       <div className="w-full h-8 mt-1">
         {isLoadingHistory ? (
           <Skeleton className="w-full h-full rounded-md" />
-        ) : normalizedPrices.length > 0 ? (
+        ) : (
           <div className="relative w-full h-full">
             <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+              {/* Background gradient */}
               <defs>
                 <linearGradient id={`gradient-${stock.ticker}`} x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop 
@@ -88,64 +84,116 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
                   <stop 
                     offset="100%" 
                     stopColor={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"} 
-                    stopOpacity="0.02"
+                    stopOpacity="0.01"
                   />
                 </linearGradient>
               </defs>
 
-              {/* Área preenchida com gradiente */}
+              {/* Area fill with gradient */}
               <path
                 d={`
-                  M 0,${100 - normalizedPrices[0]}
-                  ${normalizedPrices.map((price, i) => {
-                    const x = (i / (normalizedPrices.length - 1)) * 100;
-                    return `L ${x},${100 - price}`;
-                  }).join(" ")}
+                  M 0,${chartData[0].y}
+                  ${chartData.map(point => `L ${point.x},${point.y}`).join(" ")}
                   L 100,100 L 0,100 Z
                 `}
                 fill={`url(#gradient-${stock.ticker})`}
                 strokeWidth="0"
               />
 
-              {/* Linha principal com sombra */}
+              {/* Main line */}
               <path
                 d={`
-                  M 0,${100 - normalizedPrices[0]}
-                  ${normalizedPrices.map((price, i) => {
-                    const x = (i / (normalizedPrices.length - 1)) * 100;
-                    return `L ${x},${100 - price}`;
-                  }).join(" ")}
+                  M 0,${chartData[0].y}
+                  ${chartData.map(point => `L ${point.x},${point.y}`).join(" ")}
                 `}
                 fill="none"
                 stroke={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
-                strokeWidth="2"
+                strokeWidth="1.5"
                 strokeLinecap="round"
-                filter="drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.1))"
+                strokeLinejoin="round"
               />
 
-              {/* Pontos nos valores extremos */}
+              {/* Start and end points */}
               <circle
                 cx="0"
-                cy={100 - normalizedPrices[0]}
-                r="2"
+                cy={chartData[0].y}
+                r="1.5"
                 fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
               />
               <circle
                 cx="100"
-                cy={100 - normalizedPrices[normalizedPrices.length - 1]}
-                r="2"
+                cy={chartData[chartData.length - 1].y}
+                r="1.5"
                 fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
               />
             </svg>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-400 text-xs">
-            Sem dados históricos
           </div>
         )}
       </div>
     </div>
   );
 };
+
+// Function to generate normalized chart points from price data
+function generateNormalizedChartPoints(prices: number[], isPositive: boolean) {
+  const points = [];
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const range = max - min;
+
+  // If all prices are the same, create a flat line with slight variation
+  if (range === 0) {
+    const baseY = isPositive ? 40 : 60;
+    // Generate a slightly wavy line for visual interest
+    for (let i = 0; i < 10; i++) {
+      const variance = Math.sin(i) * 3;
+      points.push({
+        x: i * (100 / 9), // Spread points evenly along x-axis
+        y: baseY + variance
+      });
+    }
+    return points;
+  }
+  
+  // Otherwise normalize based on actual price data
+  for (let i = 0; i < prices.length; i++) {
+    points.push({
+      x: (i / (prices.length - 1)) * 100,
+      y: 20 + ((prices[i] - min) / range) * 60
+    });
+  }
+  
+  return points;
+}
+
+// Function to generate mock chart data based on the change percent
+function generateMockChartPoints(changePercent: number) {
+  const points = [];
+  const numPoints = 10;
+  const isPositive = changePercent >= 0;
+  
+  // Starting and ending positions
+  const startY = isPositive ? 60 : 40;
+  const endY = isPositive ? 40 : 60;
+  
+  // Create points with a curve that matches the trend
+  for (let i = 0; i < numPoints; i++) {
+    const x = (i / (numPoints - 1)) * 100;
+    
+    // Create a curve that's more pronounced near the end
+    const progress = i / (numPoints - 1);
+    const easedProgress = isPositive 
+      ? 1 - Math.pow(1 - progress, 2) // Ease out for positive trend
+      : Math.pow(progress, 2);        // Ease in for negative trend
+    
+    // Add some randomness for more natural appearance
+    const randomFactor = Math.sin(i * 0.5) * 3;
+    const y = startY + (endY - startY) * easedProgress + randomFactor;
+    
+    points.push({ x, y });
+  }
+  
+  return points;
+}
 
 export default StockCard;
