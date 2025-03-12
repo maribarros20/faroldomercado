@@ -55,8 +55,9 @@ const StockList: React.FC<StockListProps> = ({ stocks, onRemoveStock, isLoading 
       <TableHeader>
         <TableRow className="bg-gray-50">
           <TableHead className="font-semibold">Ativo</TableHead>
-          <TableHead className="text-right font-semibold">Fechamento</TableHead>
+          <TableHead className="text-right font-semibold">Horário</TableHead>
           <TableHead className="text-right font-semibold">Abertura</TableHead>
+          <TableHead className="text-right font-semibold">Fechamento</TableHead>
           <TableHead className="text-right font-semibold">Atual</TableHead>
           <TableHead className="text-right font-semibold">Variação</TableHead>
           <TableHead className="text-right font-semibold">%</TableHead>
@@ -66,7 +67,7 @@ const StockList: React.FC<StockListProps> = ({ stocks, onRemoveStock, isLoading 
       <TableBody>
         {stocks.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
+            <TableCell colSpan={8} className="text-center py-4 text-muted-foreground">
               Nenhum ativo selecionado
             </TableCell>
           </TableRow>
@@ -74,13 +75,13 @@ const StockList: React.FC<StockListProps> = ({ stocks, onRemoveStock, isLoading 
           stocks.map((stock) => (
             <TableRow key={stock.ticker} className="hover:bg-gray-50">
               <TableCell>
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">{stock.ticker}</div>
-                  <div className="text-xs text-gray-500">{stock.updateTime}</div>
-                </div>
+                <div className="font-medium">{stock.ticker}</div>
               </TableCell>
-              <TableCell className="text-right">{formatCurrency(stock.prevCloseD1)}</TableCell>
+              <TableCell className="text-right">
+                <div className="text-xs text-gray-500">{stock.updateTime}</div>
+              </TableCell>
               <TableCell className="text-right">{formatCurrency(stock.openPrice)}</TableCell>
+              <TableCell className="text-right">{formatCurrency(stock.prevCloseD1)}</TableCell>
               <TableCell className="text-right">{formatCurrency(stock.lastPrice)}</TableCell>
               <TableCell className="text-right">{stock.changePrice.toFixed(2)}</TableCell>
               <TableCell className="text-right">
