@@ -1,3 +1,4 @@
+
 const SHEET_ID = "1fPLwFZmfhfjc2muHkr58WySldsj_AmsM_TXhykMPj8I"; 
 const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
 const SHEET_NAME = "V.10";
@@ -805,3 +806,7 @@ const getMockAdditionalData = () => {
         change: "+0.05%",
         parameter: "LEVEMENTE NEGATIVO"
       }
+    },
+    vixChartData: ["23.1", "23.4", "23.8", "24.2", "24.6", "25.1", "25.8", "26.5", "27.1", "27.8"]
+  };
+};
