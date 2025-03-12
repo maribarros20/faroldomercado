@@ -1,4 +1,3 @@
-
 const SHEET_ID = "1fPLwFZmfhfjc2muHkr58WySldsj_AmsM_TXhykMPj8I"; 
 const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
 const SHEET_NAME = "V.10";
@@ -10,7 +9,7 @@ const RANGES = [
   "'V.10'!F16:AC18"   // Alerts data
 ];
 
-// Ranges for additional market data - corrected to stay within sheet limits
+// Ranges for additional market data
 const ADDITIONAL_RANGES = {
   indicesFuturos: "'V.10'!F16:O28",
   ativosSeguranca: "'V.10'!T16:AC28",
@@ -161,54 +160,66 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
     
     // Extract data from response - using proper indices according to cell references
     const mainData = data.valueRanges[0].values || [];
-    const vixData = data.valueRanges[1].values || [];
-    const alertsData = data.valueRanges[2].values || [];
+    const alertsData = data.valueRanges[2]?.values || [];
     
     // Extract times from mainData (F6:AC6 row)
-    const timesData = mainData[0] || [];
+    const timesData = mainData[1] || [];
+    
+    // VIX data is in mainData rows 3-4
+    const vixData = [
+      mainData[1] || [], // times
+      mainData[3] || [], // values
+      mainData[4] || []  // changes
+    ];
     
     // Fetch additional market data
     const additionalData = await fetchAdditionalMarketData();
+    
+    // Define isNegative and isPositive indicators based on values
+    const adrsCurrentValue = mainData[2] && mainData[2][0] ? parseFloat(mainData[2][0]) : 0;
+    const adrsClosingValue = mainData[2] && mainData[2][7] ? parseFloat(mainData[2][7]) : 0;
+    const adrsAfterValue = mainData[2] && mainData[2][14] ? parseFloat(mainData[2][14]) : 0;
+    const commoditiesValue = mainData[2] && mainData[2][21] ? parseFloat(mainData[2][21]) : 0;
     
     // Build structured response according to correct cell references
     return {
       adrsCurrent: {
         value: mainData[2] ? (mainData[2][0] || "0") : "0%",
-        parameter: mainData[3] ? (mainData[3][0] || "") : "",
-        time: timesData[2] || "",
-        isNegative: mainData[2] && mainData[2][0] ? parseFloat(mainData[2][0]) < 0 : false
+        parameter: mainData[4] ? (mainData[4][0] || "") : "",
+        time: timesData[0] || "",
+        isNegative: adrsCurrentValue < 0
       },
       adrsClosing: {
-        value: mainData[2] ? (mainData[2][5] || "0") : "0%",
-        parameter: mainData[3] ? (mainData[3][5] || "") : "",
-        time: (timesData[8] || "") + " " + (timesData[9] || ""),
-        isPositive: mainData[2] && mainData[2][5] ? parseFloat(mainData[2][5]) > 0 : false
+        value: mainData[2] ? (mainData[2][7] || "0") : "0%",
+        parameter: mainData[4] ? (mainData[4][7] || "") : "",
+        time: (timesData[7] || ""),
+        isPositive: adrsClosingValue > 0
       },
       adrsAfterMarket: {
         value: mainData[2] ? (mainData[2][14] || "0") : "0%",
-        parameter: mainData[3] ? (mainData[3][14] || "") : "",
-        time: (timesData[16] || "") + " " + (timesData[17] || ""),
-        isPositive: mainData[2] && mainData[2][14] ? parseFloat(mainData[2][14]) > 0 : false
+        parameter: mainData[4] ? (mainData[4][14] || "") : "",
+        time: (timesData[14] || ""),
+        isPositive: adrsAfterValue > 0
       },
       commodities: {
         value: mainData[2] ? (mainData[2][21] || "0%") : "0%",
-        parameter: mainData[3] ? (mainData[3][21] || "") : "",
-        time: timesData[22] || "",
-        isNegative: mainData[2] && mainData[2][21] ? parseFloat(mainData[2][21]) < 0 : false
+        parameter: mainData[4] ? (mainData[4][21] || "") : "",
+        time: timesData[21] || "",
+        isNegative: commoditiesValue < 0
       },
       vix: {
         currentValue: vixData[1] ? (vixData[1][0] || "0") : "0",
         currentChange: vixData[2] ? (vixData[2][0] || "0%") : "0%",
         currentTime: vixData[0] ? (vixData[0][0] || "") : "",
-        closingValue: vixData[1] ? vixData[1][8] || "0" : "0",
+        closingValue: vixData[1] ? vixData[1][7] || "0" : "0",
         closingChange: vixData[2] ? vixData[2][7] || "0%" : "0%",
         closingTime: vixData[0] ? vixData[0][7] || "" : "",
-        openingValue: vixData[1] ? vixData[1][10] || "0" : "0",
-        openingChange: vixData[1] ? vixData[1][9] || "0%" : "0%",
+        openingValue: vixData[1] ? vixData[1][9] || "0" : "0",
+        openingChange: vixData[1] ? vixData[1][10] || "0%" : "0%",
         openingTime: vixData[0] ? vixData[0][9] || "" : "",
         valueParameter: vixData[1] ? vixData[1][2] || "" : "",
         resultParameter: vixData[2] ? vixData[2][2] || "" : "",
-        gapParameter: vixData[2] ? (vixData[2][7] || "") : "",
+        gapParameter: vixData[2] ? (vixData[2][10] || "") : "",
         tendencyTime: vixData[0] ? vixData[0][14] || "" : "",
         tendencyParameter: vixData[2] ? (vixData[2][14] || "") : "",
         chartData: additionalData.vixChartData || []
@@ -218,10 +229,12 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
         footprint: alertsData[2] ? alertsData[2].slice(0, 10).filter(Boolean).join(" ") : "",
         indexation: alertsData[2] ? alertsData[2].slice(14).filter(Boolean).join(" ") : ""
       },
-      adrs: {}, // Will be populated from additional data
-      commoditiesList: {}, // Will be populated from additional data
-      // Add the additional market data
-      ...additionalData
+      adrs: additionalData.adrs || {}, 
+      commoditiesList: additionalData.commoditiesList || {},
+      marketIndices: additionalData.marketIndices || {},
+      safetyAssets: additionalData.safetyAssets || {},
+      economicDataUS: additionalData.economicDataUS || {},
+      economicDataBrazil: additionalData.economicDataBrazil || {}
     };
   } catch (error) {
     console.error("Error fetching data from Google Sheets:", error);
@@ -274,21 +287,21 @@ const fetchAdditionalMarketData = async () => {
       ewzChart: data.valueRanges[13]?.values || []
     };
     
-    // Build ADR data - since we're not fetching a dedicated range for ADRs anymore
+    // Build ADR data
     const adrs: any = {
       "VALE": {
         name: "VALE",
-        time: "Dados atuais",
-        value: "0",
-        change: "0%",
+        time: rangeData.vale[1]?.[0] || "Dados atuais",
+        value: rangeData.vale[2]?.[3] || "0",
+        change: rangeData.vale[2]?.[0] || "0%",
         prevChange: "0%",
         afterChange: "0%"
       },
       "PBR": {
         name: "PBR",
-        time: "Dados atuais",
-        value: "0",
-        change: "0%",
+        time: rangeData.petrobras[1]?.[0] || "Dados atuais",
+        value: rangeData.petrobras[2]?.[1] || "0",
+        change: rangeData.petrobras[2]?.[0] || "0%",
         prevChange: "0%",
         afterChange: "0%"
       },
@@ -334,7 +347,7 @@ const fetchAdditionalMarketData = async () => {
       }
     };
     
-    // Build commodities data - since we're not fetching a dedicated range for commodities anymore
+    // Build commodities data
     const commoditiesList: any = {
       "BRENT": {
         name: "Petróleo Brent",
@@ -364,78 +377,176 @@ const fetchAdditionalMarketData = async () => {
     
     // Process market indices (futures)
     const marketIndices: any = {};
-    const indicesNames = [
-      "SP500", "DOW", "NASDAQ", "US_FUTURES", 
-      "EURO_STOXX", "FTSE100", "CHINA_A50"
-    ];
     
-    rangeData.indicesFuturos.forEach((row, index) => {
-      if (index < indicesNames.length && row && row.length > 0) {
-        const name = indicesNames[index];
-        marketIndices[name] = {
-          name: name,
-          time: row[0] || "",
-          value: row[1] || "0",
-          change: row[2] || "0%",
-          parameter: row[3] || ""
+    // Process futures indices data
+    if (rangeData.indicesFuturos.length > 0) {
+      // S&P 500
+      if (rangeData.indicesFuturos.length > 2) {
+        marketIndices["SP500"] = {
+          name: "S&P 500",
+          time: rangeData.indicesFuturos[1]?.[2] || "",
+          value: rangeData.indicesFuturos[2]?.[2] || "0",
+          change: rangeData.indicesFuturos[2]?.[0] || "0%",
+          parameter: rangeData.indicesFuturos[1]?.[3] || ""
         };
       }
-    });
+      
+      // Dow Jones
+      if (rangeData.indicesFuturos.length > 4) {
+        marketIndices["DOW"] = {
+          name: "Dow Jones",
+          time: rangeData.indicesFuturos[3]?.[2] || "",
+          value: rangeData.indicesFuturos[4]?.[2] || "0",
+          change: rangeData.indicesFuturos[4]?.[0] || "0%"
+        };
+      }
+      
+      // Nasdaq
+      if (rangeData.indicesFuturos.length > 6) {
+        marketIndices["NASDAQ"] = {
+          name: "Nasdaq 100",
+          time: rangeData.indicesFuturos[5]?.[2] || "",
+          value: rangeData.indicesFuturos[6]?.[2] || "0",
+          change: rangeData.indicesFuturos[6]?.[0] || "0%"
+        };
+      }
+      
+      // Euro Stoxx
+      if (rangeData.indicesFuturos.length > 8) {
+        marketIndices["EURO_STOXX"] = {
+          name: "Euro Stoxx 50",
+          time: rangeData.indicesFuturos[7]?.[2] || "",
+          value: rangeData.indicesFuturos[8]?.[2] || "0",
+          change: rangeData.indicesFuturos[8]?.[0] || "0%"
+        };
+      }
+      
+      // FTSE100
+      if (rangeData.indicesFuturos.length > 10) {
+        marketIndices["FTSE100"] = {
+          name: "FTSE 100",
+          time: rangeData.indicesFuturos[9]?.[2] || "",
+          value: rangeData.indicesFuturos[10]?.[2] || "0",
+          change: rangeData.indicesFuturos[10]?.[0] || "0%"
+        };
+      }
+      
+      // China A50
+      if (rangeData.indicesFuturos.length > 12) {
+        marketIndices["CHINA_A50"] = {
+          name: "China A50",
+          time: rangeData.indicesFuturos[11]?.[2] || "",
+          value: rangeData.indicesFuturos[12]?.[2] || "0",
+          change: rangeData.indicesFuturos[12]?.[0] || "0%"
+        };
+      }
+    }
     
-    // Process safety assets (gold, dollar, treasuries)
+    // Process safety assets
     const safetyAssets: any = {};
-    const assetNames = ["GOLD", "DOLLAR", "TREA_2Y", "TREA_5Y", "TREA_10Y", "TREA_30Y"];
     
-    rangeData.ativosSeguranca.forEach((row, index) => {
-      if (index < assetNames.length && row && row.length > 0) {
-        const name = assetNames[index];
-        safetyAssets[name] = {
-          name: name,
-          time: row[0] || "",
-          value: row[1] || "0",
-          change: row[2] || "0%",
-          parameter: row[3] || ""
+    if (rangeData.ativosSeguranca.length > 0) {
+      // Gold
+      if (rangeData.ativosSeguranca.length > 2) {
+        safetyAssets["GOLD"] = {
+          name: "Ouro",
+          time: rangeData.ativosSeguranca[1]?.[2] || "",
+          value: rangeData.ativosSeguranca[2]?.[2] || "0",
+          change: rangeData.ativosSeguranca[2]?.[0] || "0%",
+          parameter: rangeData.ativosSeguranca[1]?.[3] || ""
         };
       }
-    });
+      
+      // Dollar
+      if (rangeData.ativosSeguranca.length > 4) {
+        safetyAssets["DOLLAR"] = {
+          name: "Dólar",
+          time: rangeData.ativosSeguranca[3]?.[2] || "",
+          value: rangeData.ativosSeguranca[4]?.[2] || "0",
+          change: rangeData.ativosSeguranca[4]?.[0] || "0%",
+          parameter: rangeData.ativosSeguranca[3]?.[3] || ""
+        };
+      }
+      
+      // Treasury 2Y
+      if (rangeData.ativosSeguranca.length > 6) {
+        safetyAssets["TREA_2Y"] = {
+          name: "Treasury 2Y",
+          time: rangeData.ativosSeguranca[5]?.[2] || "",
+          value: rangeData.ativosSeguranca[6]?.[2] || "0",
+          change: rangeData.ativosSeguranca[6]?.[0] || "0%"
+        };
+      }
+      
+      // Treasury 5Y
+      if (rangeData.ativosSeguranca.length > 8) {
+        safetyAssets["TREA_5Y"] = {
+          name: "Treasury 5Y",
+          time: rangeData.ativosSeguranca[7]?.[2] || "",
+          value: rangeData.ativosSeguranca[8]?.[2] || "0",
+          change: rangeData.ativosSeguranca[8]?.[0] || "0%"
+        };
+      }
+      
+      // Treasury 10Y
+      if (rangeData.ativosSeguranca.length > 10) {
+        safetyAssets["TREA_10Y"] = {
+          name: "Treasury 10Y",
+          time: rangeData.ativosSeguranca[9]?.[2] || "",
+          value: rangeData.ativosSeguranca[10]?.[2] || "0",
+          change: rangeData.ativosSeguranca[10]?.[0] || "0%",
+          parameter: rangeData.ativosSeguranca[9]?.[3] || ""
+        };
+      }
+      
+      // Treasury 30Y
+      if (rangeData.ativosSeguranca.length > 12) {
+        safetyAssets["TREA_30Y"] = {
+          name: "Treasury 30Y",
+          time: rangeData.ativosSeguranca[11]?.[2] || "",
+          value: rangeData.ativosSeguranca[12]?.[2] || "0",
+          change: rangeData.ativosSeguranca[12]?.[0] || "0%"
+        };
+      }
+    }
     
     // Process IBOV, VALE, PETR4, etc. data
     const ibov = {
       name: "IBOV",
-      time: rangeData.ibov[0]?.[0] || "",
-      value: rangeData.ibov[0]?.[1] || "0",
-      change: rangeData.ibov[0]?.[2] || "0%",
+      time: rangeData.ibov[1]?.[0] || "",
+      value: rangeData.ibov[2]?.[2] || "0",
+      change: rangeData.ibov[2]?.[0] || "0%",
       chart: rangeData.ibovChart.map(row => row?.[0] || "0").filter(Boolean)
     };
     
     const vale = {
       name: "VALE3",
-      time: rangeData.vale[0]?.[0] || "",
-      value: rangeData.vale[0]?.[1] || "0",
-      change: rangeData.vale[0]?.[2] || "0%",
+      time: rangeData.vale[1]?.[0] || "",
+      value: rangeData.vale[2]?.[3] || "0",
+      change: rangeData.vale[2]?.[0] || "0%",
       chart: rangeData.valeChart.map(row => row?.[0] || "0").filter(Boolean)
     };
     
     const petrobras = {
       name: "PETR4",
-      time: rangeData.petrobras[0]?.[0] || "",
-      value: rangeData.petrobras[0]?.[1] || "0",
-      change: rangeData.petrobras[0]?.[2] || "0%",
+      time: rangeData.petrobras[1]?.[0] || "",
+      value: rangeData.petrobras[2]?.[1] || "0",
+      change: rangeData.petrobras[2]?.[0] || "0%",
       chart: rangeData.petrobrasChart.map(row => row?.[0] || "0").filter(Boolean)
     };
     
     const bitfut = {
       name: "BIT_FUT",
-      time: rangeData.bitFut[0]?.[0] || "",
-      value: rangeData.bitFut[0]?.[1] || "0",
-      change: rangeData.bitFut[0]?.[2] || "0%"
+      time: rangeData.bitFut[1]?.[0] || "",
+      value: rangeData.bitFut[2]?.[2] || "0",
+      change: rangeData.bitFut[2]?.[0] || "0%"
     };
     
     const ewz = {
       name: "EWZ",
-      time: rangeData.ewz[0]?.[0] || "",
-      value: rangeData.ewz[0]?.[1] || "0",
-      change: rangeData.ewz[0]?.[2] || "0%",
+      time: rangeData.ewz[1]?.[0] || "",
+      value: rangeData.ewz[2]?.[2] || "0",
+      change: rangeData.ewz[2]?.[0] || "0%",
       chart: rangeData.ewzChart.map(row => row?.[0] || "0").filter(Boolean)
     };
     
@@ -448,37 +559,45 @@ const fetchAdditionalMarketData = async () => {
     
     // Process US economic data
     const economicDataUS: any = {};
-    const usDataNames = ["US_RATE", "US_CPI"];
     
-    rangeData.dadosEUA.forEach((row, index) => {
-      if (index < usDataNames.length && row && row.length > 0) {
-        const name = usDataNames[index];
-        economicDataUS[name] = {
-          name: name,
-          time: row[0] || "",
-          value: row[1] || "0",
-          change: row[2] || "0%",
-          parameter: row[3] || ""
-        };
-      }
-    });
+    if (rangeData.dadosEUA.length > 0) {
+      economicDataUS["US_RATE"] = {
+        name: "Taxa de Juros EUA",
+        time: rangeData.dadosEUA[2]?.[1] || "",
+        value: rangeData.dadosEUA[2]?.[0] || "0",
+        change: "0%",
+        parameter: ""
+      };
+      
+      economicDataUS["US_CPI"] = {
+        name: "Inflação EUA (CPI)",
+        time: rangeData.dadosEUA[4]?.[1] || "",
+        value: rangeData.dadosEUA[4]?.[0] || "0",
+        change: "0%",
+        parameter: rangeData.dadosEUA[5]?.[0] || ""
+      };
+    }
     
     // Process Brazil economic data
     const economicDataBrazil: any = {};
-    const brDataNames = ["BR_SELIC", "BR_IPCA"];
     
-    rangeData.dadosBrasil.forEach((row, index) => {
-      if (index < brDataNames.length && row && row.length > 0) {
-        const name = brDataNames[index];
-        economicDataBrazil[name] = {
-          name: name,
-          time: row[0] || "",
-          value: row[1] || "0",
-          change: row[2] || "0%",
-          parameter: row[3] || ""
-        };
-      }
-    });
+    if (rangeData.dadosBrasil.length > 0) {
+      economicDataBrazil["BR_SELIC"] = {
+        name: "Taxa Selic",
+        time: rangeData.dadosBrasil[2]?.[1] || "",
+        value: rangeData.dadosBrasil[2]?.[0] || "0",
+        change: "0%",
+        parameter: ""
+      };
+      
+      economicDataBrazil["BR_IPCA"] = {
+        name: "Inflação (IPCA)",
+        time: rangeData.dadosBrasil[4]?.[1] || "",
+        value: rangeData.dadosBrasil[4]?.[0] || "0",
+        change: "0%",
+        parameter: rangeData.dadosBrasil[5]?.[0] || ""
+      };
+    }
     
     // Extract VIX chart data
     const vixChartData = rangeData.vixTrend.map(row => row?.[0] || "0").filter(Boolean);
@@ -634,17 +753,6 @@ const getMockMarketData = (): MarketDataResponse => {
         change: "-1.24%"
       }
     },
-    // Add the missing properties from the mock additional data
-    marketIndices: additionalMockData.marketIndices,
-    safetyAssets: additionalMockData.safetyAssets,
-    economicDataUS: additionalMockData.economicDataUS,
-    economicDataBrazil: additionalMockData.economicDataBrazil
-  };
-};
-
-// Mock data for additional market information
-const getMockAdditionalData = () => {
-  return {
     marketIndices: {
       "SP500": {
         name: "S&P 500",
@@ -676,137 +784,4 @@ const getMockAdditionalData = () => {
         parameter: "LEVEMENTE POSITIVO"
       },
       "EURO_STOXX": {
-        name: "Euro Stoxx 50",
-        time: "17:15:01",
-        value: "4,985.54",
-        change: "-0.18%",
-        parameter: "NEUTRO"
-      },
-      "FTSE100": {
-        name: "FTSE 100",
-        time: "17:15:01",
-        value: "8,125.78",
-        change: "-0.11%",
-        parameter: "NEUTRO"
-      },
-      "CHINA_A50": {
-        name: "China A50",
-        time: "17:15:01",
-        value: "12,456.32",
-        change: "+1.23%",
-        parameter: "MODERADAMENTE POSITIVO"
-      },
-      "IBOV": {
-        name: "Ibovespa",
-        time: "17:15:01",
-        value: "128,765.45",
-        change: "+0.68%",
-        chart: ["128500", "128600", "128700", "128765", "128800"]
-      },
-      "VALE3": {
-        name: "Vale ON",
-        time: "17:15:01",
-        value: "64.35",
-        change: "-0.53%",
-        chart: ["64.5", "64.4", "64.3", "64.35", "64.4"]
-      },
-      "PETR4": {
-        name: "Petrobras PN",
-        time: "17:15:01",
-        value: "36.78",
-        change: "+1.24%",
-        chart: ["36.3", "36.5", "36.7", "36.78", "36.8"]
-      },
-      "BIT_FUT": {
-        name: "Bitcoin Futuro",
-        time: "17:15:01",
-        value: "63,245.87",
-        change: "+2.14%"
-      },
-      "EWZ": {
-        name: "EWZ",
-        time: "17:15:01",
-        value: "32.45",
-        change: "+0.78%",
-        chart: ["32.1", "32.2", "32.3", "32.4", "32.45"]
-      }
-    },
-    safetyAssets: {
-      "GOLD": {
-        name: "Ouro",
-        time: "17:15:01",
-        value: "2,325.45",
-        change: "+0.58%",
-        parameter: "LEVEMENTE POSITIVO"
-      },
-      "DOLLAR": {
-        name: "Dólar",
-        time: "17:15:01",
-        value: "5.12",
-        change: "-0.23%",
-        parameter: "LEVEMENTE NEGATIVO"
-      },
-      "TREA_2Y": {
-        name: "Treasury 2Y",
-        time: "17:15:01",
-        value: "4.85%",
-        change: "+0.05%",
-        parameter: "NEUTRO"
-      },
-      "TREA_5Y": {
-        name: "Treasury 5Y",
-        time: "17:15:01",
-        value: "4.42%",
-        change: "+0.03%",
-        parameter: "NEUTRO"
-      },
-      "TREA_10Y": {
-        name: "Treasury 10Y",
-        time: "17:15:01",
-        value: "4.25%",
-        change: "+0.02%",
-        parameter: "NEUTRO"
-      },
-      "TREA_30Y": {
-        name: "Treasury 30Y",
-        time: "17:15:01",
-        value: "4.45%",
-        change: "+0.01%",
-        parameter: "NEUTRO"
-      }
-    },
-    economicDataUS: {
-      "US_RATE": {
-        name: "Taxa de Juros EUA",
-        time: "17:15:01",
-        value: "5.25-5.50%",
-        change: "0.00%",
-        parameter: "ESTÁVEL"
-      },
-      "US_CPI": {
-        name: "Inflação EUA (CPI)",
-        time: "17:15:01",
-        value: "3.2%",
-        change: "-0.1%",
-        parameter: "LEVEMENTE POSITIVO"
-      }
-    },
-    economicDataBrazil: {
-      "BR_SELIC": {
-        name: "Taxa Selic",
-        time: "17:15:01",
-        value: "10.50%",
-        change: "0.00%",
-        parameter: "ESTÁVEL"
-      },
-      "BR_IPCA": {
-        name: "Inflação (IPCA)",
-        time: "17:15:01",
-        value: "4.24%",
-        change: "+0.05%",
-        parameter: "LEVEMENTE NEGATIVO"
-      }
-    },
-    vixChartData: ["23.1", "23.4", "23.8", "24.2", "24.6", "25.1", "25.8", "26.5", "27.1", "27.8"]
-  };
-};
+        name: "Euro Stoxx 5
