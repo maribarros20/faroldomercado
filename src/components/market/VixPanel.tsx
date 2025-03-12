@@ -40,7 +40,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
   const isOpeningNegative = vixData.openingChange.includes('-');
 
   return (
-    <Card className="shadow-lg bg-white">
+    <Card className="shadow-lg bg-white max-w-3xl mx-auto">
       <CardHeader className="pb-2 border-b">
         <CardTitle className="text-xl text-[#0066FF] flex items-center">
           <ActivitySquare className="h-6 w-6 mr-2" />
