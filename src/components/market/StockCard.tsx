@@ -1,16 +1,15 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import { StockData } from "@/services/stockService";
 import { useQuery } from "@tanstack/react-query";
 import { fetchHistoricalStockData } from "@/services/stockService";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AreaChart, Area, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 
 interface StockCardProps {
   stock: StockData;
 }
 
 const StockCard: React.FC<StockCardProps> = ({ stock }) => {
-  const [hoveredPoint, setHoveredPoint] = useState<{ x: number, y: number, value: number, date: string } | null>(null);
-  
   // Fetch historical data for all stocks with proper caching
   const { data: historicalData, isLoading: isLoadingHistory } = useQuery({
     queryKey: ['stockHistory'],
@@ -25,35 +24,19 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
     return historicalData.find(item => item.ticker === stock.ticker);
   }, [historicalData, stock.ticker]);
 
-  useEffect(() => {
-    if (stockHistory && stockHistory.prices.length > 0) {
-      console.log(`Stock ${stock.ticker} historical data:`, {
-        oldest: {
-          date: stockHistory.dates[0],
-          price: stockHistory.prices[0]
-        },
-        newest: {
-          date: stockHistory.dates[stockHistory.dates.length - 1],
-          price: stockHistory.prices[stockHistory.prices.length - 1]
-        },
-        totalDataPoints: stockHistory.prices.length
-      });
-    }
-  }, [stockHistory, stock.ticker]);
-
   // Generate chart data from historical or mock data
   const chartData = useMemo(() => {
     // If we have real data, use it
     if (stockHistory && stockHistory.prices.length > 0) {
-      // Use data in correct order - oldest first (left) to newest last (right)
-      // No need to reverse here as the data already comes in chronological order
-      const prices = [...stockHistory.prices]; 
-      const dates = [...stockHistory.dates];
-      return generateNormalizedChartPoints(prices, stock.changePercent >= 0, dates);
+      // Prepare data in the format that Recharts expects
+      return stockHistory.prices.map((price, index) => ({
+        date: stockHistory.dates[index],
+        price: price
+      }));
     }
     
     // Otherwise create mock data based on the change percent trend
-    return generateMockChartPoints(stock.changePercent);
+    return generateMockChartData(stock.changePercent);
   }, [stockHistory, stock.changePercent]);
 
   const getChangeIcon = () => {
@@ -68,42 +51,16 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
     return stock.changePercent >= 0 ? "border-l-green-500" : "border-l-red-500";
   };
 
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!stockHistory || !stockHistory.prices.length) return;
-    
-    const svgRect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - svgRect.left) / svgRect.width) * 100;
-    
-    // Find the closest point
-    let closestPoint = chartData[0];
-    let closestDistance = Math.abs(closestPoint.x - x);
-    let closestIndex = 0;
-    
-    for (let i = 1; i < chartData.length; i++) {
-      const distance = Math.abs(chartData[i].x - x);
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestPoint = chartData[i];
-        closestIndex = i;
-      }
+  // Custom tooltip that only shows value every 3 points
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length && payload[0].payload.index % 3 === 0) {
+      return (
+        <div className="text-xs text-gray-500" style={{ backgroundColor: 'transparent', border: 'none' }}>
+          {payload[0].value.toFixed(2)}
+        </div>
+      );
     }
-    
-    // Only show tooltip if the point is at index divisible by 3 (every 3rd point)
-    if (closestIndex % 3 === 0) {
-      setHoveredPoint(closestPoint);
-    } else {
-      // Find the nearest point that is divisible by 3
-      const mod3Index = Math.round(closestIndex / 3) * 3;
-      if (mod3Index < chartData.length) {
-        setHoveredPoint(chartData[mod3Index]);
-      } else {
-        setHoveredPoint(null);
-      }
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setHoveredPoint(null);
+    return null;
   };
 
   return (
@@ -131,188 +88,90 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
         {isLoadingHistory ? (
           <Skeleton className="w-full h-full rounded-md" />
         ) : (
-          <div className="relative w-full h-full">
-            <svg 
-              className="w-full h-full" 
-              preserveAspectRatio="none" 
-              viewBox="0 0 100 100"
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={chartData.map((point, index) => ({...point, index}))}
+              margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
             >
-              {/* Background gradient */}
               <defs>
-                <linearGradient id={`gradient-${stock.ticker}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop 
-                    offset="0%" 
-                    stopColor={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"} 
-                    stopOpacity="0.2"
+                <linearGradient id={`colorStock${stock.ticker}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="0%"
+                    stopColor={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
+                    stopOpacity={0.2}
                   />
-                  <stop 
-                    offset="100%" 
-                    stopColor={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"} 
-                    stopOpacity="0.01"
+                  <stop
+                    offset="100%"
+                    stopColor={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
+                    stopOpacity={0.01}
                   />
                 </linearGradient>
               </defs>
-
-              {/* Area fill with gradient */}
-              <path
-                d={`
-                  M 0,${chartData[0].y}
-                  ${chartData.map(point => `L ${point.x},${point.y}`).join(" ")}
-                  L 100,100 L 0,100 Z
-                `}
-                fill={`url(#gradient-${stock.ticker})`}
-                strokeWidth="0"
-              />
-
-              {/* Main line */}
-              <path
-                d={`
-                  M 0,${chartData[0].y}
-                  ${chartData.map(point => `L ${point.x},${point.y}`).join(" ")}
-                `}
-                fill="none"
+              <YAxis domain={['dataMin', 'dataMax']} hide />
+              <Tooltip content={<CustomTooltip />} cursor={{stroke: 'rgba(100, 100, 100, 0.3)', strokeDasharray: '2 2'}} />
+              <Area
+                type="monotone"
+                dataKey="price"
                 stroke={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                fillOpacity={1}
+                fill={`url(#colorStock${stock.ticker})`}
+                strokeWidth={1.5}
+                dot={false}
+                activeDot={{
+                  r: 3.5, 
+                  stroke: stock.changePercent >= 0 ? "#22c55e" : "#ef4444",
+                  strokeWidth: 1.5,
+                  fill: "#fff"
+                }}
               />
-
-              {/* Start and end points */}
-              <circle
-                cx="0"
-                cy={chartData[0].y}
-                r="1.5"
-                fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
-              />
-              <circle
-                cx="100"
-                cy={chartData[chartData.length - 1].y}
-                r="1.5"
-                fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
-              />
-              
-              {/* Simplified tooltip - just the value */}
-              {hoveredPoint && (
-                <>
-                  {/* Vertical tracking line */}
-                  <line 
-                    x1={hoveredPoint.x} 
-                    y1="0" 
-                    x2={hoveredPoint.x} 
-                    y2="100" 
-                    stroke="rgba(100, 100, 100, 0.3)" 
-                    strokeWidth="1" 
-                    strokeDasharray="2,2"
-                  />
-                  
-                  {/* Hover point with larger radius */}
-                  <circle
-                    cx={hoveredPoint.x}
-                    cy={hoveredPoint.y}
-                    r="3.5"
-                    fill="#fff"
-                    stroke={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
-                    strokeWidth="1.5"
-                  />
-                  
-                  {/* Only show price value - simple text, gray color */}
-                  <text
-                    x={hoveredPoint.x < 70 ? hoveredPoint.x + 5 : hoveredPoint.x - 5}
-                    y={hoveredPoint.y - 10}
-                    fill="rgba(100, 100, 100, 0.8)"
-                    fontSize="9"
-                    textAnchor={hoveredPoint.x < 70 ? "start" : "end"}
-                    dominantBaseline="middle"
-                  >
-                    {hoveredPoint.value.toFixed(2)}
-                  </text>
-                </>
-              )}
-            </svg>
-          </div>
+            </AreaChart>
+          </ResponsiveContainer>
         )}
       </div>
     </div>
   );
 };
 
-// Function to generate normalized chart points from price data
-function generateNormalizedChartPoints(prices: number[], isPositive: boolean, dates?: string[]) {
-  const points = [];
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
-  const range = max - min;
-  
-  console.log(`Normalizing chart points. Min: ${min}, Max: ${max}, Range: ${range}`);
-  console.log(`First date: ${dates?.[0]}, Last date: ${dates?.[dates.length-1]}`);
-  console.log(`First price: ${prices[0]}, Last price: ${prices[prices.length-1]}`);
-
-  // If all prices are the same, create a flat line with slight variation
-  if (range === 0) {
-    const baseY = isPositive ? 40 : 60;
-    // Generate a slightly wavy line for visual interest
-    for (let i = 0; i < 10; i++) {
-      const variance = Math.sin(i) * 3;
-      points.push({
-        x: i * (100 / 9), // Spread points evenly along x-axis
-        y: baseY + variance,
-        value: prices[0] || 0,
-        date: dates ? dates[0] : ""
-      });
-    }
-    return points;
-  }
-  
-  // Otherwise normalize based on actual price data
-  for (let i = 0; i < prices.length; i++) {
-    points.push({
-      x: (i / (prices.length - 1)) * 100, // Spread points from left (0) to right (100)
-      y: 20 + ((prices[i] - min) / range) * 60,
-      value: prices[i],
-      date: dates ? dates[i] : ""
-    });
-  }
-  
-  return points;
-}
-
 // Function to generate mock chart data based on the change percent
-function generateMockChartPoints(changePercent: number) {
-  const points = [];
-  const numPoints = 10;
+function generateMockChartData(changePercent: number) {
+  const data = [];
+  const numPoints = 30;
   const isPositive = changePercent >= 0;
   
-  // Starting and ending positions (start low, end high for positive trend)
-  const startY = isPositive ? 60 : 40;  // For positive trend: start at bottom (60)
-  const endY = isPositive ? 40 : 60;    // For positive trend: end at top (40)
+  // Starting value
+  let price = 100;
   
-  // Create points with a curve that matches the trend
+  // Create points with a trend that matches the change percent
   for (let i = 0; i < numPoints; i++) {
-    const x = (i / (numPoints - 1)) * 100;
+    // Add a random component to the price change
+    const randomFactor = (Math.random() - 0.45) * 2; // Slight bias
     
-    // Create a curve that's more pronounced near the end
-    const progress = i / (numPoints - 1);
-    const easedProgress = isPositive 
-      ? 1 - Math.pow(1 - progress, 2) // Ease out for positive trend
-      : Math.pow(progress, 2);        // Ease in for negative trend
+    // Create progressive change, more pronounced near the end for positive trends
+    const progressiveFactor = isPositive ? 
+      (i / numPoints) * 1.5 : // Accelerating upward for positive
+      1 - (i / numPoints) * 1.5; // Decelerating downward for negative
+      
+    // Calculate the step change with both random and progressive components
+    const change = (changePercent / numPoints) * (1 + randomFactor) * progressiveFactor;
     
-    // Add some randomness for more natural appearance
-    const randomFactor = Math.sin(i * 0.5) * 3;
-    const y = startY + (endY - startY) * easedProgress + randomFactor;
+    // Update the price
+    price += change;
     
-    const mockValue = 100 + (changePercent * (i / (numPoints - 1)) * 10);
+    // Ensure price doesn't go negative or too low
+    price = Math.max(price, 50);
     
-    points.push({ 
-      x, 
-      y,
-      value: mockValue,
-      date: ""
+    // Create a date value (not displayed, but helps with Recharts)
+    const date = new Date();
+    date.setDate(date.getDate() - (numPoints - i - 1));
+    
+    // Add the data point
+    data.push({
+      date: date.toISOString().split('T')[0],
+      price
     });
   }
   
-  return points;
+  return data;
 }
 
 export default StockCard;
