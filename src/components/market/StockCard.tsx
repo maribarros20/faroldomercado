@@ -1,7 +1,6 @@
 
 import React from "react";
 import { StockData } from "@/services/stockService";
-import { formatCurrency } from "@/components/market/StockList";
 
 interface StockCardProps {
   stock: StockData;
@@ -31,8 +30,9 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
       </div>
       
       <div className="mt-2">
-        <div className="text-sm font-medium">Current Value</div>
-        <div className="text-xl font-bold">{formatCurrency(stock.lastPrice)}</div>
+        <div className="text-sm font-medium">Valor</div>
+        <div className="text-xl font-bold">{stock.lastPrice.toFixed(2)}</div>
+        <div className="text-xs text-gray-500">{stock.updateTime}</div>
       </div>
       
       <div className="w-full h-8 mt-1">
