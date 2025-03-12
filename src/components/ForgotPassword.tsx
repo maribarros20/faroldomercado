@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,7 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
   const { toast } = useToast();
 
   // Check for reset token in URL on component mount
-  useState(() => {
+  useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const type = hashParams.get("type");
     const accessToken = hashParams.get("access_token");
@@ -34,7 +34,7 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
         description: "Digite sua nova senha para concluir a recuperação.",
       });
     }
-  });
+  }, []); // Added dependency array to prevent continuous execution
 
   const handleSubmitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,6 +155,7 @@ const ForgotPassword = ({ onBack, onReset }: ForgotPasswordProps) => {
         <button 
           onClick={onBack} 
           className="text-primary flex items-center gap-2"
+          type="button"
         >
           <ArrowLeft size={20} />
           <span>Voltar</span>

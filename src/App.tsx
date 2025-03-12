@@ -33,7 +33,7 @@ function App() {
         if (error) {
           console.error("Session check error:", error);
           if (location.pathname !== '/auth' && location.pathname !== '/' && location.pathname !== '/register') {
-            navigate("/auth");
+            navigate("/auth", { replace: true });
           }
           return;
         }
@@ -48,14 +48,14 @@ function App() {
               description: "Por favor, faça login novamente.",
             });
           }
-          navigate("/auth");
+          navigate("/auth", { replace: true });
         } else if (data.session && publicPaths.includes(location.pathname)) {
           // If authenticated and on a public page, redirect to dashboard
-          navigate("/dashboard");
+          navigate("/dashboard", { replace: true });
         }
       } catch (error) {
         console.error("Error checking session:", error);
-        navigate("/auth");
+        navigate("/auth", { replace: true });
       }
     };
 
@@ -68,7 +68,7 @@ function App() {
         
         if (event === 'SIGNED_OUT') {
           // Always redirect to auth page on sign out and show toast
-          navigate('/auth');
+          navigate('/auth', { replace: true });
           toast({
             title: "Sessão encerrada",
             description: "Você foi desconectado com sucesso.",
@@ -77,7 +77,7 @@ function App() {
           // Redirect to dashboard on sign in if on a public page
           const publicPaths = ['/', '/auth', '/register'];
           if (publicPaths.includes(location.pathname)) {
-            navigate('/dashboard');
+            navigate('/dashboard', { replace: true });
           }
           
           // Display welcome toast on successful sign in
@@ -87,7 +87,7 @@ function App() {
           });
         } else if (event === 'PASSWORD_RECOVERY') {
           // Handle password recovery event
-          navigate('/auth?reset=true');
+          navigate('/auth?reset=true', { replace: true });
           toast({
             title: "Recuperação de senha",
             description: "Você pode redefinir sua senha agora.",
