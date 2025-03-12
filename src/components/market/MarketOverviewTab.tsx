@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -412,7 +411,7 @@ const MarketOverviewTab: React.FC = () => {
       </div>
 
       {/* VIX Panel */}
-      <VixPanel vixData={marketData.vix} />
+      <VixPanel />
 
       {/* Two column layout for Market Indices and Safety Assets */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
