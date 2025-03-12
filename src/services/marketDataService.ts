@@ -1,4 +1,3 @@
-
 const SHEET_ID = "1fPLwFZmfhfjc2muHkr58WySldsj_AmsM_TXhykMPj8I"; 
 const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
 
@@ -10,6 +9,28 @@ const RANGES = [
   "'v.10'!I64:P70",   // ADRs data
   "'v.10'!W64:AC68"   // Commodities data
 ];
+
+// New ranges for additional market data
+const ADDITIONAL_RANGES = {
+  indicesFuturos: "'V.10'!F16:O28",
+  ativosSeguranca: "'V.10'!T16:AC28",
+  ibov: "'V.10'!T30:V33",
+  vale: "'V.10'!W30:AA33",
+  petrobras: "'V.10'!AB30:AC33",
+  bitFut: "'V.10'!K30:M33",
+  ewz: "'V.10'!F30:H33",
+  dadosEUA: "'V.10'!T35:W40",
+  dadosBrasil: "'V.10'!AA35:AC40"
+};
+
+// Chart data mappings
+const GRAPH_RANGES = {
+  vixTrend: "'VIX'!C2:C400",
+  ibovChart: "'spik'!F4:F70",
+  valeChart: "'spik'!J4:J70",
+  petrobrasChart: "'spik'!B4:B70",
+  ewzChart: "'spik'!O4:O70"
+};
 
 export interface MarketDataResponse {
   adrsCurrent: {
@@ -74,6 +95,43 @@ export interface MarketDataResponse {
       time: string;
       value: string;
       change: string;
+    };
+  };
+  marketIndices: {
+    [key: string]: {
+      name: string;
+      time: string;
+      value: string;
+      change: string;
+      parameter?: string;
+      chart?: string[];
+    };
+  };
+  safetyAssets: {
+    [key: string]: {
+      name: string;
+      time: string;
+      value: string;
+      change: string;
+      parameter?: string;
+    };
+  };
+  economicDataUS: {
+    [key: string]: {
+      name: string;
+      time: string;
+      value: string;
+      change: string;
+      parameter?: string;
+    };
+  };
+  economicDataBrazil: {
+    [key: string]: {
+      name: string;
+      time: string;
+      value: string;
+      change: string;
+      parameter?: string;
     };
   };
 }
@@ -155,6 +213,9 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
     const adrAfterTime = (timesData[16] || "") + " " + (timesData[17] || "");
     const commoditiesTime = timesData[22] || "";
     
+    // Fetch additional market data
+    const additionalData = await fetchAdditionalMarketData();
+    
     // Build structured response according to correct cell references
     return {
       adrsCurrent: {
@@ -204,11 +265,191 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
         indexation: alertsData[2] ? alertsData[2].slice(14).filter(Boolean).join(" ") : ""
       },
       adrs,
-      commoditiesList
+      commoditiesList,
+      // Add the additional market data
+      ...additionalData
     };
   } catch (error) {
     console.error("Error fetching data from Google Sheets:", error);
     return getMockMarketData();
+  }
+};
+
+// New function to fetch additional market data
+const fetchAdditionalMarketData = async () => {
+  try {
+    // Prepare batch requests for all additional ranges
+    const allRanges = [
+      ...Object.values(ADDITIONAL_RANGES).map(range => `ranges=${encodeURIComponent(range)}`),
+      ...Object.values(GRAPH_RANGES).map(range => `ranges=${encodeURIComponent(range)}`)
+    ];
+    
+    const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${allRanges.join('&')}&key=${API_KEY}`;
+    
+    console.log("Fetching additional market data from:", batchUrl);
+    const response = await fetch(batchUrl);
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.valueRanges || data.valueRanges.length === 0) {
+      throw new Error("No additional data found");
+    }
+    
+    console.log("Raw additional data:", data);
+    
+    const rangeData = {
+      indicesFuturos: data.valueRanges[0]?.values || [],
+      ativosSeguranca: data.valueRanges[1]?.values || [],
+      ibov: data.valueRanges[2]?.values || [],
+      vale: data.valueRanges[3]?.values || [],
+      petrobras: data.valueRanges[4]?.values || [],
+      bitFut: data.valueRanges[5]?.values || [],
+      ewz: data.valueRanges[6]?.values || [],
+      dadosEUA: data.valueRanges[7]?.values || [],
+      dadosBrasil: data.valueRanges[8]?.values || [],
+      vixTrend: data.valueRanges[9]?.values || [],
+      ibovChart: data.valueRanges[10]?.values || [],
+      valeChart: data.valueRanges[11]?.values || [],
+      petrobrasChart: data.valueRanges[12]?.values || [],
+      ewzChart: data.valueRanges[13]?.values || []
+    };
+    
+    // Process market indices (futures)
+    const marketIndices: any = {};
+    const indicesNames = [
+      "SP500", "DOW", "NASDAQ", "US_FUTURES", 
+      "EURO_STOXX", "FTSE100", "CHINA_A50"
+    ];
+    
+    rangeData.indicesFuturos.forEach((row, index) => {
+      if (index < indicesNames.length && row && row.length > 0) {
+        const name = indicesNames[index];
+        marketIndices[name] = {
+          name: name,
+          time: row[0] || "",
+          value: row[1] || "0",
+          change: row[2] || "0%",
+          parameter: row[3] || ""
+        };
+      }
+    });
+    
+    // Add chart data to indices where applicable
+    if (marketIndices["SP500"]) {
+      marketIndices["SP500"].chart = rangeData.ibovChart.map(row => row[0]).filter(Boolean);
+    }
+    
+    // Process safety assets (gold, dollar, treasuries)
+    const safetyAssets: any = {};
+    const assetNames = ["GOLD", "DOLLAR", "TREA_2Y", "TREA_5Y", "TREA_10Y", "TREA_30Y"];
+    
+    rangeData.ativosSeguranca.forEach((row, index) => {
+      if (index < assetNames.length && row && row.length > 0) {
+        const name = assetNames[index];
+        safetyAssets[name] = {
+          name: name,
+          time: row[0] || "",
+          value: row[1] || "0",
+          change: row[2] || "0%",
+          parameter: row[3] || ""
+        };
+      }
+    });
+    
+    // Process IBOV, VALE, PETR4 data
+    const ibov = {
+      name: "IBOV",
+      time: rangeData.ibov[0]?.[0] || "",
+      value: rangeData.ibov[0]?.[1] || "0",
+      change: rangeData.ibov[0]?.[2] || "0%",
+      chart: rangeData.ibovChart.map(row => row[0]).filter(Boolean)
+    };
+    
+    const vale = {
+      name: "VALE3",
+      time: rangeData.vale[0]?.[0] || "",
+      value: rangeData.vale[0]?.[1] || "0",
+      change: rangeData.vale[0]?.[2] || "0%",
+      chart: rangeData.valeChart.map(row => row[0]).filter(Boolean)
+    };
+    
+    const petrobras = {
+      name: "PETR4",
+      time: rangeData.petrobras[0]?.[0] || "",
+      value: rangeData.petrobras[0]?.[1] || "0",
+      change: rangeData.petrobras[0]?.[2] || "0%",
+      chart: rangeData.petrobrasChart.map(row => row[0]).filter(Boolean)
+    };
+    
+    const bitfut = {
+      name: "BIT_FUT",
+      time: rangeData.bitFut[0]?.[0] || "",
+      value: rangeData.bitFut[0]?.[1] || "0",
+      change: rangeData.bitFut[0]?.[2] || "0%"
+    };
+    
+    const ewz = {
+      name: "EWZ",
+      time: rangeData.ewz[0]?.[0] || "",
+      value: rangeData.ewz[0]?.[1] || "0",
+      change: rangeData.ewz[0]?.[2] || "0%",
+      chart: rangeData.ewzChart.map(row => row[0]).filter(Boolean)
+    };
+    
+    // Add to market indices
+    marketIndices["IBOV"] = ibov;
+    marketIndices["VALE3"] = vale;
+    marketIndices["PETR4"] = petrobras;
+    marketIndices["BIT_FUT"] = bitfut;
+    marketIndices["EWZ"] = ewz;
+    
+    // Process US economic data
+    const economicDataUS: any = {};
+    const usDataNames = ["US_RATE", "US_CPI"];
+    
+    rangeData.dadosEUA.forEach((row, index) => {
+      if (index < usDataNames.length && row && row.length > 0) {
+        const name = usDataNames[index];
+        economicDataUS[name] = {
+          name: name,
+          time: row[0] || "",
+          value: row[1] || "0",
+          change: row[2] || "0%",
+          parameter: row[3] || ""
+        };
+      }
+    });
+    
+    // Process Brazil economic data
+    const economicDataBrazil: any = {};
+    const brDataNames = ["BR_SELIC", "BR_IPCA"];
+    
+    rangeData.dadosBrasil.forEach((row, index) => {
+      if (index < brDataNames.length && row && row.length > 0) {
+        const name = brDataNames[index];
+        economicDataBrazil[name] = {
+          name: name,
+          time: row[0] || "",
+          value: row[1] || "0",
+          change: row[2] || "0%",
+          parameter: row[3] || ""
+        };
+      }
+    });
+    
+    return {
+      marketIndices,
+      safetyAssets,
+      economicDataUS,
+      economicDataBrazil
+    };
+  } catch (error) {
+    console.error("Error fetching additional market data:", error);
+    return getMockAdditionalData();
   }
 };
 
@@ -343,6 +584,174 @@ const getMockMarketData = (): MarketDataResponse => {
         time: "17:40:00",
         value: "782.50",
         change: "-1.24%"
+      }
+    }
+  };
+};
+
+// Mock data for additional market information
+const getMockAdditionalData = () => {
+  return {
+    marketIndices: {
+      "SP500": {
+        name: "S&P 500",
+        time: "17:15:01",
+        value: "5,435.02",
+        change: "+0.34%",
+        parameter: "LEVEMENTE POSITIVO",
+        chart: ["5420", "5425", "5430", "5435", "5440", "5445"]
+      },
+      "DOW": {
+        name: "Dow Jones",
+        time: "17:15:01",
+        value: "39,876.55",
+        change: "+0.21%",
+        parameter: "LEVEMENTE POSITIVO"
+      },
+      "NASDAQ": {
+        name: "Nasdaq 100",
+        time: "17:15:01",
+        value: "19,235.87",
+        change: "+0.47%",
+        parameter: "LEVEMENTE POSITIVO"
+      },
+      "US_FUTURES": {
+        name: "US Futures",
+        time: "17:15:01",
+        value: "5,440.25",
+        change: "+0.42%",
+        parameter: "LEVEMENTE POSITIVO"
+      },
+      "EURO_STOXX": {
+        name: "Euro Stoxx 50",
+        time: "17:15:01",
+        value: "4,985.54",
+        change: "-0.18%",
+        parameter: "NEUTRO"
+      },
+      "FTSE100": {
+        name: "FTSE 100",
+        time: "17:15:01",
+        value: "8,125.78",
+        change: "-0.11%",
+        parameter: "NEUTRO"
+      },
+      "CHINA_A50": {
+        name: "China A50",
+        time: "17:15:01",
+        value: "12,456.32",
+        change: "+1.23%",
+        parameter: "MODERADAMENTE POSITIVO"
+      },
+      "IBOV": {
+        name: "Ibovespa",
+        time: "17:15:01",
+        value: "128,765.45",
+        change: "+0.68%",
+        chart: ["128500", "128600", "128700", "128765", "128800"]
+      },
+      "VALE3": {
+        name: "Vale ON",
+        time: "17:15:01",
+        value: "64.35",
+        change: "-0.53%",
+        chart: ["64.5", "64.4", "64.3", "64.35", "64.4"]
+      },
+      "PETR4": {
+        name: "Petrobras PN",
+        time: "17:15:01",
+        value: "36.78",
+        change: "+1.24%",
+        chart: ["36.3", "36.5", "36.7", "36.78", "36.8"]
+      },
+      "BIT_FUT": {
+        name: "Bitcoin Futuro",
+        time: "17:15:01",
+        value: "63,245.87",
+        change: "+2.14%"
+      },
+      "EWZ": {
+        name: "EWZ",
+        time: "17:15:01",
+        value: "32.45",
+        change: "+0.78%",
+        chart: ["32.1", "32.2", "32.3", "32.4", "32.45"]
+      }
+    },
+    safetyAssets: {
+      "GOLD": {
+        name: "Ouro",
+        time: "17:15:01",
+        value: "2,325.45",
+        change: "+0.58%",
+        parameter: "LEVEMENTE POSITIVO"
+      },
+      "DOLLAR": {
+        name: "Dólar",
+        time: "17:15:01",
+        value: "5.12",
+        change: "-0.23%",
+        parameter: "LEVEMENTE NEGATIVO"
+      },
+      "TREA_2Y": {
+        name: "Treasury 2Y",
+        time: "17:15:01",
+        value: "4.85%",
+        change: "+0.05%",
+        parameter: "NEUTRO"
+      },
+      "TREA_5Y": {
+        name: "Treasury 5Y",
+        time: "17:15:01",
+        value: "4.42%",
+        change: "+0.03%",
+        parameter: "NEUTRO"
+      },
+      "TREA_10Y": {
+        name: "Treasury 10Y",
+        time: "17:15:01",
+        value: "4.25%",
+        change: "+0.02%",
+        parameter: "NEUTRO"
+      },
+      "TREA_30Y": {
+        name: "Treasury 30Y",
+        time: "17:15:01",
+        value: "4.45%",
+        change: "+0.01%",
+        parameter: "NEUTRO"
+      }
+    },
+    economicDataUS: {
+      "US_RATE": {
+        name: "Taxa de Juros EUA",
+        time: "17:15:01",
+        value: "5.25-5.50%",
+        change: "0.00%",
+        parameter: "ESTÁVEL"
+      },
+      "US_CPI": {
+        name: "Inflação EUA (CPI)",
+        time: "17:15:01",
+        value: "3.2%",
+        change: "-0.1%",
+        parameter: "LEVEMENTE POSITIVO"
+      }
+    },
+    economicDataBrazil: {
+      "BR_SELIC": {
+        name: "Taxa Selic",
+        time: "17:15:01",
+        value: "10.50%",
+        change: "0.00%",
+        parameter: "ESTÁVEL"
+      },
+      "BR_IPCA": {
+        name: "Inflação (IPCA)",
+        time: "17:15:01",
+        value: "4.24%",
+        change: "+0.05%",
+        parameter: "LEVEMENTE NEGATIVO"
       }
     }
   };

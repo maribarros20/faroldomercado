@@ -8,6 +8,9 @@ import VixPanel from "@/components/market/VixPanel";
 import MarketAlertPanel from "@/components/market/MarketAlertPanel";
 import ADRPanel from "@/components/market/ADRPanel";
 import CommoditiesPanel from "@/components/market/CommoditiesPanel";
+import MarketIndicesPanel from "@/components/market/MarketIndicesPanel";
+import SafetyAssetsPanel from "@/components/market/SafetyAssetsPanel";
+import EconomicDataPanel from "@/components/market/EconomicDataPanel";
 import { useToast } from "@/hooks/use-toast";
 
 const MarketOverviewTab: React.FC = () => {
@@ -261,6 +264,24 @@ const MarketOverviewTab: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Market Indices Panel - NEW */}
+      {marketData.marketIndices && (
+        <MarketIndicesPanel indices={marketData.marketIndices} />
+      )}
+
+      {/* Safety Assets Panel - NEW */}
+      {marketData.safetyAssets && (
+        <SafetyAssetsPanel assets={marketData.safetyAssets} />
+      )}
+
+      {/* Economic Data Panel - NEW */}
+      {marketData.economicDataUS && marketData.economicDataBrazil && (
+        <EconomicDataPanel 
+          usData={marketData.economicDataUS} 
+          brData={marketData.economicDataBrazil} 
+        />
+      )}
 
       {/* VIX Panel */}
       <VixPanel vixData={marketData.vix} />
