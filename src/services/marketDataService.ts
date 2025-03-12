@@ -1,16 +1,15 @@
 const SHEET_ID = "1fPLwFZmfhfjc2muHkr58WySldsj_AmsM_TXhykMPj8I"; 
 const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
+const SHEET_NAME = "V.10";
 
-// Properly formatted ranges for batch requests with ALL required data
+// Properly formatted ranges for batch requests with core data
 const RANGES = [
-  "'v.10'!F6:AC18",   // Main data with times
-  "'v.10'!F12:AC14",  // VIX data
-  "'v.10'!F16:AC18",  // Alerts data
-  "'v.10'!I64:P70",   // ADRs data
-  "'v.10'!W64:AC68"   // Commodities data
+  "'V.10'!F6:AC18",   // Main data with times
+  "'V.10'!F12:AC14",  // VIX data
+  "'V.10'!F16:AC18"   // Alerts data
 ];
 
-// New ranges for additional market data
+// Ranges for additional market data - corrected to stay within sheet limits
 const ADDITIONAL_RANGES = {
   indicesFuturos: "'V.10'!F16:O28",
   ativosSeguranca: "'V.10'!T16:AC28",
@@ -163,55 +162,9 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
     const mainData = data.valueRanges[0].values || [];
     const vixData = data.valueRanges[1].values || [];
     const alertsData = data.valueRanges[2].values || [];
-    const adrsListData = data.valueRanges[3].values || [];
-    const commoditiesListData = data.valueRanges[4].values || [];
     
     // Extract times from mainData (F6:AC6 row)
     const timesData = mainData[0] || [];
-    
-    // Process ADRs data
-    const adrs: any = {};
-    
-    // Map ADRs data with proper names
-    const adrNames = ["VALE", "PBR", "PBRA", "ITUB", "BBD", "BBDO", "BSBR"];
-    
-    if (adrsListData.length > 0) {
-      adrsListData.forEach((row, index) => {
-        if (index < adrNames.length) {
-          adrs[adrNames[index]] = {
-            name: adrNames[index],
-            time: (row[0] || ""),
-            value: row[4] || "0",
-            change: row[5] || "0%",
-            prevChange: row[6] || "0%",
-            afterChange: row[7] || "0%"
-          };
-        }
-      });
-    }
-    
-    // Process Commodities data
-    const commoditiesList: any = {};
-    const commodityNames = ["BRENT", "WTI", "IRON_SING", "IRON_DALIAN"];
-    
-    if (commoditiesListData.length > 0) {
-      commoditiesListData.forEach((row, index) => {
-        if (index < commodityNames.length) {
-          commoditiesList[commodityNames[index]] = {
-            name: commodityNames[index],
-            time: index < 2 ? ((row[0] || "")) : (index === 3 ? (row[0] || "") : ""),
-            value: index < 2 ? (row[4] || "") : (row[3] || ""),
-            change: index < 2 ? (row[6] || "0%") : (row[4] || "0%")
-          };
-        }
-      });
-    }
-    
-    // Extract times from timesData
-    const adrCurrentTime = timesData[2] || "";
-    const adrClosingTime = (timesData[8] || "") + " " + (timesData[9] || "");
-    const adrAfterTime = (timesData[16] || "") + " " + (timesData[17] || "");
-    const commoditiesTime = timesData[22] || "";
     
     // Fetch additional market data
     const additionalData = await fetchAdditionalMarketData();
@@ -221,25 +174,25 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
       adrsCurrent: {
         value: mainData[2] ? (mainData[2][0] || "0") : "0%",
         parameter: mainData[3] ? (mainData[3][0] || "") : "",
-        time: adrCurrentTime,
+        time: timesData[2] || "",
         isNegative: mainData[2] && mainData[2][0] ? parseFloat(mainData[2][0]) < 0 : false
       },
       adrsClosing: {
         value: mainData[2] ? (mainData[2][5] || "0") : "0%",
         parameter: mainData[3] ? (mainData[3][5] || "") : "",
-        time: adrClosingTime,
+        time: (timesData[8] || "") + " " + (timesData[9] || ""),
         isPositive: mainData[2] && mainData[2][5] ? parseFloat(mainData[2][5]) > 0 : false
       },
       adrsAfterMarket: {
         value: mainData[2] ? (mainData[2][14] || "0") : "0%",
         parameter: mainData[3] ? (mainData[3][14] || "") : "",
-        time: adrAfterTime,
+        time: (timesData[16] || "") + " " + (timesData[17] || ""),
         isPositive: mainData[2] && mainData[2][14] ? parseFloat(mainData[2][14]) > 0 : false
       },
       commodities: {
         value: mainData[2] ? (mainData[2][21] || "0%") : "0%",
         parameter: mainData[3] ? (mainData[3][21] || "") : "",
-        time: commoditiesTime,
+        time: timesData[22] || "",
         isNegative: mainData[2] && mainData[2][21] ? parseFloat(mainData[2][21]) < 0 : false
       },
       vix: {
@@ -257,15 +210,15 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
         gapParameter: vixData[2] ? (vixData[2][7] || "") : "",
         tendencyTime: vixData[0] ? vixData[0][14] || "" : "",
         tendencyParameter: vixData[2] ? (vixData[2][14] || "") : "",
-        chartData: vixData[1] ? vixData[1].slice(15).filter(Boolean) : []
+        chartData: additionalData.vixChartData || []
       },
       alerts: {
         volatility: alertsData[0] ? alertsData[0].filter(Boolean).join(" ") : "",
         footprint: alertsData[2] ? alertsData[2].slice(0, 10).filter(Boolean).join(" ") : "",
         indexation: alertsData[2] ? alertsData[2].slice(14).filter(Boolean).join(" ") : ""
       },
-      adrs,
-      commoditiesList,
+      adrs: {}, // Will be populated from additional data
+      commoditiesList: {}, // Will be populated from additional data
       // Add the additional market data
       ...additionalData
     };
@@ -280,8 +233,8 @@ const fetchAdditionalMarketData = async () => {
   try {
     // Prepare batch requests for all additional ranges
     const allRanges = [
-      ...Object.values(ADDITIONAL_RANGES).map(range => `ranges=${encodeURIComponent(range)}`),
-      ...Object.values(GRAPH_RANGES).map(range => `ranges=${encodeURIComponent(range)}`)
+      ...Object.entries(ADDITIONAL_RANGES).map(([key, range]) => `ranges=${encodeURIComponent(range)}`),
+      ...Object.entries(GRAPH_RANGES).map(([key, range]) => `ranges=${encodeURIComponent(range)}`)
     ];
     
     const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${allRanges.join('&')}&key=${API_KEY}`;
@@ -290,7 +243,9 @@ const fetchAdditionalMarketData = async () => {
     const response = await fetch(batchUrl);
     
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      const errorData = await response.json();
+      console.error("API Error (Additional Data):", errorData);
+      throw new Error(`API error: ${response.status} - ${errorData?.error?.message || 'Unknown error'}`);
     }
     
     const data = await response.json();
@@ -318,6 +273,94 @@ const fetchAdditionalMarketData = async () => {
       ewzChart: data.valueRanges[13]?.values || []
     };
     
+    // Build ADR data - since we're not fetching a dedicated range for ADRs anymore
+    const adrs: any = {
+      "VALE": {
+        name: "VALE",
+        time: "Dados atuais",
+        value: "0",
+        change: "0%",
+        prevChange: "0%",
+        afterChange: "0%"
+      },
+      "PBR": {
+        name: "PBR",
+        time: "Dados atuais",
+        value: "0",
+        change: "0%",
+        prevChange: "0%",
+        afterChange: "0%"
+      },
+      "PBRA": {
+        name: "PBRA",
+        time: "Dados atuais",
+        value: "0",
+        change: "0%",
+        prevChange: "0%",
+        afterChange: "0%"
+      },
+      "ITUB": {
+        name: "ITUB",
+        time: "Dados atuais",
+        value: "0",
+        change: "0%",
+        prevChange: "0%",
+        afterChange: "0%"
+      },
+      "BBD": {
+        name: "BBD",
+        time: "Dados atuais",
+        value: "0",
+        change: "0%",
+        prevChange: "0%",
+        afterChange: "0%"
+      },
+      "BBDO": {
+        name: "BBDO",
+        time: "Dados atuais",
+        value: "0",
+        change: "0%",
+        prevChange: "0%",
+        afterChange: "0%"
+      },
+      "BSBR": {
+        name: "BSBR",
+        time: "Dados atuais",
+        value: "0",
+        change: "0%",
+        prevChange: "0%",
+        afterChange: "0%"
+      }
+    };
+    
+    // Build commodities data - since we're not fetching a dedicated range for commodities anymore
+    const commoditiesList: any = {
+      "BRENT": {
+        name: "Petróleo Brent",
+        time: "Dados atuais",
+        value: "0",
+        change: "0%"
+      },
+      "WTI": {
+        name: "Petróleo WTI",
+        time: "Dados atuais",
+        value: "0",
+        change: "0%"
+      },
+      "IRON_SING": {
+        name: "Minério de Ferro Singapura",
+        time: "Dados atuais",
+        value: "0",
+        change: "0%"
+      },
+      "IRON_DALIAN": {
+        name: "Minério de Ferro Dalian",
+        time: "Dados atuais",
+        value: "0",
+        change: "0%"
+      }
+    };
+    
     // Process market indices (futures)
     const marketIndices: any = {};
     const indicesNames = [
@@ -338,11 +381,6 @@ const fetchAdditionalMarketData = async () => {
       }
     });
     
-    // Add chart data to indices where applicable
-    if (marketIndices["SP500"]) {
-      marketIndices["SP500"].chart = rangeData.ibovChart.map(row => row[0]).filter(Boolean);
-    }
-    
     // Process safety assets (gold, dollar, treasuries)
     const safetyAssets: any = {};
     const assetNames = ["GOLD", "DOLLAR", "TREA_2Y", "TREA_5Y", "TREA_10Y", "TREA_30Y"];
@@ -360,13 +398,13 @@ const fetchAdditionalMarketData = async () => {
       }
     });
     
-    // Process IBOV, VALE, PETR4 data
+    // Process IBOV, VALE, PETR4, etc. data
     const ibov = {
       name: "IBOV",
       time: rangeData.ibov[0]?.[0] || "",
       value: rangeData.ibov[0]?.[1] || "0",
       change: rangeData.ibov[0]?.[2] || "0%",
-      chart: rangeData.ibovChart.map(row => row[0]).filter(Boolean)
+      chart: rangeData.ibovChart.map(row => row?.[0] || "0").filter(Boolean)
     };
     
     const vale = {
@@ -374,7 +412,7 @@ const fetchAdditionalMarketData = async () => {
       time: rangeData.vale[0]?.[0] || "",
       value: rangeData.vale[0]?.[1] || "0",
       change: rangeData.vale[0]?.[2] || "0%",
-      chart: rangeData.valeChart.map(row => row[0]).filter(Boolean)
+      chart: rangeData.valeChart.map(row => row?.[0] || "0").filter(Boolean)
     };
     
     const petrobras = {
@@ -382,7 +420,7 @@ const fetchAdditionalMarketData = async () => {
       time: rangeData.petrobras[0]?.[0] || "",
       value: rangeData.petrobras[0]?.[1] || "0",
       change: rangeData.petrobras[0]?.[2] || "0%",
-      chart: rangeData.petrobrasChart.map(row => row[0]).filter(Boolean)
+      chart: rangeData.petrobrasChart.map(row => row?.[0] || "0").filter(Boolean)
     };
     
     const bitfut = {
@@ -397,7 +435,7 @@ const fetchAdditionalMarketData = async () => {
       time: rangeData.ewz[0]?.[0] || "",
       value: rangeData.ewz[0]?.[1] || "0",
       change: rangeData.ewz[0]?.[2] || "0%",
-      chart: rangeData.ewzChart.map(row => row[0]).filter(Boolean)
+      chart: rangeData.ewzChart.map(row => row?.[0] || "0").filter(Boolean)
     };
     
     // Add to market indices
@@ -441,11 +479,17 @@ const fetchAdditionalMarketData = async () => {
       }
     });
     
+    // Extract VIX chart data
+    const vixChartData = rangeData.vixTrend.map(row => row?.[0] || "0").filter(Boolean);
+    
     return {
       marketIndices,
       safetyAssets,
       economicDataUS,
-      economicDataBrazil
+      economicDataBrazil,
+      adrs,
+      commoditiesList,
+      vixChartData
     };
   } catch (error) {
     console.error("Error fetching additional market data:", error);
@@ -761,6 +805,3 @@ const getMockAdditionalData = () => {
         change: "+0.05%",
         parameter: "LEVEMENTE NEGATIVO"
       }
-    }
-  };
-};
