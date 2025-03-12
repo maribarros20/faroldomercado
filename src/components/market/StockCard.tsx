@@ -1,3 +1,4 @@
+
 import React, { useMemo } from "react";
 import { StockData } from "@/services/stockService";
 import { useQuery } from "@tanstack/react-query";
@@ -55,7 +56,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length && payload[0].payload.index % 3 === 0) {
       return (
-        <div className="text-xs text-gray-500" style={{ backgroundColor: 'transparent', border: 'none' }}>
+        <div className="text-sm text-gray-500" style={{ backgroundColor: 'transparent', border: 'none' }}>
           {payload[0].value.toFixed(2)}
         </div>
       );
@@ -69,17 +70,17 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
     >
       <div className="flex justify-between items-start">
         <div>
-          <div className="font-semibold text-sm">{stock.ticker}</div>
-          <div className="text-xs opacity-70 truncate max-w-[120px]">{stock.name}</div>
+          <div className="font-semibold text-base">{stock.ticker}</div>
+          <div className="text-sm opacity-70 truncate max-w-[120px]">{stock.name}</div>
         </div>
-        <div className="text-xs text-gray-500">
+        <div className="text-sm text-gray-500">
           {stock.updateTime}
         </div>
       </div>
       
       <div className="mt-2 flex justify-between items-center">
-        <div className="text-xl font-bold">{stock.lastPrice.toFixed(2)}</div>
-        <div className={`text-sm font-semibold ${getChangeColor()}`}>
+        <div className="text-2xl font-bold">{stock.lastPrice.toFixed(2)}</div>
+        <div className={`text-base font-semibold ${getChangeColor()}`}>
           {getChangeIcon()} {Math.abs(stock.changePercent).toFixed(2)}<span className="text-xs">%</span>
         </div>
       </div>
