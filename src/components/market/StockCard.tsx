@@ -1,3 +1,4 @@
+
 import React, { useMemo } from "react";
 import { StockData } from "@/services/stockService";
 import { useQuery } from "@tanstack/react-query";
@@ -9,11 +10,12 @@ interface StockCardProps {
 }
 
 const StockCard: React.FC<StockCardProps> = ({ stock }) => {
-  // Fetch historical data for all stocks
+  // Fetch historical data for all stocks with proper caching
   const { data: historicalData, isLoading: isLoadingHistory } = useQuery({
     queryKey: ['stockHistory'],
     queryFn: fetchHistoricalStockData,
-    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+    staleTime: 1000 * 60 * 60 * 24, // Cache for 24 hours (historical data)
+    refetchInterval: 1000 * 60 * 60 * 24, // Refresh every 24 hours
   });
 
   // Find historical data for this specific stock
@@ -22,7 +24,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
     return historicalData.find(item => item.ticker === stock.ticker);
   }, [historicalData, stock.ticker]);
 
-  // Generate mock data if no historical data is available
+  // Generate chart data from historical or mock data
   const chartData = useMemo(() => {
     // If we have real data, use it
     if (stockHistory && stockHistory.prices.length > 0) {

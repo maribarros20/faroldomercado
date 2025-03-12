@@ -1,7 +1,7 @@
 const SHEET_ID = "183-0fe8XPxEaWZ6j7mPc8aoNCknempGt66VBa0CVK-s"; 
 const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
 const RANGE = "Validação!A8:W1500"; 
-const HISTORY_RANGE = "spik!A4:J70"; // Range for historical data
+const HISTORY_RANGE = "spik!A4:AV70"; // Updated range to include all columns up to AV
 
 export interface StockData {
   ticker: string;
@@ -26,7 +26,30 @@ export interface StockHistoricalData {
   prices: number[];
 }
 
+// Track the last update time for each data type
+const lastUpdate = {
+  stockData: 0,  // Regular data (5-min refresh)
+  historicalData: 0  // Historical data (daily refresh)
+};
+
+// Time thresholds in milliseconds
+const STOCK_DATA_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const HISTORICAL_DATA_REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
+
+// Cached data
+let cachedStockData: StockData[] | null = null;
+let cachedHistoricalData: StockHistoricalData[] | null = null;
+
 export async function fetchStockData(): Promise<StockData[]> {
+  const now = Date.now();
+  
+  // Return cached data if it's fresh (less than 5 minutes old)
+  if (cachedStockData && (now - lastUpdate.stockData) < STOCK_DATA_REFRESH_INTERVAL) {
+    console.log("Using cached stock data (less than 5 minutes old)");
+    return cachedStockData;
+  }
+  
+  console.log("Fetching fresh stock data from Google Sheets...");
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
 
   try {
@@ -59,7 +82,12 @@ export async function fetchStockData(): Promise<StockData[]> {
     }));
 
     console.log("Dados processados:", stocks);
-    return stocks.filter(stock => stock.ticker && stock.ticker !== "N/A");
+    
+    // Update cache and last update time
+    cachedStockData = stocks.filter(stock => stock.ticker && stock.ticker !== "N/A");
+    lastUpdate.stockData = now;
+    
+    return cachedStockData;
   } catch (error) {
     console.error("Erro ao buscar dados do Google Sheets:", error);
     return getMockData(); // Fallback para dados de exemplo
@@ -67,6 +95,15 @@ export async function fetchStockData(): Promise<StockData[]> {
 }
 
 export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]> {
+  const now = Date.now();
+  
+  // Return cached data if it's fresh (less than 24 hours old)
+  if (cachedHistoricalData && (now - lastUpdate.historicalData) < HISTORICAL_DATA_REFRESH_INTERVAL) {
+    console.log("Using cached historical data (less than 24 hours old)");
+    return cachedHistoricalData;
+  }
+  
+  console.log("Fetching fresh historical data from Google Sheets...");
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${HISTORY_RANGE}?key=${API_KEY}`;
   
   try {
@@ -83,14 +120,24 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
     // Extract dates from the first column
     const dates = data.values.map(row => row[0]).filter(Boolean);
     
-    // Map of column indices for different stocks
+    // Correct mapping of column indices for different stocks according to the provided information
     const stockColumns = {
-      "PETR4": 1, // Column B
-      "VALE3": 3, // Column D
-      "BBAS3": 5, // Column F
-      "ITUB4": 7, // Column H
-      "AAPL": 9,  // Column J
-      // Add more stocks as needed based on the sheet structure
+      "ABEV3": 1,  // Column B
+      "B3SA3": 3,  // Column D
+      "BBDC4": 7,  // Column H
+      "BBAS3": 10, // Column K
+      "ITSA4": 13, // Column N
+      "ITUB4": 16, // Column Q
+      "PETR3": 19, // Column T
+      "PETR4": 22, // Column W
+      "VALE3": 25, // Column Z
+      "AAPL": 28,  // Column AC
+      "AMZN": 31,  // Column AF
+      "GOOGL": 34, // Column AI
+      "META": 37,  // Column AL
+      "NVDA": 40,  // Column AO
+      "MSFT": 43,  // Column AR
+      "TSLA": 46,  // Column AU
     };
     
     // Process data for each stock
@@ -121,6 +168,10 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
         historicalData.push(mockItem);
       }
     }
+    
+    // Update cache and last update time
+    cachedHistoricalData = historicalData;
+    lastUpdate.historicalData = now;
     
     return historicalData;
     
@@ -193,3 +244,4 @@ function getMockHistoricalData(): StockHistoricalData[] {
   
   return mockHistoricalData;
 }
+

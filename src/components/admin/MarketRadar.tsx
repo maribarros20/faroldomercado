@@ -15,17 +15,40 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/use-user-profile";
+import { useQuery } from "@tanstack/react-query";
 
 export default function MarketRadar() {
-  const [stocks, setStocks] = useState<StockData[]>([]);
   const [userStocks, setUserStocks] = useState<StockData[]>([]);
   const [alerts, setAlerts] = useState<AlertData[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStock, setSelectedStock] = useState<string>("");
   const [snapshotStock, setSnapshotStock] = useState<StockData | null>(null);
   const { toast } = useToast();
   const { userId } = useUserProfile();
+
+  // Use React Query for auto-refreshing stock data
+  const { data: stocks = [], isLoading, isRefetching, refetch } = useQuery({
+    queryKey: ['stockData'],
+    queryFn: fetchStockData,
+    staleTime: 1000 * 60 * 5, // Consider data stale after 5 minutes
+    refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
+    refetchOnWindowFocus: true,
+    onError: (err) => {
+      setError("Erro ao carregar dados. Tente novamente mais tarde.");
+      console.error(err);
+    },
+    onSuccess: (data) => {
+      if (userStocks.length === 0) {
+        setUserStocks(data.slice(0, Math.min(5, data.length)));
+      }
+      
+      // Get the tickers of user's selected stocks
+      const userStockTickers = userStocks.map(stock => stock.ticker);
+      
+      // Generate alerts based on all stocks, prioritizing user's stocks
+      generateAndFilterAlerts(data, userStockTickers);
+    }
+  });
 
   // Get US stocks (7 magnificas)
   const getUSStocks = () => {
@@ -42,9 +65,8 @@ export default function MarketRadar() {
   };
 
   useEffect(() => {
-    loadData();
     loadUserFavorites();
-  }, [userId]);
+  }, [userId, stocks.length]);
 
   // When stocks or selectedStock changes, update snapshotStock
   useEffect(() => {
@@ -60,27 +82,13 @@ export default function MarketRadar() {
     }
   }, [selectedStock, stocks]);
 
-  async function loadData() {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await fetchStockData();
-      setStocks(data);
-      
-      // If we don't have user stocks already (from Supabase), 
-      // initialize with the first few stocks
-      if (userStocks.length === 0) {
-        setUserStocks(data.slice(0, Math.min(5, data.length)));
-      }
-      
-      // Get the tickers of user's selected stocks
-      const userStockTickers = userStocks.map(stock => stock.ticker);
-      
-      // Generate alerts based on all stocks, prioritizing user's stocks
-      const allAlerts = generateAlerts(data, userStockTickers);
-      
-      // Filter out alerts the user has already seen
-      if (userId) {
+  async function generateAndFilterAlerts(data: StockData[], userStockTickers: string[]) {
+    // Generate alerts based on all stocks, prioritizing user's stocks
+    const allAlerts = generateAlerts(data, userStockTickers);
+    
+    // Filter out alerts the user has already seen
+    if (userId) {
+      try {
         const { data: seenAlerts, error } = await supabase
           .from('users_alerts_seen')
           .select('ticker, alert_type')
@@ -97,19 +105,17 @@ export default function MarketRadar() {
         } else {
           setAlerts(allAlerts);
         }
-      } else {
+      } catch (err) {
+        console.error("Error filtering alerts:", err);
         setAlerts(allAlerts);
       }
-    } catch (err) {
-      setError("Erro ao carregar dados. Tente novamente mais tarde.");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
+    } else {
+      setAlerts(allAlerts);
     }
   }
 
   async function loadUserFavorites() {
-    if (!userId) return;
+    if (!userId || stocks.length === 0) return;
     
     try {
       const { data, error } = await supabase
@@ -164,14 +170,18 @@ export default function MarketRadar() {
         <div>
           <h2 className="text-2xl font-bold text-[#0066FF]">Acompanhamento da Carteira</h2>
           <p className="text-gray-600">Acompanhe suas ações e principais índices de mercado</p>
+          <p className="text-xs text-gray-500">
+            Última atualização: {new Date().toLocaleTimeString()} 
+            {isRefetching && " (Atualizando...)"}
+          </p>
         </div>
         <Button 
-          onClick={loadData} 
+          onClick={() => refetch()} 
           variant="outline"
           className="bg-white shadow-md hover:bg-blue-50"
-          disabled={isLoading}
+          disabled={isRefetching}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? "animate-spin" : ""}`} />
           Atualizar
         </Button>
       </div>
