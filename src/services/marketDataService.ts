@@ -455,6 +455,9 @@ const fetchAdditionalMarketData = async () => {
 
 // Mock data for testing or when API fails
 const getMockMarketData = (): MarketDataResponse => {
+  // Get the additional mock data
+  const additionalMockData = getMockAdditionalData();
+  
   return {
     adrsCurrent: {
       value: "-9.29%",
@@ -585,7 +588,12 @@ const getMockMarketData = (): MarketDataResponse => {
         value: "782.50",
         change: "-1.24%"
       }
-    }
+    },
+    // Add the missing properties from the mock additional data
+    marketIndices: additionalMockData.marketIndices,
+    safetyAssets: additionalMockData.safetyAssets,
+    economicDataUS: additionalMockData.economicDataUS,
+    economicDataBrazil: additionalMockData.economicDataBrazil
   };
 };
 
