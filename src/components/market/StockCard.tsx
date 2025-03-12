@@ -65,7 +65,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
 
   return (
     <div 
-      className={`rounded-xl p-4 min-w-[200px] h-[120px] flex flex-col justify-between bg-white shadow-sm border border-gray-100 border-l-4 ${getBorderColor()}`}
+      className={`rounded-xl p-4 min-w-[200px] h-[150px] flex flex-col justify-between bg-white shadow-sm border border-gray-100 border-l-4 ${getBorderColor()}`}
     >
       <div className="flex justify-between items-start">
         <div>
@@ -84,7 +84,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
         </div>
       </div>
       
-      <div className="w-full h-8 mt-1">
+      <div className="w-full h-12 mt-1">
         {isLoadingHistory ? (
           <Skeleton className="w-full h-full rounded-md" />
         ) : (
