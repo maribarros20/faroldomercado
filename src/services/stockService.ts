@@ -104,6 +104,9 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
   }
   
   console.log("Fetching fresh historical data from Google Sheets...");
+  console.log("Using sheet ID:", SHEET_ID);
+  console.log("Using range:", HISTORY_RANGE);
+  
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${HISTORY_RANGE}?key=${API_KEY}`;
   
   try {
@@ -111,14 +114,16 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
     const data = await response.json();
     
     if (!data.values || data.values.length < 1) {
-      console.error("No historical data found.");
+      console.error("No historical data found in response:", data);
       return getMockHistoricalData(); // Use mock data when real data is missing
     }
     
-    console.log("Raw historical data:", data);
+    console.log("Raw historical data sample (first 3 rows):", data.values.slice(0, 3));
+    console.log("Number of rows in historical data:", data.values.length);
     
     // Extract dates from the first column
     const dates = data.values.map(row => row[0]).filter(Boolean);
+    console.log("Extracted dates (first 5):", dates.slice(0, 5));
     
     // Correct mapping of column indices for different stocks
     const stockColumns = {
@@ -145,10 +150,17 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
     
     for (const [ticker, colIndex] of Object.entries(stockColumns)) {
       const prices = data.values
-        .map(row => parseFloat(row[colIndex]?.toString().replace(',', '.') || '0'))
+        .map(row => {
+          const rawValue = row[colIndex]?.toString().replace(',', '.');
+          const parsedValue = parseFloat(rawValue || '0');
+          return parsedValue;
+        })
         .filter(val => !isNaN(val) && val > 0);
       
+      console.log(`Stock ${ticker} has ${prices.length} valid price points`);
       if (prices.length > 0) {
+        console.log(`${ticker} price sample:`, prices.slice(0, 5));
+        
         historicalData.push({
           ticker,
           dates: dates.slice(0, prices.length),
@@ -158,7 +170,14 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
       }
     }
     
-    console.log("Processed historical data:", historicalData);
+    console.log("Processed historical data count:", historicalData.length);
+    if (historicalData.length > 0) {
+      const sampleStock = historicalData[0];
+      console.log(`Sample stock ${sampleStock.ticker} data:`, {
+        dates: sampleStock.dates.slice(0, 5),
+        prices: sampleStock.prices.slice(0, 5),
+      });
+    }
     
     // Add mock data for stocks not in the sheet
     const mockHistorical = getMockHistoricalData();

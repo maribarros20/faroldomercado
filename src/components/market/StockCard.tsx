@@ -1,5 +1,5 @@
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { StockData } from "@/services/stockService";
 import { useQuery } from "@tanstack/react-query";
 import { fetchHistoricalStockData } from "@/services/stockService";
@@ -10,6 +10,8 @@ interface StockCardProps {
 }
 
 const StockCard: React.FC<StockCardProps> = ({ stock }) => {
+  const [hoveredPoint, setHoveredPoint] = useState<{ x: number, y: number, value: number, date: string } | null>(null);
+  
   // Fetch historical data for all stocks with proper caching
   const { data: historicalData, isLoading: isLoadingHistory } = useQuery({
     queryKey: ['stockHistory'],
@@ -30,7 +32,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
     if (stockHistory && stockHistory.prices.length > 0) {
       // Use the original order (do not reverse - data is already ordered oldest first)
       const prices = [...stockHistory.prices]; 
-      return generateNormalizedChartPoints(prices, stock.changePercent >= 0);
+      return generateNormalizedChartPoints(prices, stock.changePercent >= 0, stockHistory.dates);
     }
     
     // Otherwise create mock data based on the change percent trend
@@ -47,6 +49,31 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
 
   const getBorderColor = () => {
     return stock.changePercent >= 0 ? "border-l-green-500" : "border-l-red-500";
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!stockHistory || !stockHistory.prices.length) return;
+    
+    const svgRect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - svgRect.left) / svgRect.width) * 100;
+    
+    // Find the closest point
+    let closestPoint = chartData[0];
+    let closestDistance = Math.abs(closestPoint.x - x);
+    
+    for (let i = 1; i < chartData.length; i++) {
+      const distance = Math.abs(chartData[i].x - x);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestPoint = chartData[i];
+      }
+    }
+    
+    setHoveredPoint(closestPoint);
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredPoint(null);
   };
 
   return (
@@ -75,7 +102,13 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
           <Skeleton className="w-full h-full rounded-md" />
         ) : (
           <div className="relative w-full h-full">
-            <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+            <svg 
+              className="w-full h-full" 
+              preserveAspectRatio="none" 
+              viewBox="0 0 100 100"
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+            >
               {/* Background gradient */}
               <defs>
                 <linearGradient id={`gradient-${stock.ticker}`} x1="0%" y1="0%" x2="0%" y2="100%">
@@ -129,6 +162,47 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
                 r="1.5"
                 fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
               />
+              
+              {/* Tooltip marker and dot */}
+              {hoveredPoint && (
+                <>
+                  <circle
+                    cx={hoveredPoint.x}
+                    cy={hoveredPoint.y}
+                    r="3"
+                    fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
+                  />
+                  <rect
+                    x={hoveredPoint.x - 25}
+                    y={hoveredPoint.y - 22}
+                    width="50"
+                    height="18"
+                    rx="3"
+                    fill="#333"
+                    opacity="0.8"
+                  />
+                  <text
+                    x={hoveredPoint.x}
+                    y={hoveredPoint.y - 10}
+                    fill="white"
+                    fontSize="8"
+                    fontWeight="bold"
+                    textAnchor="middle"
+                  >
+                    {hoveredPoint.value?.toFixed(2)}
+                  </text>
+                  <text
+                    x={hoveredPoint.x}
+                    y={hoveredPoint.y - 40}
+                    fill="#333"
+                    fontSize="7"
+                    textAnchor="middle"
+                    opacity={hoveredPoint.date ? 1 : 0}
+                  >
+                    {hoveredPoint.date || ""}
+                  </text>
+                </>
+              )}
             </svg>
           </div>
         )}
@@ -138,7 +212,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
 };
 
 // Function to generate normalized chart points from price data
-function generateNormalizedChartPoints(prices: number[], isPositive: boolean) {
+function generateNormalizedChartPoints(prices: number[], isPositive: boolean, dates?: string[]) {
   const points = [];
   const min = Math.min(...prices);
   const max = Math.max(...prices);
@@ -152,7 +226,9 @@ function generateNormalizedChartPoints(prices: number[], isPositive: boolean) {
       const variance = Math.sin(i) * 3;
       points.push({
         x: i * (100 / 9), // Spread points evenly along x-axis
-        y: baseY + variance
+        y: baseY + variance,
+        value: prices[0] || 0,
+        date: dates ? dates[0] : ""
       });
     }
     return points;
@@ -162,7 +238,9 @@ function generateNormalizedChartPoints(prices: number[], isPositive: boolean) {
   for (let i = 0; i < prices.length; i++) {
     points.push({
       x: (i / (prices.length - 1)) * 100, // Older data on left (0), newer on right (100)
-      y: 20 + ((prices[i] - min) / range) * 60
+      y: 20 + ((prices[i] - min) / range) * 60,
+      value: prices[i],
+      date: dates ? dates[i] : ""
     });
   }
   
@@ -193,7 +271,14 @@ function generateMockChartPoints(changePercent: number) {
     const randomFactor = Math.sin(i * 0.5) * 3;
     const y = startY + (endY - startY) * easedProgress + randomFactor;
     
-    points.push({ x, y });
+    const mockValue = 100 + (changePercent * (i / (numPoints - 1)) * 10);
+    
+    points.push({ 
+      x, 
+      y,
+      value: mockValue,
+      date: ""
+    });
   }
   
   return points;
