@@ -60,15 +60,15 @@ export interface MarketDataResponse {
     currentValue: string;
     currentChange: string;
     currentTime: string;
+    currentValueParameter: string;
+    currentChangeParameter: string;
     closingValue: string;
     closingChange: string;
     closingTime: string;
     openingValue: string;
     openingChange: string;
     openingTime: string;
-    valueParameter: string;
-    resultParameter: string;
-    gapParameter: string;
+    openingChangeParameter: string;
     tendencyTime: string;
     tendencyParameter: string;
     chartData: string[];
@@ -208,20 +208,29 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
         isNegative: commoditiesValue < 0
       },
       vix: {
+        // Current VIX - F8:K8 for time, F9:G9 for value, F10:G10 for change, H9 for value parameter, H10 for change parameter
         currentValue: vixData[1] ? (vixData[1][0] || "0") : "0",
         currentChange: vixData[2] ? (vixData[2][0] || "0%") : "0%",
         currentTime: vixData[0] ? (vixData[0][0] || "") : "",
+        currentValueParameter: vixData[1] ? (vixData[1][2] || "") : "",
+        currentChangeParameter: vixData[2] ? (vixData[2][2] || "") : "",
+        
+        // Closing VIX - M8:N8 for time, N9 for value, N10 for change
         closingValue: vixData[1] ? vixData[1][7] || "0" : "0",
         closingChange: vixData[2] ? vixData[2][7] || "0%" : "0%",
         closingTime: vixData[0] ? vixData[0][7] || "" : "",
+        
+        // Opening VIX - O8:P8 for time, P9 for value, O9 for change, O10:P10 for change parameter
         openingValue: vixData[1] ? vixData[1][9] || "0" : "0",
-        openingChange: vixData[1] ? vixData[1][10] || "0%" : "0%",
+        openingChange: vixData[2] ? vixData[2][9] || "0%" : "0%",
         openingTime: vixData[0] ? vixData[0][9] || "" : "",
-        valueParameter: vixData[1] ? vixData[1][2] || "" : "",
-        resultParameter: vixData[2] ? vixData[2][2] || "" : "",
-        gapParameter: vixData[2] ? (vixData[2][10] || "") : "",
+        openingChangeParameter: vixData[2] ? (vixData[2][10] || "") : "",
+        
+        // VIX Tendency - W7 for time, T10:AC10 for parameter
         tendencyTime: vixData[0] ? vixData[0][14] || "" : "",
         tendencyParameter: vixData[2] ? (vixData[2][14] || "") : "",
+        
+        // Chart data from VIX tab
         chartData: additionalData.vixChartData || []
       },
       alerts: {
@@ -651,15 +660,15 @@ const getMockMarketData = (): MarketDataResponse => {
       currentValue: "27.86",
       currentChange: "+19.21%",
       currentTime: "17:15:01",
+      currentValueParameter: "REGIÃO DE VALOR NEUTRA",
+      currentChangeParameter: "VOLATILIDADE NEGATIVA MUITO ALTA",
       closingValue: "23.37",
       closingChange: "-6.03%",
       closingTime: "07/03",
       openingValue: "24.70",
       openingChange: "5.69%",
       openingTime: "10/03",
-      valueParameter: "REGIÃO DE VALOR NEUTRA",
-      resultParameter: "VOLATILIDADE NEGATIVA MUITO ALTA",
-      gapParameter: "ABERTURA DO VIX COM GAP DE ALTA",
+      openingChangeParameter: "ABERTURA DO VIX COM GAP DE ALTA",
       tendencyTime: "16:49:01",
       tendencyParameter: "VIX MANTENDO ALTA, VOLATILIDADE FICANDO MAIS NEGATIVA PARA IBOV",
       chartData: ["23.1", "23.4", "23.8", "24.2", "24.6", "25.1", "25.8", "26.5", "27.1", "27.8"]
@@ -770,234 +779,3 @@ const getMockMarketData = (): MarketDataResponse => {
         parameter: "LEVEMENTE POSITIVO"
       },
       "NASDAQ": {
-        name: "Nasdaq 100",
-        time: "17:15:01",
-        value: "19,235.87",
-        change: "+0.47%",
-        parameter: "LEVEMENTE POSITIVO"
-      },
-      "US_FUTURES": {
-        name: "US Futures",
-        time: "17:15:01",
-        value: "5,440.25",
-        change: "+0.42%",
-        parameter: "LEVEMENTE POSITIVO"
-      },
-      "EURO_STOXX": {
-        name: "Euro Stoxx 50",
-        time: "17:15:01",
-        value: "5,440.25",
-        change: "+0.42%",
-        parameter: "LEVEMENTE POSITIVO"
-      }
-    },
-    safetyAssets: additionalMockData.safetyAssets || {},
-    economicDataUS: additionalMockData.economicDataUS || {},
-    economicDataBrazil: additionalMockData.economicDataBrazil || {}
-  };
-};
-
-// Mock additional data
-const getMockAdditionalData = () => {
-  return {
-    adrs: {
-      "VALE": {
-        name: "VALE",
-        time: "17:40:00",
-        value: "15.24",
-        change: "-1.62%",
-        prevChange: "-0.85%",
-        afterChange: "-0.25%"
-      },
-      "PBR": {
-        name: "PBR",
-        time: "17:40:00",
-        value: "14.88",
-        change: "-0.67%",
-        prevChange: "-1.20%",
-        afterChange: "+0.45%"
-      },
-      "PBRA": {
-        name: "PBRA",
-        time: "17:40:00",
-        value: "13.76",
-        change: "-0.94%",
-        prevChange: "-1.35%",
-        afterChange: "+0.22%"
-      },
-      "ITUB": {
-        name: "ITUB",
-        time: "17:40:00",
-        value: "6.81",
-        change: "-0.87%",
-        prevChange: "-1.02%",
-        afterChange: "-0.15%"
-      },
-      "BBD": {
-        name: "BBD",
-        time: "17:40:00",
-        value: "4.94",
-        change: "-1.20%",
-        prevChange: "-0.80%",
-        afterChange: "-0.40%"
-      },
-      "BBDO": {
-        name: "BBDO",
-        time: "17:40:00",
-        value: "4.87",
-        change: "-1.22%",
-        prevChange: "-0.82%",
-        afterChange: "-0.41%"
-      },
-      "BSBR": {
-        name: "BSBR",
-        time: "17:40:00",
-        value: "7.89",
-        change: "-0.76%",
-        prevChange: "-0.51%",
-        afterChange: "-0.13%"
-      }
-    },
-    commoditiesList: {
-      "BRENT": {
-        name: "Petróleo Brent",
-        time: "17:40:00",
-        value: "82.89",
-        change: "-1.85%"
-      },
-      "WTI": {
-        name: "Petróleo WTI",
-        time: "17:40:00",
-        value: "77.65",
-        change: "-2.06%"
-      },
-      "IRON_SING": {
-        name: "Minério de Ferro Singapura",
-        time: "",
-        value: "110.25",
-        change: "-0.75%"
-      },
-      "IRON_DALIAN": {
-        name: "Minério de Ferro Dalian",
-        time: "17:40:00",
-        value: "782.50",
-        change: "-1.24%"
-      }
-    },
-    marketIndices: {
-      "SP500": {
-        name: "S&P 500",
-        time: "17:15:01",
-        value: "5,435.02",
-        change: "+0.34%",
-        parameter: "LEVEMENTE POSITIVO",
-        chart: ["5420", "5425", "5430", "5435", "5440", "5445"]
-      },
-      "DOW": {
-        name: "Dow Jones",
-        time: "17:15:01",
-        value: "39,876.55",
-        change: "+0.21%",
-        parameter: "LEVEMENTE POSITIVO"
-      },
-      "NASDAQ": {
-        name: "Nasdaq 100",
-        time: "17:15:01",
-        value: "19,235.87",
-        change: "+0.47%",
-        parameter: "LEVEMENTE POSITIVO"
-      },
-      "US_FUTURES": {
-        name: "US Futures",
-        time: "17:15:01",
-        value: "5,440.25",
-        change: "+0.42%",
-        parameter: "LEVEMENTE POSITIVO"
-      },
-      "EURO_STOXX": {
-        name: "Euro Stoxx 50",
-        time: "17:15:01",
-        value: "5,440.25",
-        change: "+0.42%",
-        parameter: "LEVEMENTE POSITIVO"
-      }
-    },
-    safetyAssets: {
-      "GOLD": {
-        name: "Ouro",
-        time: "17:40:00",
-        value: "1,000",
-        change: "-0.5%",
-        parameter: "LEVEMENTE NEGATIVO"
-      },
-      "DOLLAR": {
-        name: "Dólar",
-        time: "17:40:00",
-        value: "5.50",
-        change: "-0.2%",
-        parameter: "LEVEMENTE NEGATIVO"
-      },
-      "TREA_2Y": {
-        name: "Treasury 2Y",
-        time: "17:40:00",
-        value: "1.20",
-        change: "-0.1%",
-        parameter: "LEVEMENTE NEGATIVO"
-      },
-      "TREA_5Y": {
-        name: "Treasury 5Y",
-        time: "17:40:00",
-        value: "1.50",
-        change: "-0.3%",
-        parameter: "LEVEMENTE NEGATIVO"
-      },
-      "TREA_10Y": {
-        name: "Treasury 10Y",
-        time: "17:40:00",
-        value: "1.80",
-        change: "-0.4%",
-        parameter: "LEVEMENTE NEGATIVO"
-      },
-      "TREA_30Y": {
-        name: "Treasury 30Y",
-        time: "17:40:00",
-        value: "2.00",
-        change: "-0.5%",
-        parameter: "LEVEMENTE NEGATIVO"
-      }
-    },
-    economicDataUS: {
-      "US_RATE": {
-        name: "Taxa de Juros EUA",
-        time: "17:40:00",
-        value: "3.50",
-        change: "+0.1%",
-        parameter: "LEVEMENTE POSITIVO"
-      },
-      "US_CPI": {
-        name: "Inflação EUA (CPI)",
-        time: "17:40:00",
-        value: "2.50",
-        change: "+0.2%",
-        parameter: "LEVEMENTE POSITIVO"
-      }
-    },
-    economicDataBrazil: {
-      "BR_SELIC": {
-        name: "Taxa Selic",
-        time: "17:40:00",
-        value: "12.00",
-        change: "+0.3%",
-        parameter: "LEVEMENTE POSITIVO"
-      },
-      "BR_IPCA": {
-        name: "Inflação (IPCA)",
-        time: "17:40:00",
-        value: "1.80",
-        change: "+0.4%",
-        parameter: "LEVEMENTE POSITIVO"
-      }
-    },
-    vixChartData: ["23.1", "23.4", "23.8", "24.2", "24.6", "25.1", "25.8", "26.5", "27.1", "27.8"]
-  };
-};

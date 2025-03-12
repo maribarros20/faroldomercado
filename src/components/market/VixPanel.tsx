@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, ArrowUpRight, ArrowDownRight, Clock, TrendingUp, TrendingDown } from "lucide-react";
+import { ActivitySquare, ArrowDownRight, ArrowUpRight, Clock, TrendingUp, TrendingDown } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 interface VixPanelProps {
@@ -9,15 +9,15 @@ interface VixPanelProps {
     currentValue: string;
     currentChange: string;
     currentTime: string;
+    currentValueParameter: string;
+    currentChangeParameter: string;
     closingValue: string;
     closingChange: string;
     closingTime: string;
     openingValue: string;
     openingChange: string;
     openingTime: string;
-    valueParameter: string;
-    resultParameter: string;
-    gapParameter: string;
+    openingChangeParameter: string;
     tendencyTime: string;
     tendencyParameter: string;
     chartData: string[];
@@ -43,35 +43,13 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
     <Card className="shadow-lg bg-white">
       <CardHeader className="pb-2 border-b">
         <CardTitle className="text-xl text-[#0066FF] flex items-center">
-          <Activity className="h-6 w-6 mr-2" />
+          <ActivitySquare className="h-6 w-6 mr-2" />
           VIX (CBOE Volatility Index)
         </CardTitle>
       </CardHeader>
       <CardContent className="px-4 pt-4 pb-0">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          {/* Left Column: Chart */}
-          <div className="md:col-span-5 h-48 md:h-auto">
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData}>
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#8884d8" 
-                  strokeWidth={2} 
-                  dot={false} 
-                />
-                <XAxis dataKey="time" hide={true} />
-                <YAxis domain={['auto', 'auto']} hide={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'white', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }} 
-                  formatter={(value) => [`${value}`, 'VIX']}
-                  labelFormatter={() => ''}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          
-          {/* Right Column: VIX Stats */}
+          {/* Left Column: VIX Stats */}
           <div className="md:col-span-7">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Current VIX */}
@@ -93,9 +71,13 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                       <TrendingUp className="h-8 w-8 text-red-500 mr-2" />
                     )}
                     <div>
-                      <div className="text-xl font-bold">{vixData.currentValue}</div>
-                      <div className={`text-sm font-medium ${isCurrentNegative ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className="text-xl font-bold flex items-center">
+                        {vixData.currentValue}
+                        <span className="ml-2 text-xs text-gray-600">{vixData.currentValueParameter}</span>
+                      </div>
+                      <div className={`text-sm font-medium flex items-center ${isCurrentNegative ? 'text-green-600' : 'text-red-600'}`}>
                         {vixData.currentChange}
+                        <span className="ml-2 text-xs text-gray-600">{vixData.currentChangeParameter}</span>
                       </div>
                     </div>
                   </div>
@@ -150,8 +132,9 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                     )}
                     <div>
                       <div className="text-xl font-bold">{vixData.openingValue}</div>
-                      <div className={`text-sm font-medium ${isOpeningNegative ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className={`text-sm font-medium flex items-center ${isOpeningNegative ? 'text-green-600' : 'text-red-600'}`}>
                         {vixData.openingChange}
+                        <span className="ml-2 text-xs text-gray-600">{vixData.openingChangeParameter}</span>
                       </div>
                     </div>
                   </div>
@@ -159,21 +142,39 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
               </Card>
             </div>
             
-            {/* VIX Parameters */}
-            <div className="mt-4 grid grid-cols-1 gap-2">
-              <div className="bg-gray-50 p-3 rounded text-sm">
-                <div className="font-medium mb-1">Parâmetros de Valor</div>
-                <div className="text-gray-600">{vixData.valueParameter}</div>
+            {/* VIX Tendência */}
+            <div className="mt-4 bg-gray-50 p-3 rounded text-sm">
+              <div className="font-medium mb-1 flex items-center">
+                Tendência
+                <span className="text-xs text-gray-500 ml-2 flex items-center">
+                  <Clock className="h-3 w-3 mr-1" />
+                  {vixData.tendencyTime}
+                </span>
               </div>
-              <div className="bg-gray-50 p-3 rounded text-sm">
-                <div className="font-medium mb-1">Gap de Abertura</div>
-                <div className="text-gray-600">{vixData.gapParameter}</div>
-              </div>
-              <div className="bg-gray-50 p-3 rounded text-sm">
-                <div className="font-medium mb-1">Tendência ({vixData.tendencyTime})</div>
-                <div className="text-gray-600">{vixData.tendencyParameter}</div>
-              </div>
+              <div className="text-gray-700">{vixData.tendencyParameter}</div>
             </div>
+          </div>
+          
+          {/* Right Column: Chart */}
+          <div className="md:col-span-5 h-48 md:h-auto">
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={chartData}>
+                <Line 
+                  type="monotone" 
+                  dataKey="value" 
+                  stroke="#8884d8" 
+                  strokeWidth={2} 
+                  dot={false} 
+                />
+                <XAxis dataKey="time" hide={true} />
+                <YAxis domain={['auto', 'auto']} hide={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'white', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }} 
+                  formatter={(value) => [`${value}`, 'VIX']}
+                  labelFormatter={() => ''}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </CardContent>
