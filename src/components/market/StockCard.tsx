@@ -1,12 +1,45 @@
 
-import React from "react";
+import React, { useMemo } from "react";
 import { StockData } from "@/services/stockService";
+import { useQuery } from "@tanstack/react-query";
+import { fetchHistoricalStockData } from "@/services/stockService";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface StockCardProps {
   stock: StockData;
 }
 
 const StockCard: React.FC<StockCardProps> = ({ stock }) => {
+  // Fetch historical data for all stocks
+  const { data: historicalData, isLoading: isLoadingHistory } = useQuery({
+    queryKey: ['stockHistory'],
+    queryFn: fetchHistoricalStockData,
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+  });
+
+  // Find historical data for this specific stock
+  const stockHistory = useMemo(() => {
+    if (!historicalData) return null;
+    return historicalData.find(item => item.ticker === stock.ticker);
+  }, [historicalData, stock.ticker]);
+
+  // Normalize prices to fit in the chart area
+  const normalizedPrices = useMemo(() => {
+    if (!stockHistory || stockHistory.prices.length === 0) return [];
+    
+    const prices = [...stockHistory.prices].reverse(); // Reverse to show newest data on right
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const range = max - min;
+    
+    if (range === 0) return prices.map(() => 50); // If all prices are the same, show a flat line
+    
+    return prices.map(price => {
+      // Normalize to a value between 20 and 80 (percentage of height)
+      return 20 + ((price - min) / range) * 60;
+    });
+  }, [stockHistory]);
+
   const getChangeIcon = () => {
     return stock.changePercent >= 0 ? "↗" : "↘";
   };
@@ -43,17 +76,32 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
       </div>
       
       <div className="w-full h-8 mt-1">
-        {/* Simple sparkline placeholder - in a real app, this would be a chart */}
+        {/* Real sparkline chart with historical data */}
         <div className="h-full w-full flex items-end">
-          {[...Array(15)].map((_, i) => (
-            <div 
-              key={i} 
-              className={`w-1 mx-[1px] ${stock.changePercent >= 0 ? "bg-green-400" : "bg-red-400"} opacity-50`}
-              style={{ 
-                height: `${20 + Math.random() * 50}%`,
-              }}
-            ></div>
-          ))}
+          {isLoadingHistory ? (
+            <Skeleton className="w-full h-[70%]" />
+          ) : normalizedPrices.length > 0 ? (
+            normalizedPrices.map((height, i) => (
+              <div 
+                key={i} 
+                className={`w-1 mx-[1px] ${stock.changePercent >= 0 ? "bg-green-400" : "bg-red-400"} opacity-70`}
+                style={{ 
+                  height: `${height}%`,
+                }}
+              ></div>
+            ))
+          ) : (
+            // Fallback to random data if no historical data is available
+            [...Array(15)].map((_, i) => (
+              <div 
+                key={i} 
+                className={`w-1 mx-[1px] ${stock.changePercent >= 0 ? "bg-green-400" : "bg-red-400"} opacity-50`}
+                style={{ 
+                  height: `${20 + Math.random() * 50}%`,
+                }}
+              ></div>
+            ))
+          )}
         </div>
       </div>
     </div>

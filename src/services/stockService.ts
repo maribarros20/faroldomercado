@@ -1,7 +1,7 @@
-
 const SHEET_ID = "183-0fe8XPxEaWZ6j7mPc8aoNCknempGt66VBa0CVK-s"; 
 const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
 const RANGE = "Validação!A8:W1500"; 
+const HISTORY_RANGE = "spik!A4:J70"; // Range for historical data
 
 export interface StockData {
   ticker: string;
@@ -18,6 +18,12 @@ export interface StockData {
   changePercent: number;
   updateTime: string;
   name: string;
+}
+
+export interface StockHistoricalData {
+  ticker: string;
+  dates: string[];
+  prices: number[];
 }
 
 export async function fetchStockData(): Promise<StockData[]> {
@@ -60,7 +66,59 @@ export async function fetchStockData(): Promise<StockData[]> {
   }
 }
 
-// Dados de exemplo para quando a API falhar
+export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]> {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${HISTORY_RANGE}?key=${API_KEY}`;
+  
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (!data.values || data.values.length < 1) {
+      console.error("No historical data found.");
+      return [];
+    }
+    
+    console.log("Raw historical data:", data);
+    
+    // Extract dates from the first column
+    const dates = data.values.map(row => row[0]).filter(Boolean);
+    
+    // Map of column indices for different stocks
+    const stockColumns = {
+      "PETR4": 1, // Column B
+      "VALE3": 3, // Column D
+      "BBAS3": 5, // Column F
+      "ITUB4": 7, // Column H
+      "AAPL": 9,  // Column J
+      // Add more stocks as needed based on the sheet structure
+    };
+    
+    // Process data for each stock
+    const historicalData: StockHistoricalData[] = [];
+    
+    for (const [ticker, colIndex] of Object.entries(stockColumns)) {
+      const prices = data.values
+        .map(row => parseFloat(row[colIndex]?.toString().replace(',', '.') || '0'))
+        .filter(val => !isNaN(val) && val > 0);
+      
+      if (prices.length > 0) {
+        historicalData.push({
+          ticker,
+          dates: dates.slice(0, prices.length),
+          prices: prices
+        });
+      }
+    }
+    
+    console.log("Processed historical data:", historicalData);
+    return historicalData;
+    
+  } catch (error) {
+    console.error("Error fetching historical data:", error);
+    return [];
+  }
+}
+
 function getMockData(): StockData[] {
   return [
     { ticker: "PETR4", name: "Petrobras PN", exchange: "BVMF", movingAvg5: 36.5, movingAvg20: 35.8, max10Days: 38.2, min10Days: 35.1, openPrice: 37.2, prevCloseD1: 36.9, avgVolume10Days: 45000000, lastPrice: 38.42, changePrice: 1.52, changePercent: 2.15, updateTime: "16:30" },
