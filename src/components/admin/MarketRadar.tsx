@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertTriangle } from "lucide-react";
@@ -38,19 +37,23 @@ export default function MarketRadar() {
         setError("Erro ao carregar dados. Tente novamente mais tarde.");
         console.error(err);
       }
-    },
-    onSuccess: (data) => {
+    }
+  });
+  
+  // Handle successful data fetching
+  useEffect(() => {
+    if (stocks.length > 0) {
       if (userStocks.length === 0) {
-        setUserStocks(data.slice(0, Math.min(5, data.length)));
+        setUserStocks(stocks.slice(0, Math.min(5, stocks.length)));
       }
       
       // Get the tickers of user's selected stocks
       const userStockTickers = userStocks.map(stock => stock.ticker);
       
       // Generate alerts based on all stocks, prioritizing user's stocks
-      generateAndFilterAlerts(data, userStockTickers);
+      generateAndFilterAlerts(stocks, userStockTickers);
     }
-  });
+  }, [stocks, userStocks]);
 
   // Get US stocks (7 magnificas)
   const getUSStocks = () => {
@@ -65,24 +68,6 @@ export default function MarketRadar() {
       ["ITUB4", "BBDC4", "VALE3", "PETR4", "PETR3", "ABEV3", "BBAS3", "B3SA3", "ITSA4"].includes(stock.ticker)
     );
   };
-
-  useEffect(() => {
-    loadUserFavorites();
-  }, [userId, stocks.length]);
-
-  // When stocks or selectedStock changes, update snapshotStock
-  useEffect(() => {
-    if (selectedStock && stocks.length > 0) {
-      const stock = stocks.find(s => s.ticker === selectedStock);
-      if (stock) {
-        setSnapshotStock(stock);
-      }
-    } else if (stocks.length > 0) {
-      // Default to IBOV or the first stock
-      const ibov = stocks.find(stock => stock.ticker === "IBOV");
-      setSnapshotStock(ibov || stocks[0]);
-    }
-  }, [selectedStock, stocks]);
 
   async function generateAndFilterAlerts(data: StockData[], userStockTickers: string[]) {
     // Generate alerts based on all stocks, prioritizing user's stocks
@@ -165,6 +150,24 @@ export default function MarketRadar() {
   const getCurrentDate = () => {
     return format(new Date(), "MM/dd/yy");
   };
+
+  useEffect(() => {
+    loadUserFavorites();
+  }, [userId, stocks.length]);
+
+  // When stocks or selectedStock changes, update snapshotStock
+  useEffect(() => {
+    if (selectedStock && stocks.length > 0) {
+      const stock = stocks.find(s => s.ticker === selectedStock);
+      if (stock) {
+        setSnapshotStock(stock);
+      }
+    } else if (stocks.length > 0) {
+      // Default to IBOV or the first stock
+      const ibov = stocks.find(stock => stock.ticker === "IBOV");
+      setSnapshotStock(ibov || stocks[0]);
+    }
+  }, [selectedStock, stocks]);
 
   return (
     <div className="space-y-6 pb-6 bg-gray-100 rounded-lg p-6">
