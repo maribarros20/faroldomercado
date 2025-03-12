@@ -45,9 +45,10 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
   const chartData = useMemo(() => {
     // If we have real data, use it
     if (stockHistory && stockHistory.prices.length > 0) {
-      // Reverse the data so newest dates are on the right
-      const prices = [...stockHistory.prices].reverse(); 
-      const dates = [...stockHistory.dates].reverse();
+      // Use data in correct order - oldest first (left) to newest last (right)
+      // No need to reverse here as the data already comes in chronological order
+      const prices = [...stockHistory.prices]; 
+      const dates = [...stockHistory.dates];
       return generateNormalizedChartPoints(prices, stock.changePercent >= 0, dates);
     }
     
@@ -192,7 +193,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
                 fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
               />
               
-              {/* Simplified tooltip - just value text, lighter style */}
+              {/* Simplified tooltip - just the value */}
               {hoveredPoint && (
                 <>
                   {/* Vertical tracking line */}
@@ -216,10 +217,10 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
                     strokeWidth="1.5"
                   />
                   
-                  {/* Price value - simple text, no background, gray color like timestamp */}
+                  {/* Only show price value - simple text, gray color */}
                   <text
                     x={hoveredPoint.x < 70 ? hoveredPoint.x + 5 : hoveredPoint.x - 5}
-                    y={hoveredPoint.y - 15}
+                    y={hoveredPoint.y - 10}
                     fill="rgba(100, 100, 100, 0.8)"
                     fontSize="9"
                     textAnchor={hoveredPoint.x < 70 ? "start" : "end"}
@@ -227,20 +228,6 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
                   >
                     {hoveredPoint.value.toFixed(2)}
                   </text>
-                  
-                  {/* Date text - small gray font like timestamp */}
-                  {hoveredPoint.date && (
-                    <text
-                      x={hoveredPoint.x < 70 ? hoveredPoint.x + 5 : hoveredPoint.x - 5}
-                      y={hoveredPoint.y + 15}
-                      fill="rgba(100, 100, 100, 0.8)"
-                      fontSize="7"
-                      textAnchor={hoveredPoint.x < 70 ? "start" : "end"}
-                      dominantBaseline="middle"
-                    >
-                      {hoveredPoint.date.split(' ')[0]}
-                    </text>
-                  )}
                 </>
               )}
             </svg>
