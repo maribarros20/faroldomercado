@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect } from "react";
 import { StockData } from "@/services/stockService";
 import { useQuery } from "@tanstack/react-query";
@@ -46,9 +45,10 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
   const chartData = useMemo(() => {
     // If we have real data, use it
     if (stockHistory && stockHistory.prices.length > 0) {
-      // Use the original order (do not reverse - data is already ordered oldest first)
-      const prices = [...stockHistory.prices]; 
-      return generateNormalizedChartPoints(prices, stock.changePercent >= 0, stockHistory.dates);
+      // FIXED: Reverse the data so newest dates are on the right
+      const prices = [...stockHistory.prices].reverse(); 
+      const dates = [...stockHistory.dates].reverse();
+      return generateNormalizedChartPoints(prices, stock.changePercent >= 0, dates);
     }
     
     // Otherwise create mock data based on the change percent trend
@@ -179,7 +179,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
                 fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
               />
               
-              {/* Improved tooltip marker and dot with better visibility */}
+              {/* Improved tooltip without a box - just show the price directly */}
               {hoveredPoint && (
                 <>
                   {/* Vertical tracking line */}
@@ -203,51 +203,31 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
                     strokeWidth="1.5"
                   />
                   
-                  {/* Improved price tooltip */}
-                  <rect
-                    x={hoveredPoint.x < 70 ? hoveredPoint.x : hoveredPoint.x - 40}
-                    y={hoveredPoint.y < 30 ? hoveredPoint.y + 5 : hoveredPoint.y - 25}
-                    width="40"
-                    height="20"
-                    rx="3"
-                    fill="rgba(0, 0, 0, 0.8)"
-                  />
-                  
-                  {/* Price value with better positioning */}
+                  {/* Just show price text without a background box */}
                   <text
-                    x={hoveredPoint.x < 70 ? hoveredPoint.x + 20 : hoveredPoint.x - 20}
-                    y={hoveredPoint.y < 30 ? hoveredPoint.y + 15 : hoveredPoint.y - 15}
-                    fill="white"
-                    fontSize="10"
+                    x={hoveredPoint.x < 70 ? hoveredPoint.x + 5 : hoveredPoint.x - 5}
+                    y={hoveredPoint.y - 10}
+                    fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
+                    fontSize="9"
                     fontWeight="bold"
-                    textAnchor="middle"
+                    textAnchor={hoveredPoint.x < 70 ? "start" : "end"}
                     dominantBaseline="middle"
                   >
                     {hoveredPoint.value.toFixed(2)}
                   </text>
                   
-                  {/* Date tooltip - positioned to avoid edge clipping */}
+                  {/* Date text without background */}
                   {hoveredPoint.date && (
-                    <>
-                      <rect
-                        x={hoveredPoint.x < 70 ? hoveredPoint.x : hoveredPoint.x - 50}
-                        y={hoveredPoint.y < 30 ? hoveredPoint.y + 30 : hoveredPoint.y - 50}
-                        width="50"
-                        height="18"
-                        rx="3"
-                        fill="rgba(0, 0, 0, 0.7)"
-                      />
-                      <text
-                        x={hoveredPoint.x < 70 ? hoveredPoint.x + 25 : hoveredPoint.x - 25}
-                        y={hoveredPoint.y < 30 ? hoveredPoint.y + 39 : hoveredPoint.y - 41}
-                        fill="white"
-                        fontSize="8"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        {hoveredPoint.date.split(' ')[0]}
-                      </text>
-                    </>
+                    <text
+                      x={hoveredPoint.x < 70 ? hoveredPoint.x + 5 : hoveredPoint.x - 5}
+                      y={hoveredPoint.y + 12}
+                      fill={stock.changePercent >= 0 ? "rgba(34, 197, 94, 0.8)" : "rgba(239, 68, 68, 0.8)"}
+                      fontSize="7"
+                      textAnchor={hoveredPoint.x < 70 ? "start" : "end"}
+                      dominantBaseline="middle"
+                    >
+                      {hoveredPoint.date.split(' ')[0]}
+                    </text>
                   )}
                 </>
               )}
@@ -289,7 +269,7 @@ function generateNormalizedChartPoints(prices: number[], isPositive: boolean, da
   // Otherwise normalize based on actual price data
   for (let i = 0; i < prices.length; i++) {
     points.push({
-      x: (i / (prices.length - 1)) * 100, // Older data on left (0), newer on right (100)
+      x: (i / (prices.length - 1)) * 100, // Spread points from left (0) to right (100)
       y: 20 + ((prices[i] - min) / range) * 60,
       value: prices[i],
       date: dates ? dates[i] : ""
