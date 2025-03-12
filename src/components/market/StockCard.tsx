@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { StockData } from "@/services/stockService";
 import { useQuery } from "@tanstack/react-query";
 import { fetchHistoricalStockData } from "@/services/stockService";
@@ -25,6 +25,22 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
     if (!historicalData) return null;
     return historicalData.find(item => item.ticker === stock.ticker);
   }, [historicalData, stock.ticker]);
+
+  useEffect(() => {
+    if (stockHistory && stockHistory.prices.length > 0) {
+      console.log(`Stock ${stock.ticker} historical data:`, {
+        oldest: {
+          date: stockHistory.dates[0],
+          price: stockHistory.prices[0]
+        },
+        newest: {
+          date: stockHistory.dates[stockHistory.dates.length - 1],
+          price: stockHistory.prices[stockHistory.prices.length - 1]
+        },
+        totalDataPoints: stockHistory.prices.length
+      });
+    }
+  }, [stockHistory, stock.ticker]);
 
   // Generate chart data from historical or mock data
   const chartData = useMemo(() => {
@@ -172,35 +188,51 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
                     r="3"
                     fill={stock.changePercent >= 0 ? "#22c55e" : "#ef4444"}
                   />
+                  {/* Improved tooltip background */}
                   <rect
                     x={hoveredPoint.x - 25}
-                    y={hoveredPoint.y - 22}
+                    y={hoveredPoint.y - 30}
                     width="50"
-                    height="18"
+                    height="20"
                     rx="3"
-                    fill="#333"
-                    opacity="0.8"
+                    fill="rgba(0, 0, 0, 0.7)"
                   />
+                  {/* Price value */}
                   <text
                     x={hoveredPoint.x}
-                    y={hoveredPoint.y - 10}
+                    y={hoveredPoint.y - 16}
                     fill="white"
                     fontSize="8"
                     fontWeight="bold"
                     textAnchor="middle"
+                    dominantBaseline="middle"
                   >
                     {hoveredPoint.value?.toFixed(2)}
                   </text>
-                  <text
-                    x={hoveredPoint.x}
-                    y={hoveredPoint.y - 40}
-                    fill="#333"
-                    fontSize="7"
-                    textAnchor="middle"
-                    opacity={hoveredPoint.date ? 1 : 0}
-                  >
-                    {hoveredPoint.date || ""}
-                  </text>
+                  
+                  {/* Date tooltip - only show if we have a date */}
+                  {hoveredPoint.date && (
+                    <>
+                      <rect
+                        x={hoveredPoint.x - 30}
+                        y={hoveredPoint.y - 50}
+                        width="60"
+                        height="15"
+                        rx="3"
+                        fill="rgba(0, 0, 0, 0.5)"
+                      />
+                      <text
+                        x={hoveredPoint.x}
+                        y={hoveredPoint.y - 40}
+                        fill="white"
+                        fontSize="7"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                      >
+                        {hoveredPoint.date}
+                      </text>
+                    </>
+                  )}
                 </>
               )}
             </svg>
@@ -217,6 +249,10 @@ function generateNormalizedChartPoints(prices: number[], isPositive: boolean, da
   const min = Math.min(...prices);
   const max = Math.max(...prices);
   const range = max - min;
+  
+  console.log(`Normalizing chart points. Min: ${min}, Max: ${max}, Range: ${range}`);
+  console.log(`First date: ${dates?.[0]}, Last date: ${dates?.[dates.length-1]}`);
+  console.log(`First price: ${prices[0]}, Last price: ${prices[prices.length-1]}`);
 
   // If all prices are the same, create a flat line with slight variation
   if (range === 0) {

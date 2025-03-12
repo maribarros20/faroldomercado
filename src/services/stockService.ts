@@ -124,6 +124,7 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
     // Extract dates from the first column
     const dates = data.values.map(row => row[0]).filter(Boolean);
     console.log("Extracted dates (first 5):", dates.slice(0, 5));
+    console.log("Extracted dates (last 5):", dates.slice(-5));
     
     // Correct mapping of column indices for different stocks
     const stockColumns = {
@@ -159,11 +160,15 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
       
       console.log(`Stock ${ticker} has ${prices.length} valid price points`);
       if (prices.length > 0) {
-        console.log(`${ticker} price sample:`, prices.slice(0, 5));
+        console.log(`${ticker} price sample (first 5):`, prices.slice(0, 5));
+        console.log(`${ticker} price sample (last 5):`, prices.slice(-5));
+        
+        // Create a new array of dates trimmed to match the number of prices
+        const stockDates = dates.slice(0, prices.length);
         
         historicalData.push({
           ticker,
-          dates: dates.slice(0, prices.length),
+          dates: stockDates,
           // The data from the sheet is already in chronological order (oldest first)
           prices: prices
         });
@@ -173,9 +178,9 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
     console.log("Processed historical data count:", historicalData.length);
     if (historicalData.length > 0) {
       const sampleStock = historicalData[0];
-      console.log(`Sample stock ${sampleStock.ticker} data:`, {
-        dates: sampleStock.dates.slice(0, 5),
-        prices: sampleStock.prices.slice(0, 5),
+      console.log(`Sample stock ${sampleStock.ticker} full data:`, {
+        dates: sampleStock.dates,
+        prices: sampleStock.prices,
       });
     }
     
@@ -186,6 +191,7 @@ export async function fetchHistoricalStockData(): Promise<StockHistoricalData[]>
     for (const mockItem of mockHistorical) {
       if (!existingTickers.includes(mockItem.ticker)) {
         historicalData.push(mockItem);
+        console.log(`Added mock data for missing stock: ${mockItem.ticker}`);
       }
     }
     
