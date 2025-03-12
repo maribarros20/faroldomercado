@@ -80,7 +80,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock }) => {
       <div className="mt-2 flex justify-between items-center">
         <div className="text-xl font-bold">{stock.lastPrice.toFixed(2)}</div>
         <div className={`text-sm font-semibold ${getChangeColor()}`}>
-          {getChangeIcon()} {Math.abs(stock.changePercent).toFixed(2)}%
+          {getChangeIcon()} {Math.abs(stock.changePercent).toFixed(2)}<span className="text-xs">%</span>
         </div>
       </div>
       
