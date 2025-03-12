@@ -1,6 +1,9 @@
+
 const SHEET_ID = "1fPLwFZmfhfjc2muHkr58WySldsj_AmsM_TXhykMPj8I"; 
 const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
 const SHEET_NAME = "V.10";
+const GRAPH_SHEET = "spik";
+const VIX_SHEET = "VIX";
 
 // Properly formatted ranges for batch requests with core data
 const RANGES = [
@@ -23,13 +26,18 @@ const ADDITIONAL_RANGES = {
 };
 
 // Chart data mappings
-const GRAPH_RANGES = {
-  vixTrend: "'VIX'!C2:C400",
-  ibovChart: "'spik'!F4:F70",
-  valeChart: "'spik'!J4:J70",
-  petrobrasChart: "'spik'!B4:B70",
-  ewzChart: "'spik'!O4:O70"
+const GRAPH_MAPPING = {
+  "VIX Tendência Gráfico": { sheet: VIX_SHEET, column: "C2:C400" },
+  "IBOV Gráfico": { sheet: GRAPH_SHEET, column: "F4:F70" },
+  "Vale - VALE3 Gráfico": { sheet: GRAPH_SHEET, column: "J4:J70" },
+  "Petrobras - PETR4 Gráfico": { sheet: GRAPH_SHEET, column: "B4:B70" },
+  "EWZ Gráfico": { sheet: GRAPH_SHEET, column: "O4:O70" }
 };
+
+// Format GRAPH_MAPPING to array for batch request
+const GRAPH_RANGES = Object.entries(GRAPH_MAPPING).map(([key, { sheet, column }]) => {
+  return `'${sheet}'!${column}`;
+});
 
 export interface MarketDataResponse {
   adrsCurrent: {
@@ -167,7 +175,7 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
     
     // VIX data is in mainData rows 3-4
     const vixData = [
-      mainData[1] || [], // times
+      mainData[2] || [], // times
       mainData[3] || [], // values
       mainData[4] || []  // changes
     ];
@@ -176,35 +184,39 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
     const additionalData = await fetchAdditionalMarketData();
     
     // Define isNegative and isPositive indicators based on values
-    const adrsCurrentValue = mainData[2] && mainData[2][0] ? parseFloat(mainData[2][0]) : 0;
-    const adrsClosingValue = mainData[2] && mainData[2][7] ? parseFloat(mainData[2][7]) : 0;
-    const adrsAfterValue = mainData[2] && mainData[2][14] ? parseFloat(mainData[2][14]) : 0;
-    const commoditiesValue = mainData[2] && mainData[2][21] ? parseFloat(mainData[2][21]) : 0;
+    const adrsCurrentValue = mainData[4] && mainData[4][0] ? 
+      parseFloat(mainData[4][0].replace('%', '').replace(',', '.')) : 0;
+    const adrsClosingValue = mainData[4] && mainData[4][7] ? 
+      parseFloat(mainData[4][7].replace('%', '').replace(',', '.')) : 0;
+    const adrsAfterValue = mainData[4] && mainData[4][14] ? 
+      parseFloat(mainData[4][14].replace('%', '').replace(',', '.')) : 0;
+    const commoditiesValue = mainData[4] && mainData[4][21] ? 
+      parseFloat(mainData[4][21].replace('%', '').replace(',', '.')) : 0;
     
     // Build structured response according to correct cell references
     return {
       adrsCurrent: {
-        value: mainData[2] ? (mainData[2][0] || "0") : "0%",
-        parameter: mainData[4] ? (mainData[4][0] || "") : "",
-        time: timesData[0] || "",
+        value: mainData[4] ? (mainData[4][0] || "0") : "0%",
+        parameter: mainData[4] ? (mainData[4][2] || "") : "",
+        time: mainData[2] ? (mainData[2][0] || "") : "",
         isNegative: adrsCurrentValue < 0
       },
       adrsClosing: {
-        value: mainData[2] ? (mainData[2][7] || "0") : "0%",
+        value: mainData[4] ? (mainData[4][7] || "0") : "0%",
         parameter: mainData[4] ? (mainData[4][7] || "") : "",
-        time: (timesData[7] || ""),
+        time: timesData[7] || "",
         isPositive: adrsClosingValue > 0
       },
       adrsAfterMarket: {
-        value: mainData[2] ? (mainData[2][14] || "0") : "0%",
-        parameter: mainData[4] ? (mainData[4][14] || "") : "",
-        time: (timesData[14] || ""),
+        value: "0",
+        parameter: "",
+        time: timesData[14] || "",
         isPositive: adrsAfterValue > 0
       },
       commodities: {
-        value: mainData[2] ? (mainData[2][21] || "0%") : "0%",
-        parameter: mainData[4] ? (mainData[4][21] || "") : "",
-        time: timesData[21] || "",
+        value: mainData[12] ? (mainData[12][0] || "0%") : "0%",
+        parameter: "",
+        time: mainData[11] ? (mainData[11][16] || "") : "",
         isNegative: commoditiesValue < 0
       },
       vix: {
@@ -216,18 +228,18 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
         currentChangeParameter: vixData[2] ? (vixData[2][2] || "") : "",
         
         // Closing VIX - M8:N8 for time, N9 for value, N10 for change
-        closingValue: vixData[1] ? vixData[1][7] || "0" : "0",
-        closingChange: vixData[2] ? vixData[2][7] || "0%" : "0%",
+        closingValue: vixData[1] ? vixData[1][8] || "0" : "0",
+        closingChange: vixData[1] ? vixData[1][7] || "0%" : "0%",
         closingTime: vixData[0] ? vixData[0][7] || "" : "",
         
         // Opening VIX - O8:P8 for time, P9 for value, O9 for change, O10:P10 for change parameter
-        openingValue: vixData[1] ? vixData[1][9] || "0" : "0",
-        openingChange: vixData[2] ? vixData[2][9] || "0%" : "0%",
+        openingValue: vixData[1] ? vixData[1][10] || "0" : "0",
+        openingChange: vixData[1] ? vixData[1][9] || "0%" : "0%",
         openingTime: vixData[0] ? vixData[0][9] || "" : "",
-        openingChangeParameter: vixData[2] ? (vixData[2][10] || "") : "",
+        openingChangeParameter: vixData[2] ? (vixData[2][9] || "") : "",
         
         // VIX Tendency - W7 for time, T10:AC10 for parameter
-        tendencyTime: vixData[0] ? vixData[0][14] || "" : "",
+        tendencyTime: timesData[17] || "",
         tendencyParameter: vixData[2] ? (vixData[2][14] || "") : "",
         
         // Chart data from VIX tab
@@ -257,7 +269,7 @@ const fetchAdditionalMarketData = async () => {
     // Prepare batch requests for all additional ranges
     const allRanges = [
       ...Object.entries(ADDITIONAL_RANGES).map(([key, range]) => `ranges=${encodeURIComponent(range)}`),
-      ...Object.entries(GRAPH_RANGES).map(([key, range]) => `ranges=${encodeURIComponent(range)}`)
+      ...GRAPH_RANGES.map(range => `ranges=${encodeURIComponent(range)}`)
     ];
     
     const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${allRanges.join('&')}&key=${API_KEY}`;
@@ -296,6 +308,13 @@ const fetchAdditionalMarketData = async () => {
       ewzChart: data.valueRanges[13]?.values || []
     };
     
+    // Extract chart data
+    const vixChartData = rangeData.vixTrend.map(row => row?.[0] || "0").filter(Boolean);
+    const ibovChartData = rangeData.ibovChart.map(row => row?.[0] || "0").filter(Boolean);
+    const valeChartData = rangeData.valeChart.map(row => row?.[0] || "0").filter(Boolean);
+    const petrobrasChartData = rangeData.petrobrasChart.map(row => row?.[0] || "0").filter(Boolean);
+    const ewzChartData = rangeData.ewzChart.map(row => row?.[0] || "0").filter(Boolean);
+
     // Build ADR data
     const adrs: any = {
       "VALE": {
@@ -525,7 +544,7 @@ const fetchAdditionalMarketData = async () => {
       time: rangeData.ibov[1]?.[0] || "",
       value: rangeData.ibov[2]?.[2] || "0",
       change: rangeData.ibov[2]?.[0] || "0%",
-      chart: rangeData.ibovChart.map(row => row?.[0] || "0").filter(Boolean)
+      chart: ibovChartData
     };
     
     const vale = {
@@ -533,7 +552,7 @@ const fetchAdditionalMarketData = async () => {
       time: rangeData.vale[1]?.[0] || "",
       value: rangeData.vale[2]?.[3] || "0",
       change: rangeData.vale[2]?.[0] || "0%",
-      chart: rangeData.valeChart.map(row => row?.[0] || "0").filter(Boolean)
+      chart: valeChartData
     };
     
     const petrobras = {
@@ -541,11 +560,11 @@ const fetchAdditionalMarketData = async () => {
       time: rangeData.petrobras[1]?.[0] || "",
       value: rangeData.petrobras[2]?.[1] || "0",
       change: rangeData.petrobras[2]?.[0] || "0%",
-      chart: rangeData.petrobrasChart.map(row => row?.[0] || "0").filter(Boolean)
+      chart: petrobrasChartData
     };
     
     const bitfut = {
-      name: "BIT_FUT",
+      name: "BIT FUT",
       time: rangeData.bitFut[1]?.[0] || "",
       value: rangeData.bitFut[2]?.[2] || "0",
       change: rangeData.bitFut[2]?.[0] || "0%"
@@ -556,7 +575,7 @@ const fetchAdditionalMarketData = async () => {
       time: rangeData.ewz[1]?.[0] || "",
       value: rangeData.ewz[2]?.[2] || "0",
       change: rangeData.ewz[2]?.[0] || "0%",
-      chart: rangeData.ewzChart.map(row => row?.[0] || "0").filter(Boolean)
+      chart: ewzChartData
     };
     
     // Add to market indices
@@ -607,9 +626,6 @@ const fetchAdditionalMarketData = async () => {
         parameter: rangeData.dadosBrasil[5]?.[0] || ""
       };
     }
-    
-    // Extract VIX chart data
-    const vixChartData = rangeData.vixTrend.map(row => row?.[0] || "0").filter(Boolean);
     
     return {
       marketIndices,
@@ -784,6 +800,40 @@ const getMockMarketData = (): MarketDataResponse => {
         value: "17,285.32",
         change: "+0.47%",
         parameter: "MODERADAMENTE POSITIVO"
+      },
+      "IBOV": {
+        name: "IBOV",
+        time: "17:21:00",
+        value: "123.507,35",
+        change: "-0.81%",
+        chart: ["125571", "126521", "124380", "124850", "128218", "128552", "128531", "127308", "127600", "127128", "125401", "125979", "124768", "124798", "122799", "123046", "123357", "125034", "124519", "123507"]
+      },
+      "VALE3": {
+        name: "VALE3",
+        time: "17:21:00",
+        value: "54.44",
+        change: "+0.83%",
+        chart: ["55.4", "55.16", "54.79", "54.86", "55.67", "55.37", "55.74", "55.69", "57.74", "58.16", "57.63", "57.07", "56.72", "56.3", "55.15", "55.59", "56.2", "57.02", "53.99", "54.44"]
+      },
+      "PETR4": {
+        name: "PETR4",
+        time: "17:21:00",
+        value: "34.1",
+        change: "-1.50%",
+        chart: ["36.83", "36.83", "36.28", "36.32", "37.44", "37.67", "38.36", "38.44", "38.5", "38.39", "38.12", "37.95", "37.95", "36.61", "35.93", "34.62", "34.26", "34.63", "34.62", "34.1"]
+      },
+      "EWZ": {
+        name: "EWZ",
+        time: "17:00:09",
+        value: "24.38",
+        change: "+0.33%",
+        chart: ["25.58", "25.79", "25.34", "25.46", "26.37", "26.39", "26.09", "26.2", "25.47", "25.06", "25.28", "24.88", "24.71", "24.11", "24.14", "23.91", "24.58", "24.57", "24.82", "24.38"]
+      },
+      "BIT_FUT": {
+        name: "BIT FUT",
+        time: "23:29:13",
+        value: "83.035",
+        change: "-0.04%"
       }
     },
     safetyAssets: {
@@ -973,6 +1023,40 @@ const getMockAdditionalData = (): any => {
         value: "17,285.32",
         change: "+0.47%",
         parameter: "MODERADAMENTE POSITIVO"
+      },
+      "IBOV": {
+        name: "IBOV",
+        time: "17:21:00",
+        value: "123.507,35",
+        change: "-0.81%",
+        chart: ["125571", "126521", "124380", "124850", "128218", "128552", "128531", "127308", "127600", "127128", "125401", "125979", "124768", "124798", "122799", "123046", "123357", "125034", "124519", "123507"]
+      },
+      "VALE3": {
+        name: "VALE3",
+        time: "17:21:00",
+        value: "54.44",
+        change: "+0.83%",
+        chart: ["55.4", "55.16", "54.79", "54.86", "55.67", "55.37", "55.74", "55.69", "57.74", "58.16", "57.63", "57.07", "56.72", "56.3", "55.15", "55.59", "56.2", "57.02", "53.99", "54.44"]
+      },
+      "PETR4": {
+        name: "PETR4",
+        time: "17:21:00",
+        value: "34.1",
+        change: "-1.50%",
+        chart: ["36.83", "36.83", "36.28", "36.32", "37.44", "37.67", "38.36", "38.44", "38.5", "38.39", "38.12", "37.95", "37.95", "36.61", "35.93", "34.62", "34.26", "34.63", "34.62", "34.1"]
+      },
+      "EWZ": {
+        name: "EWZ",
+        time: "17:00:09",
+        value: "24.38",
+        change: "+0.33%",
+        chart: ["25.58", "25.79", "25.34", "25.46", "26.37", "26.39", "26.09", "26.2", "25.47", "25.06", "25.28", "24.88", "24.71", "24.11", "24.14", "23.91", "24.58", "24.57", "24.82", "24.38"]
+      },
+      "BIT_FUT": {
+        name: "BIT FUT",
+        time: "23:29:13",
+        value: "83.035",
+        change: "-0.04%"
       }
     },
     safetyAssets: {
@@ -1051,6 +1135,6 @@ const getMockAdditionalData = (): any => {
         parameter: "LEVEMENTE POSITIVO"
       }
     },
-    vixChartData: ["23.1", "23.4", "23.8", "24.2", "24.6", "25.1", "25.8", "26.5", "27.1", "27.8"]
+    vixChartData: ["-3.37%", "-3.37%", "-3.37%", "-3.37%", "-3.37%", "-3.37%"]
   };
 };

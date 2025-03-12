@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ActivitySquare, ArrowDownRight, ArrowUpRight, Clock, TrendingUp, TrendingDown } from "lucide-react";
@@ -29,7 +30,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
     
     return chartData.map((value, index) => ({
       time: index,
-      value: parseFloat(value.replace(',', '.')) || 0
+      value: parseFloat(value.replace(',', '.').replace('%', '')) || 0
     }));
   };
 
@@ -58,7 +59,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                     <span className="text-sm font-medium">VIX Atual</span>
                     <span className="text-xs text-gray-500 flex items-center">
                       <Clock className="h-3 w-3 mr-1" />
-                      {vixData.currentTime}
+                      {vixData.currentTime || "Sem horário"}
                     </span>
                   </div>
                 </CardHeader>
@@ -90,7 +91,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                     <span className="text-sm font-medium">VIX Fechamento</span>
                     <span className="text-xs text-gray-500 flex items-center">
                       <Clock className="h-3 w-3 mr-1" />
-                      {vixData.closingTime}
+                      {vixData.closingTime || "Sem data"}
                     </span>
                   </div>
                 </CardHeader>
@@ -118,7 +119,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                     <span className="text-sm font-medium">VIX Abertura</span>
                     <span className="text-xs text-gray-500 flex items-center">
                       <Clock className="h-3 w-3 mr-1" />
-                      {vixData.openingTime}
+                      {vixData.openingTime || "Sem data"}
                     </span>
                   </div>
                 </CardHeader>
@@ -147,7 +148,7 @@ const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
                 Tendência
                 <span className="text-xs text-gray-500 ml-2 flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {vixData.tendencyTime}
+                  {vixData.tendencyTime || "Sem horário"}
                 </span>
               </div>
               <div className="text-gray-700">{vixData.tendencyParameter}</div>
