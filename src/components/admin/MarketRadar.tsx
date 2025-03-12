@@ -159,16 +159,16 @@ export default function MarketRadar() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-6 bg-gray-100 rounded-lg p-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Acompanhamento da Carteira</h2>
-          <p className="text-muted-foreground">Acompanhe suas ações e principais índices de mercado</p>
+          <h2 className="text-2xl font-bold text-[#0066FF]">Acompanhamento da Carteira</h2>
+          <p className="text-gray-600">Acompanhe suas ações e principais índices de mercado</p>
         </div>
         <Button 
           onClick={loadData} 
           variant="outline"
-          className="bg-white"
+          className="bg-white shadow-md hover:bg-blue-50"
           disabled={isLoading}
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
@@ -185,18 +185,32 @@ export default function MarketRadar() {
       )}
 
       {/* US Stocks Carousel */}
-      <StockCardCarousel 
-        stocks={getUSStocks()}
-        title="US Top Stocks (Magnificent 7)"
-        isLoading={isLoading}
-      />
+      <Card className="shadow-lg bg-white border-none">
+        <CardHeader className="pb-2 border-b">
+          <CardTitle className="text-xl">US Top Stocks (Magnificent 7)</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <StockCardCarousel 
+            stocks={getUSStocks()}
+            title=""
+            isLoading={isLoading}
+          />
+        </CardContent>
+      </Card>
 
       {/* Brazilian Stocks Carousel */}
-      <StockCardCarousel 
-        stocks={getBrazilianStocks()}
-        title="Maiores Ações Brasileiras"
-        isLoading={isLoading}
-      />
+      <Card className="shadow-lg bg-white border-none">
+        <CardHeader className="pb-2 border-b">
+          <CardTitle className="text-xl">Maiores Ações Brasileiras</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <StockCardCarousel 
+            stocks={getBrazilianStocks()}
+            title=""
+            isLoading={isLoading}
+          />
+        </CardContent>
+      </Card>
 
       <StockSelector 
         stocks={stocks}
@@ -209,11 +223,11 @@ export default function MarketRadar() {
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         {/* Lista de Ativos */}
         <div className="lg:col-span-2">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xl">Índices e Ativos</CardTitle>
+          <Card className="shadow-lg bg-white border-none">
+            <CardHeader className="pb-3 border-b">
+              <CardTitle className="text-xl text-[#0066FF] flex items-center">Índices e Ativos</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4">
               {isLoading ? (
                 <div className="animate-pulse space-y-2">
                   {[...Array(5)].map((_, i) => (
@@ -234,26 +248,33 @@ export default function MarketRadar() {
         {/* Market Snapshot */}
         <div>
           {snapshotStock && (
-            <MarketSnapshot 
-              title={`${snapshotStock.ticker} Snapshot`}
-              value={snapshotStock.lastPrice.toFixed(2)}
-              prevClose={snapshotStock.prevCloseD1}
-              open={snapshotStock.openPrice}
-              dayLow={snapshotStock.min10Days}
-              dayHigh={snapshotStock.max10Days}
-              weekLow={snapshotStock.min10Days * 0.9} 
-              weekHigh={snapshotStock.max10Days * 1.1}
-              time={snapshotStock.updateTime}
-              date={getCurrentDate()}
-            />
+            <Card className="shadow-lg bg-white border-none mb-6">
+              <CardHeader className="pb-2 border-b">
+                <CardTitle className="text-xl text-[#0066FF] flex items-center">{snapshotStock.ticker} Snapshot</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <MarketSnapshot 
+                  title=""
+                  value={snapshotStock.lastPrice.toFixed(2)}
+                  prevClose={snapshotStock.prevCloseD1}
+                  open={snapshotStock.openPrice}
+                  dayLow={snapshotStock.min10Days}
+                  dayHigh={snapshotStock.max10Days}
+                  weekLow={snapshotStock.min10Days * 0.9} 
+                  weekHigh={snapshotStock.max10Days * 1.1}
+                  time={snapshotStock.updateTime}
+                  date={getCurrentDate()}
+                />
+              </CardContent>
+            </Card>
           )}
 
           {/* Alertas */}
-          <Card className="mt-6">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xl">Alertas de Mercado</CardTitle>
+          <Card className="shadow-lg bg-white border-none">
+            <CardHeader className="pb-3 border-b">
+              <CardTitle className="text-xl text-[#0066FF] flex items-center">Alertas de Mercado</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4">
               <MarketAlerts 
                 alerts={alerts} 
                 isLoading={isLoading} 

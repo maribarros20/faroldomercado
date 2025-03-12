@@ -52,12 +52,12 @@ const StockList: React.FC<StockListProps> = ({ stocks, onRemoveStock, isLoading 
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead>Ativo</TableHead>
-          <TableHead>Atual</TableHead>
-          <TableHead>Variação</TableHead>
-          <TableHead>%</TableHead>
-          <TableHead>Ação</TableHead>
+        <TableRow className="bg-gray-50">
+          <TableHead className="font-semibold">Ativo</TableHead>
+          <TableHead className="text-right font-semibold">Atual</TableHead>
+          <TableHead className="text-right font-semibold">Variação</TableHead>
+          <TableHead className="text-right font-semibold">%</TableHead>
+          <TableHead className="text-right font-semibold">Ação</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -69,15 +69,15 @@ const StockList: React.FC<StockListProps> = ({ stocks, onRemoveStock, isLoading 
           </TableRow>
         ) : (
           stocks.map((stock) => (
-            <TableRow key={stock.ticker}>
+            <TableRow key={stock.ticker} className="hover:bg-gray-50">
               <TableCell>
                 <div className="font-medium">{stock.ticker}</div>
                 <div className="text-xs text-muted-foreground">{stock.updateTime}</div>
               </TableCell>
-              <TableCell>{formatCurrency(stock.lastPrice)}</TableCell>
-              <TableCell>{stock.changePrice.toFixed(2)}</TableCell>
-              <TableCell>
-                <div className="flex items-center">
+              <TableCell className="text-right">{formatCurrency(stock.lastPrice)}</TableCell>
+              <TableCell className="text-right">{stock.changePrice.toFixed(2)}</TableCell>
+              <TableCell className="text-right">
+                <div className="flex items-center justify-end">
                   {stock.changePercent > 0 ? (
                     <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
                   ) : stock.changePercent < 0 ? (
@@ -88,7 +88,7 @@ const StockList: React.FC<StockListProps> = ({ stocks, onRemoveStock, isLoading 
                   </span>
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="text-right">
                 <Button 
                   onClick={() => handleRemoveStock(stock.ticker)}
                   variant="ghost"
