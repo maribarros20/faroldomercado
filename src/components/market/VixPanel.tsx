@@ -1,7 +1,9 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Clock, Info } from "lucide-react";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine } from "recharts";
+import { Activity, ArrowUpRight, ArrowDownRight, Clock, TrendingUp, TrendingDown } from "lucide-react";
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+
 interface VixPanelProps {
   vixData: {
     currentValue: string;
@@ -21,135 +23,162 @@ interface VixPanelProps {
     chartData: string[];
   };
 }
-const VixPanel: React.FC<VixPanelProps> = ({
-  vixData
-}) => {
-  // Helper function to determine if a value is positive or negative
-  const isPositive = (value: string) => value && value.includes("+");
-  const isNegative = (value: string) => value && value.includes("-");
 
-  // Create chart data from string values
-  const chartData = vixData.chartData.map((value, index) => ({
-    name: index.toString(),
-    value: parseFloat(value) || 0
-  }));
-
-  // Helper for dynamic color styling
-  const getValueColor = (value: string) => {
-    if (isPositive(value)) return "text-green-600";
-    if (isNegative(value)) return "text-red-600";
-    return "text-[#323232]";
+const VixPanel: React.FC<VixPanelProps> = ({ vixData }) => {
+  const parseChartData = (chartData: string[] | undefined) => {
+    if (!chartData || !Array.isArray(chartData) || chartData.length === 0) return [];
+    
+    return chartData.map((value, index) => ({
+      time: index,
+      value: parseFloat(value.replace(',', '.')) || 0
+    }));
   };
 
-  // Helper for parameter color styling
-  const getParameterColor = (parameter: string) => {
-    const lowerParam = parameter.toLowerCase();
-    if (lowerParam.includes("positiv")) return "text-green-600";
-    if (lowerParam.includes("negativ")) return "text-red-600";
-    if (lowerParam.includes("neutr")) return "text-blue-600";
-    return "text-[#323232]";
-  };
+  const chartData = parseChartData(vixData.chartData);
+  const isCurrentNegative = vixData.currentChange.includes('-');
+  const isClosingNegative = vixData.closingChange.includes('-');
+  const isOpeningNegative = vixData.openingChange.includes('-');
 
-  // Calculate min and max values for chart
-  const numericValues = chartData.map(item => item.value);
-  const minValue = Math.min(...numericValues) * 0.98;
-  const maxValue = Math.max(...numericValues) * 1.02;
-  return <Card className="bg-white border-none shadow-lg">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between text-[#0066FF]">
-          <span className="flex items-center">
-            <TrendingUp className="h-5 w-5 mr-2" />
-            VIX - Índice de Volatilidade
-          </span>
-          <span className="text-sm font-normal flex items-center">
-            <Clock className="h-4 w-4 mr-1" />
-            {vixData.currentTime || "Sem horário"}
-          </span>
+  return (
+    <Card className="shadow-lg bg-white">
+      <CardHeader className="pb-2 border-b">
+        <CardTitle className="text-xl text-[#0066FF] flex items-center">
+          <Activity className="h-6 w-6 mr-2" />
+          VIX (CBOE Volatility Index)
         </CardTitle>
       </CardHeader>
-      
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Current value */}
-          <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg shadow-md border-l-4 border-l-blue-500">
-              <div className="text-sm text-gray-600 mb-1">VIX Atual</div>
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold text-[#323232]">{vixData.currentValue}</div>
-                <div className={`flex items-center ${getValueColor(vixData.currentChange)}`}>
-                  {isPositive(vixData.currentChange) ? <TrendingUp className="h-5 w-5 mr-1" /> : <TrendingDown className="h-5 w-5 mr-1" />}
-                  <span className="font-medium">{vixData.currentChange}</span>
-                </div>
-              </div>
-              <div className={`text-sm mt-2 font-medium ${getParameterColor(vixData.valueParameter)}`}>
-                {vixData.valueParameter}
-              </div>
-              <div className={`text-sm mt-1 font-medium ${getParameterColor(vixData.resultParameter)}`}>
-                {vixData.resultParameter}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-50 p-3 rounded-lg shadow-md border-l-4 border-l-blue-500">
-                <div className="text-xs text-gray-600 mb-1">Fechamento</div>
-                <div className="text-lg font-bold text-[#323232]">{vixData.closingValue}</div>
-                
-                <div className="text-xs text-gray-600 mt-1 mx-0 px-0 my-0">{vixData.closingTime}</div>
-              </div>
-              
-              <div className="bg-gray-50 p-3 rounded-lg shadow-md border-l-4 border-l-blue-500">
-                <div className="text-xs text-gray-600 mb-1">Abertura</div>
-                <div className="text-lg font-bold text-[#323232]">{vixData.openingValue}</div>
-                <div className={`text-sm flex items-center ${getValueColor(vixData.openingChange)}`}>
-                  {isPositive(vixData.openingChange) ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
-                  {vixData.openingChange}
-                </div>
-                <div className="text-xs text-gray-600 mt-1">{vixData.openingTime}</div>
-              </div>
-            </div>
+      <CardContent className="px-4 pt-4 pb-0">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          {/* Left Column: Chart */}
+          <div className="md:col-span-5 h-48 md:h-auto">
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={chartData}>
+                <Line 
+                  type="monotone" 
+                  dataKey="value" 
+                  stroke="#8884d8" 
+                  strokeWidth={2} 
+                  dot={false} 
+                />
+                <XAxis dataKey="time" hide={true} />
+                <YAxis domain={['auto', 'auto']} hide={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'white', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }} 
+                  formatter={(value) => [`${value}`, 'VIX']}
+                  labelFormatter={() => ''}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
           
-          {/* Chart */}
-          <div className="bg-gray-50 p-4 rounded-lg shadow-md border-l-4 border-l-blue-500 md:col-span-2 h-64">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-[#323232]">Histórico VIX</span>
-              <div className="flex items-center text-xs text-gray-600">
-                <Clock className="h-3.5 w-3.5 mr-1" />
-                <span>{vixData.tendencyTime || "Sem horário"}</span>
-              </div>
+          {/* Right Column: VIX Stats */}
+          <div className="md:col-span-7">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Current VIX */}
+              <Card className={`border-l-4 ${isCurrentNegative ? 'border-l-green-500' : 'border-l-red-500'} shadow-sm`}>
+                <CardHeader className="py-2 px-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">VIX Atual</span>
+                    <span className="text-xs text-gray-500 flex items-center">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {vixData.currentTime}
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent className="py-2 px-3">
+                  <div className="flex items-center">
+                    {isCurrentNegative ? (
+                      <TrendingDown className="h-8 w-8 text-green-500 mr-2" />
+                    ) : (
+                      <TrendingUp className="h-8 w-8 text-red-500 mr-2" />
+                    )}
+                    <div>
+                      <div className="text-xl font-bold">{vixData.currentValue}</div>
+                      <div className={`text-sm font-medium ${isCurrentNegative ? 'text-green-600' : 'text-red-600'}`}>
+                        {vixData.currentChange}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Closing VIX */}
+              <Card className={`border-l-4 ${isClosingNegative ? 'border-l-green-500' : 'border-l-red-500'} shadow-sm`}>
+                <CardHeader className="py-2 px-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">VIX Fechamento</span>
+                    <span className="text-xs text-gray-500 flex items-center">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {vixData.closingTime}
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent className="py-2 px-3">
+                  <div className="flex items-center">
+                    {isClosingNegative ? (
+                      <TrendingDown className="h-8 w-8 text-green-500 mr-2" />
+                    ) : (
+                      <TrendingUp className="h-8 w-8 text-red-500 mr-2" />
+                    )}
+                    <div>
+                      <div className="text-xl font-bold">{vixData.closingValue}</div>
+                      <div className={`text-sm font-medium ${isClosingNegative ? 'text-green-600' : 'text-red-600'}`}>
+                        {vixData.closingChange}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Opening VIX */}
+              <Card className={`border-l-4 ${isOpeningNegative ? 'border-l-green-500' : 'border-l-red-500'} shadow-sm`}>
+                <CardHeader className="py-2 px-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">VIX Abertura</span>
+                    <span className="text-xs text-gray-500 flex items-center">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {vixData.openingTime}
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent className="py-2 px-3">
+                  <div className="flex items-center">
+                    {isOpeningNegative ? (
+                      <TrendingDown className="h-8 w-8 text-green-500 mr-2" />
+                    ) : (
+                      <TrendingUp className="h-8 w-8 text-red-500 mr-2" />
+                    )}
+                    <div>
+                      <div className="text-xl font-bold">{vixData.openingValue}</div>
+                      <div className={`text-sm font-medium ${isOpeningNegative ? 'text-green-600' : 'text-red-600'}`}>
+                        {vixData.openingChange}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
             
-            {chartData.length > 0 ? <ResponsiveContainer width="100%" height="70%">
-                <LineChart data={chartData} margin={{
-              top: 5,
-              right: 5,
-              bottom: 5,
-              left: 5
-            }}>
-                  <XAxis dataKey="name" hide />
-                  <YAxis domain={[minValue, maxValue]} hide />
-                  <Tooltip formatter={value => [parseFloat(value as string).toFixed(2), 'VIX']} contentStyle={{
-                backgroundColor: 'white',
-                border: '1px solid #e2e8f0'
-              }} />
-                  <ReferenceLine y={parseFloat(vixData.openingValue)} stroke="#888" strokeDasharray="3 3" />
-                  <Line type="monotone" dataKey="value" stroke="#0066FF" strokeWidth={2} dot={false} activeDot={{
-                r: 6
-              }} isAnimationActive={true} animationDuration={1000} />
-                </LineChart>
-              </ResponsiveContainer> : <div className="h-full flex items-center justify-center text-gray-400 my-0 mx-[2px] px-0 py-0">
-                Sem dados disponíveis para o gráfico
-              </div>}
-            
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              
-              <div className={`text-xs ${getParameterColor(vixData.tendencyParameter)}`}>
-                {vixData.tendencyParameter}
+            {/* VIX Parameters */}
+            <div className="mt-4 grid grid-cols-1 gap-2">
+              <div className="bg-gray-50 p-3 rounded text-sm">
+                <div className="font-medium mb-1">Parâmetros de Valor</div>
+                <div className="text-gray-600">{vixData.valueParameter}</div>
+              </div>
+              <div className="bg-gray-50 p-3 rounded text-sm">
+                <div className="font-medium mb-1">Gap de Abertura</div>
+                <div className="text-gray-600">{vixData.gapParameter}</div>
+              </div>
+              <div className="bg-gray-50 p-3 rounded text-sm">
+                <div className="font-medium mb-1">Tendência ({vixData.tendencyTime})</div>
+                <div className="text-gray-600">{vixData.tendencyParameter}</div>
               </div>
             </div>
           </div>
         </div>
       </CardContent>
-    </Card>;
+    </Card>
+  );
 };
+
 export default VixPanel;

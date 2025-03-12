@@ -1,7 +1,8 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpRight, ArrowDownRight, Clock } from "lucide-react";
+import { Landmark, Clock } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface ADRPanelProps {
   adrs: {
@@ -32,73 +33,58 @@ const ADRPanel: React.FC<ADRPanelProps> = ({ adrs }) => {
   };
 
   return (
-    <Card className="bg-white border-none shadow-lg">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between text-[#0066FF]">
-          <span className="flex items-center">
-            <ArrowUpRight className="h-5 w-5 mr-2" />
-            ADRs Brasileiras
-          </span>
+    <Card className="bg-white shadow-lg">
+      <CardHeader className="pb-2 border-b">
+        <CardTitle className="text-xl text-[#0066FF] flex items-center">
+          <Landmark className="h-6 w-6 mr-2" />
+          ADRs Brasileiras
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left py-3 px-4 font-semibold text-gray-600">ADR</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-600">Horário</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-600">Valor</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-600">Variação</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-600">Vs Fechamento</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-600">After Market</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(adrs).map(([key, adr]) => {
-                const isChangePositive = !adr.change.includes("-");
-                const isPrevChangePositive = !adr.prevChange.includes("-");
-                const isAfterChangePositive = !adr.afterChange.includes("-");
-                
-                return (
-                  <tr key={key} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="font-medium">{key}</div>
-                      <div className="text-xs text-gray-500">{getCompanyName(key)}</div>
-                    </td>
-                    <td className="py-3 px-4 text-right text-sm text-gray-500">
-                      <div className="flex items-center justify-end">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {adr.time}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right font-medium">${adr.value}</td>
-                    <td className="py-3 px-4 text-right">
-                      <div className={`flex items-center justify-end ${isChangePositive ? 'text-green-600' : 'text-red-600'}`}>
-                        {isChangePositive ? (
-                          <ArrowUpRight className="h-4 w-4 mr-1" />
-                        ) : (
-                          <ArrowDownRight className="h-4 w-4 mr-1" />
-                        )}
-                        <span className="font-medium">{adr.change}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <span className={`font-medium ${isPrevChangePositive ? 'text-green-600' : 'text-red-600'}`}>
-                        {adr.prevChange}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <span className={`font-medium ${isAfterChangePositive ? 'text-green-600' : 'text-red-600'}`}>
-                        {adr.afterChange}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      <CardContent className="p-4">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-gray-50">
+              <TableHead className="font-semibold">ADR</TableHead>
+              <TableHead className="text-right font-semibold">Horário</TableHead>
+              <TableHead className="text-right font-semibold">Valor</TableHead>
+              <TableHead className="text-right font-semibold">Variação</TableHead>
+              <TableHead className="text-right font-semibold">Vs Fechamento</TableHead>
+              <TableHead className="text-right font-semibold">After Market</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Object.entries(adrs).map(([key, adr]) => {
+              const isChangePositive = !adr.change.includes("-");
+              const isPrevChangePositive = !adr.prevChange.includes("-");
+              const isAfterChangePositive = !adr.afterChange.includes("-");
+              
+              return (
+                <TableRow key={key} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <TableCell>
+                    <div className="font-medium">{key}</div>
+                    <div className="text-xs text-gray-500">{getCompanyName(key)}</div>
+                  </TableCell>
+                  <TableCell className="text-right text-sm text-gray-500">
+                    <div className="flex items-center justify-end">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {adr.time}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">${adr.value}</TableCell>
+                  <TableCell className={`text-right font-medium ${isChangePositive ? 'text-green-600' : 'text-red-600'}`}>
+                    {adr.change}
+                  </TableCell>
+                  <TableCell className={`text-right font-medium ${isPrevChangePositive ? 'text-green-600' : 'text-red-600'}`}>
+                    {adr.prevChange}
+                  </TableCell>
+                  <TableCell className={`text-right font-medium ${isAfterChangePositive ? 'text-green-600' : 'text-red-600'}`}>
+                    {adr.afterChange}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

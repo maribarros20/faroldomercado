@@ -7,7 +7,7 @@ import { UserPlanProvider } from "@/contexts/UserPlanContext";
 const DashboardPage = () => {
   return (
     <UserPlanProvider>
-      <div className="animate-fade-in container mx-auto px-4 py-6 w-full">
+      <div className="animate-fade-in container mx-auto px-4 py-6 w-full max-w-[1400px]">
         <DashboardHeader />
         <DashboardTabs />
       </div>
