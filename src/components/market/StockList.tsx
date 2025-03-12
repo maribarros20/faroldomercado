@@ -74,8 +74,10 @@ const StockList: React.FC<StockListProps> = ({ stocks, onRemoveStock, isLoading 
           stocks.map((stock) => (
             <TableRow key={stock.ticker} className="hover:bg-gray-50">
               <TableCell>
-                <div className="font-medium">{stock.ticker}</div>
-                <div className="text-xs text-muted-foreground">{stock.updateTime}</div>
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">{stock.ticker}</div>
+                  <div className="text-xs text-gray-500">{stock.updateTime}</div>
+                </div>
               </TableCell>
               <TableCell className="text-right">{formatCurrency(stock.prevCloseD1)}</TableCell>
               <TableCell className="text-right">{formatCurrency(stock.openPrice)}</TableCell>
