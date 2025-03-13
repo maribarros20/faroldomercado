@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useUserPerformance } from "@/hooks/use-user-performance";
 import { PerformanceStats } from "@/components/admin/performance/PerformanceStats";
@@ -19,14 +18,12 @@ const AdminPerformance = () => {
   const handleExportCSV = () => {
     if (!userPerformance) return;
     
-    // Criar cabeçalho CSV
     const headers = [
       "ID", "Usuário", "Tipo de Conta", "Materiais Completos", 
       "Vídeos Assistidos", "Quizzes Completos", "Quizzes Passados", 
       "Nota Média", "Dias Ativos", "Conquistas", "Progresso Total"
     ];
     
-    // Mapear dados para linhas CSV
     const rows = userPerformance.map(user => [
       user.id,
       user.username || `${user.first_name} ${user.last_name}`,
@@ -41,13 +38,11 @@ const AdminPerformance = () => {
       user.total_progress
     ]);
     
-    // Combinar cabeçalho e linhas
     const csvContent = [
       headers.join(","),
       ...rows.map(row => row.join(","))
     ].join("\n");
     
-    // Criar link de download
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -63,7 +58,6 @@ const AdminPerformance = () => {
     });
   };
   
-  // Filtrar usuários com base no termo de busca e tipo de usuário
   const filteredUsers = userPerformance?.filter(user => {
     const searchMatch = 
       (user.username?.toLowerCase().includes(searchTerm.toLowerCase()) || 

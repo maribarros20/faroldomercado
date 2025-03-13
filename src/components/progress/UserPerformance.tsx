@@ -55,6 +55,7 @@ const UserPerformance: React.FC<UserPerformanceProps> = ({ userId }) => {
   
   // Calculate performance level
   const getPerformanceLevel = () => {
+    if (!performance) return "Iniciante";
     if (performance.total_progress >= 90) return "Especialista";
     if (performance.total_progress >= 70) return "Avançado";
     if (performance.total_progress >= 40) return "Intermediário";
@@ -62,14 +63,15 @@ const UserPerformance: React.FC<UserPerformanceProps> = ({ userId }) => {
   };
   
   const getPerformanceColor = () => {
+    if (!performance) return "#6b7280"; // gray
     if (performance.total_progress >= 90) return "#10b981"; // green
     if (performance.total_progress >= 70) return "#3b82f6"; // blue
     if (performance.total_progress >= 40) return "#f59e0b"; // amber
     return "#6b7280"; // gray
   };
   
-  // Calculamos o progresso do nível atual
-  const xp = performance.experience_points || 0;
+  // Calculate progress for current level
+  const xp = performance?.experience_points || 0;
   const levelInfo = calculateUserLevel(xp);
   
   return (

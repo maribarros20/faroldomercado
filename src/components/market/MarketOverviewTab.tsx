@@ -7,7 +7,7 @@ import {
   AlertTriangle, 
   Clock, 
   BarChart4, 
-  LineChart, 
+  LineChart as LineChartIcon, 
   DollarSign, 
   Activity, 
   Landmark,
@@ -26,7 +26,7 @@ import SafetyAssetsPanel from "@/components/market/SafetyAssetsPanel";
 import EconomicDataPanel from "@/components/market/EconomicDataPanel";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ResponsiveContainer, Line } from "recharts";
+import { ResponsiveContainer, Line, LineChart, XAxis, YAxis } from "recharts";
 
 const MarketOverviewTab: React.FC = () => {
   const [marketData, setMarketData] = useState<MarketDataResponse | null>(null);
@@ -256,7 +256,7 @@ const MarketOverviewTab: React.FC = () => {
       {/* VIX Panel */}
       <VixPanel />
 
-      {/* Brazilian Market Indices - Row of Cards */}
+      {/* Brazilian Market Indices - Row of Cards - Moved below VIX */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {marketData.marketIndices && marketData.marketIndices.IBOV && (
           <Card className={`shadow-md ${marketData.marketIndices.IBOV.change.includes('-') ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-green-500'}`}>
@@ -269,7 +269,7 @@ const MarketOverviewTab: React.FC = () => {
             <CardContent className="p-3">
               <div className="flex justify-between items-center">
                 <div className="text-xl font-bold">{marketData.marketIndices.IBOV.value}</div>
-                <div className={`text-lg font-bold ${marketData.marketIndices.IBOV.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`text-xl font-bold ${marketData.marketIndices.IBOV.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
                   {marketData.marketIndices.IBOV.change}
                 </div>
               </div>
@@ -308,7 +308,7 @@ const MarketOverviewTab: React.FC = () => {
             <CardContent className="p-3">
               <div className="flex justify-between items-center">
                 <div className="text-xl font-bold">{marketData.marketIndices.VALE3.value}</div>
-                <div className={`text-lg font-bold ${marketData.marketIndices.VALE3.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`text-xl font-bold ${marketData.marketIndices.VALE3.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
                   {marketData.marketIndices.VALE3.change}
                 </div>
               </div>
@@ -347,7 +347,7 @@ const MarketOverviewTab: React.FC = () => {
             <CardContent className="p-3">
               <div className="flex justify-between items-center">
                 <div className="text-xl font-bold">{marketData.marketIndices.PETR4.value}</div>
-                <div className={`text-lg font-bold ${marketData.marketIndices.PETR4.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`text-xl font-bold ${marketData.marketIndices.PETR4.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
                   {marketData.marketIndices.PETR4.change}
                 </div>
               </div>
@@ -386,7 +386,7 @@ const MarketOverviewTab: React.FC = () => {
             <CardContent className="p-3">
               <div className="flex justify-between items-center">
                 <div className="text-xl font-bold">{marketData.marketIndices.EWZ.value}</div>
-                <div className={`text-lg font-bold ${marketData.marketIndices.EWZ.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`text-xl font-bold ${marketData.marketIndices.EWZ.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
                   {marketData.marketIndices.EWZ.change}
                 </div>
               </div>
@@ -425,7 +425,7 @@ const MarketOverviewTab: React.FC = () => {
             <CardContent className="p-3">
               <div className="flex justify-between items-center">
                 <div className="text-xl font-bold">{marketData.marketIndices.BIT_FUT.value}</div>
-                <div className={`text-lg font-bold ${marketData.marketIndices.BIT_FUT.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`text-xl font-bold ${marketData.marketIndices.BIT_FUT.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
                   {marketData.marketIndices.BIT_FUT.change}
                 </div>
               </div>
