@@ -243,7 +243,7 @@ export const createNews = async (newsData: NewsItem): Promise<NewsItem> => {
     
     return {
       ...data,
-      source: 'manual'
+      source: 'Farol Investe'
     };
   } catch (error) {
     console.error("Erro ao criar notícia:", error);

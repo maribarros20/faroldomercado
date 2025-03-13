@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -638,6 +637,83 @@ async function fetchAllExternalNews(category?: string): Promise<NewsItem[]> {
   }
 }
 
+// Buscar todas as notícias (manuais + APIs + RSS + Twitter + Reuters + Forbes)
+export const fetchAllNews = async (
+  category?: string, 
+  search?: string
+): Promise<NewsItem[]> => {
+  try {
+    // Chamar a edge function que lida com todas as fontes de notícias tradicionais
+    const { data, error } = await supabase.functions.invoke('fetch-news', {
+      body: { category }
+    });
+    
+    if (error) {
+      console.error("Erro ao buscar todas as notícias:", error);
+      return [];
+    }
+    
+    // Chamar a nova edge function para redes sociais e fontes adicionais
+    const { data: socialData, error: socialError } = await supabase.functions.invoke('fetch-twitter-news');
+    
+    if (socialError) {
+      console.error("Erro ao buscar dados de redes sociais:", socialError);
+      // Continuar com as notícias tradicionais mesmo se falhar
+    }
+    
+    // Garantir que todo o conteúdo esteja limpo de tags CDATA e HTML
+    let allNews = data ? data.map((item: NewsItem) => ({
+      ...item,
+      title: cleanContent(item.title),
+      subtitle: cleanContent(item.subtitle),
+      content: cleanContent(item.content),
+      author: cleanContent(item.author),
+      category: cleanContent(item.category),
+      image_url: getValidImageUrl(item.image_url),
+      source: item.source === "manual" ? "Farol Investe" : item.source
+    })) : [];
+    
+    // Adicionar dados de redes sociais e fontes adicionais, se disponíveis
+    if (socialData) {
+      const socialNews = socialData.map((item: NewsItem) => ({
+        ...item,
+        title: cleanContent(item.title),
+        subtitle: cleanContent(item.subtitle),
+        content: cleanContent(item.content),
+        author: cleanContent(item.author),
+        category: cleanContent(item.category),
+        image_url: getValidImageUrl(item.image_url)
+      }));
+      
+      allNews = [...allNews, ...socialNews];
+    }
+    
+    // Filtrar por termo de busca se especificado
+    if (search) {
+      const searchLower = search.toLowerCase();
+      allNews = allNews.filter(news => 
+        news.title.toLowerCase().includes(searchLower) || 
+        news.content.toLowerCase().includes(searchLower) || 
+        news.subtitle?.toLowerCase().includes(searchLower) || 
+        news.author?.toLowerCase().includes(searchLower) ||
+        news.source?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Ordenar por data (mais recentes primeiro)
+    allNews.sort((a, b) => {
+      const dateA = new Date(a.publication_date || a.created_at || "").getTime();
+      const dateB = new Date(b.publication_date || b.created_at || "").getTime();
+      return dateB - dateA;
+    });
+    
+    return allNews;
+  } catch (error) {
+    console.error("Erro ao buscar todas as notícias:", error);
+    return [];
+  }
+};
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -676,11 +752,33 @@ Deno.serve(async (req) => {
     // Formatar notícias manuais para ter o mesmo formato das externas
     const formattedManualNews = manualNews ? manualNews.map(item => ({
       ...item,
-      source: 'manual'
+      source: 'Farol Investe'
     })) : [];
 
+    // Buscar notícias sociais e fontes adicionais
+    let socialNews = [];
+    try {
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/fetch-twitter-news`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (response.ok) {
+        socialNews = await response.json();
+      }
+    } catch (socialError) {
+      console.error('Erro ao buscar notícias sociais:', socialError);
+      // Continuar mesmo se falhar
+    }
+
     // Combinar e ordenar por data de publicação (mais recentes primeiro)
-    const allNews = [...formattedManualNews, ...externalNews].sort((a, b) => {
+    const allNews = [...formattedManualNews, ...externalNews, ...socialNews].sort((a, b) => {
       return new Date(b.publication_date || b.created_at || '').getTime() - 
              new Date(a.publication_date || a.created_at || '').getTime();
     });
