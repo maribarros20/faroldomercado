@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,6 +14,9 @@ import AuthPage from "@/pages/AuthPage";
 import PlansPage from "@/pages/PlansPage";
 import ProfileSettingsPage from "@/pages/ProfileSettingsPage";
 import AdminPage from "@/pages/AdminPage";
+import QuizzesPage from "./pages/QuizzesPage";
+import QuizDetailPage from "./pages/QuizDetailPage";
+import QuizCreatePage from "./pages/QuizCreatePage";
 import { supabase } from "@/integrations/supabase/client";
 import VideoDetail from "@/components/videos/VideoDetail";
 import { useToast } from "@/hooks/use-toast";
@@ -24,7 +26,6 @@ function App() {
   const location = useLocation();
   const { toast } = useToast();
 
-  // Check if user is authenticated on initial load and set up auth listener
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -41,7 +42,6 @@ function App() {
         const publicPaths = ['/', '/auth', '/register'];
         
         if (!data.session && !publicPaths.includes(location.pathname)) {
-          // Display toast only if not already on a public page
           if (location.pathname !== '/auth') {
             toast({
               title: "Sessão expirada",
@@ -50,7 +50,6 @@ function App() {
           }
           navigate("/auth", { replace: true });
         } else if (data.session && publicPaths.includes(location.pathname)) {
-          // If authenticated and on a public page, redirect to dashboard
           navigate("/dashboard", { replace: true });
         }
       } catch (error) {
@@ -61,32 +60,27 @@ function App() {
 
     checkAuth();
 
-    // Set up auth state listener
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth event:", event);
         
         if (event === 'SIGNED_OUT') {
-          // Always redirect to auth page on sign out and show toast
           navigate('/auth', { replace: true });
           toast({
             title: "Sessão encerrada",
             description: "Você foi desconectado com sucesso.",
           });
         } else if (event === 'SIGNED_IN' && session) {
-          // Redirect to dashboard on sign in if on a public page
           const publicPaths = ['/', '/auth', '/register'];
           if (publicPaths.includes(location.pathname)) {
             navigate('/dashboard', { replace: true });
           }
           
-          // Display welcome toast on successful sign in
           toast({
             title: "Bem-vindo!",
             description: "Login realizado com sucesso.",
           });
         } else if (event === 'PASSWORD_RECOVERY') {
-          // Handle password recovery event
           navigate('/auth?reset=true', { replace: true });
           toast({
             title: "Recuperação de senha",
@@ -120,6 +114,9 @@ function App() {
           <Route path="/plans" element={<PlansPage />} />
           <Route path="/profile-settings" element={<ProfileSettingsPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/quizzes" element={<QuizzesPage />} />
+          <Route path="/quizzes/:quizId" element={<QuizDetailPage />} />
+          <Route path="/quizzes/create" element={<QuizCreatePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppLayout>

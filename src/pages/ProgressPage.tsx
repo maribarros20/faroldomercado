@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,11 +13,11 @@ import LearningStats from "@/components/progress/LearningStats";
 import UserPerformance from "@/components/progress/UserPerformance";
 import { toast } from "@/components/ui/use-toast";
 import { calculateUserLevel } from "@/hooks/use-user-performance";
+import QuizAttemptsList from "@/components/quiz/QuizAttemptsList";
 
 const ProgressPage = () => {
   const navigate = useNavigate();
 
-  // Log login activity when the page loads
   useEffect(() => {
     const logActivity = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -34,7 +33,6 @@ const ProgressPage = () => {
     logActivity();
   }, []);
 
-  // Fetch user activity statistics
   const { data: userStats, isLoading: statsLoading } = useQuery({
     queryKey: ['user-activity-stats'],
     queryFn: async () => {
@@ -52,7 +50,6 @@ const ProgressPage = () => {
       
       if (error) {
         console.error("Error fetching user stats:", error);
-        // If the user doesn't have any activity yet, return default values
         if (error.code === 'PGRST116') {
           return {
             materials_read: 0,
@@ -72,7 +69,6 @@ const ProgressPage = () => {
     }
   });
 
-  // Fetch user achievements
   const { data: achievements, isLoading: achievementsLoading } = useQuery({
     queryKey: ['user-achievements'],
     queryFn: async () => {
@@ -97,7 +93,6 @@ const ProgressPage = () => {
     }
   });
 
-  // Fetch recent activities
   const { data: recentActivities, isLoading: activitiesLoading } = useQuery({
     queryKey: ['recent-activities'],
     queryFn: async () => {
@@ -125,7 +120,6 @@ const ProgressPage = () => {
   
   const isLoading = statsLoading || achievementsLoading || activitiesLoading;
 
-  // Cálculo XP para o usuário atual baseado nas atividades
   const calculateUserXP = () => {
     if (!userStats) return 0;
     
@@ -137,11 +131,9 @@ const ProgressPage = () => {
     return materialsXP + videosXP + quizzesXP + achievementsXP;
   };
   
-  // Calcular informações de nível para exibição
   const xp = calculateUserXP();
   const userLevelInfo = calculateUserLevel(xp);
 
-  // Handle potential error state
   if (!isLoading && !userStats) {
     toast({
       title: "Erro ao carregar dados",
@@ -174,7 +166,6 @@ const ProgressPage = () => {
           </div>
         ) : (
           <div className="space-y-8">
-            {/* User level card */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -228,7 +219,6 @@ const ProgressPage = () => {
               </Card>
             </motion.div>
 
-            {/* User Performance */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -237,7 +227,22 @@ const ProgressPage = () => {
               <UserPerformance />
             </motion.div>
 
-            {/* Stats and charts */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quizzes Recentes</CardTitle>
+                  <CardDescription>Seus últimos quizzes realizados</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <QuizAttemptsList limit={5} />
+                </CardContent>
+              </Card>
+            </motion.div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -278,7 +283,6 @@ const ProgressPage = () => {
               </motion.div>
             </div>
 
-            {/* Achievements */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
