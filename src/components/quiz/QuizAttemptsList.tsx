@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Table,
@@ -11,16 +12,30 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { QuizAttempt } from "@/types/quiz";
 import { Clock } from "lucide-react";
+import { useUserQuizAttempts } from "@/hooks/use-quizzes";
+import { useAuth } from "@/hooks/use-auth";
 
 interface QuizAttemptsListProps {
-  attempts: QuizAttempt[];
+  attempts?: QuizAttempt[];
+  limit?: number;
 }
 
-const QuizAttemptsList: React.FC<QuizAttemptsListProps> = ({ attempts }) => {
+const QuizAttemptsList: React.FC<QuizAttemptsListProps> = ({ attempts: propAttempts, limit }) => {
+  const { user } = useAuth();
+  const { data: fetchedAttempts, isLoading } = useUserQuizAttempts(user?.id);
+  
+  const attempts = propAttempts || fetchedAttempts;
+  
+  if (isLoading) {
+    return <div className="text-center py-4">Carregando tentativas...</div>;
+  }
 
   if (!attempts || attempts.length === 0) {
     return <div className="text-center py-4">Nenhuma tentativa encontrada.</div>;
   }
+
+  // Apply limit if specified
+  const displayedAttempts = limit ? attempts.slice(0, limit) : attempts;
 
   return (
     <div className="w-full overflow-x-auto">
@@ -36,8 +51,7 @@ const QuizAttemptsList: React.FC<QuizAttemptsListProps> = ({ attempts }) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {attempts.map((attempt) => {
-            const variantClass = attempt.passed ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200";
+          {displayedAttempts.map((attempt) => {
             const badgeVariant = attempt.passed ? "default" : "destructive";
             const badgeClass = attempt.passed ? "bg-green-100 text-green-800 hover:bg-green-100" : "";
 
