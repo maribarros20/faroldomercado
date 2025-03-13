@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuiz, useQuizQuestions, useSubmitQuiz } from "@/hooks/use-quizzes";
@@ -35,7 +34,7 @@ const Quiz: React.FC = () => {
   const navigate = useNavigate();
   
   const { data: quiz, isLoading: quizLoading, error: quizError } = useQuiz(quizId);
-  const { data: questions, isLoading: questionsLoading } = useQuizQuestions(quizId);
+  const { data: questions, isLoading: questionsLoading, error: questionsError } = useQuizQuestions(quizId);
   const submitQuizMutation = useSubmitQuiz();
   
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -44,7 +43,14 @@ const Quiz: React.FC = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showHint, setShowHint] = useState(false);
   
-  // Timer for quiz
+  useEffect(() => {
+    console.log("Quiz component rendered with quizId:", quizId);
+    console.log("Quiz data:", quiz);
+    console.log("Questions data:", questions);
+    console.log("Loading states:", { quizLoading, questionsLoading });
+    console.log("Errors:", { quizError, questionsError });
+  }, [quizId, quiz, questions, quizLoading, questionsLoading, quizError, questionsError]);
+  
   useEffect(() => {
     const timer = setInterval(() => {
       setElapsedTime(prev => prev + 1);
@@ -69,12 +75,26 @@ const Quiz: React.FC = () => {
     );
   }
   
-  if (quizError || !quiz || !questions || questions.length === 0) {
+  if (quizError || !quiz) {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-semibold mb-2">Quiz não encontrado</h2>
         <p className="text-gray-500 mb-6">
-          O quiz que você está tentando acessar não existe ou não tem perguntas.
+          O quiz que você está tentando acessar não existe.
+          {quizError && <span className="block text-red-500 mt-2">{String(quizError)}</span>}
+        </p>
+        <Button onClick={() => navigate('/quizzes')}>Voltar para Quizzes</Button>
+      </div>
+    );
+  }
+  
+  if (questionsError || !questions || questions.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-xl font-semibold mb-2">Não há perguntas disponíveis</h2>
+        <p className="text-gray-500 mb-6">
+          Este quiz não possui perguntas ou ocorreu um erro ao carregá-las.
+          {questionsError && <span className="block text-red-500 mt-2">{String(questionsError)}</span>}
         </p>
         <Button onClick={() => navigate('/quizzes')}>Voltar para Quizzes</Button>
       </div>
@@ -82,20 +102,16 @@ const Quiz: React.FC = () => {
   }
   
   const handleAnswerChange = (questionId: string, answer: string) => {
-    // Check if we already have an answer for this question
     const existingAnswerIndex = answers.findIndex(a => a.question_id === questionId);
     
     if (existingAnswerIndex >= 0) {
-      // Update existing answer
       const newAnswers = [...answers];
       newAnswers[existingAnswerIndex] = { question_id: questionId, answer };
       setAnswers(newAnswers);
     } else {
-      // Add new answer
       setAnswers([...answers, { question_id: questionId, answer }]);
     }
     
-    // Reset hint state when answer changes
     setShowHint(false);
   };
   
@@ -118,7 +134,6 @@ const Quiz: React.FC = () => {
   };
   
   const handleSubmit = async () => {
-    // Check if all questions are answered
     if (answers.length < questions.length) {
       toast({
         title: "Atenção",
@@ -142,7 +157,6 @@ const Quiz: React.FC = () => {
         description: "Você será redirecionado para ver seus resultados.",
       });
       
-      // Navigate to results page
       navigate('/progress');
     } catch (error) {
       console.error("Error submitting quiz:", error);

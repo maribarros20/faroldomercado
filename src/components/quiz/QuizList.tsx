@@ -13,11 +13,17 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 const QuizList: React.FC = () => {
-  const { data: quizzes, isLoading } = useQuizzes();
+  const { data: quizzes, isLoading, error } = useQuizzes();
   const { data: attempts } = useUserQuizAttempts();
   const [searchTerm, setSearchTerm] = React.useState("");
   const [categoryFilter, setCategoryFilter] = React.useState<string>("");
   const [difficultyFilter, setDifficultyFilter] = React.useState<string>("");
+
+  React.useEffect(() => {
+    console.log("Quizzes loaded:", quizzes);
+    console.log("Loading state:", isLoading);
+    console.log("Error:", error);
+  }, [quizzes, isLoading, error]);
 
   // Extract unique categories from quizzes
   const categories = quizzes 
@@ -54,6 +60,18 @@ const QuizList: React.FC = () => {
             </div>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-3xl">❌</div>
+        <h3 className="text-lg font-medium mt-2">Erro ao carregar quizzes</h3>
+        <p className="text-muted-foreground mt-1">
+          {String(error)}
+        </p>
       </div>
     );
   }

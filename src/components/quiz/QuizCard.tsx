@@ -28,13 +28,20 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz, latestAttempt }) => {
     }
   };
 
+  const handleQuizClick = () => {
+    console.log("Navigating to quiz:", quiz.id);
+    navigate(`/quizzes/${quiz.id}`);
+  };
+
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <CardTitle className="text-xl">{quiz.title}</CardTitle>
           <Badge variant="outline" className={getDifficultyColor(quiz.difficulty)}>
-            {quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)}
+            {quiz.difficulty === 'beginner' ? 'Iniciante' : 
+             quiz.difficulty === 'intermediate' ? 'Intermediário' : 
+             quiz.difficulty === 'advanced' ? 'Avançado' : quiz.difficulty}
           </Badge>
         </div>
         <CardDescription>{quiz.description}</CardDescription>
@@ -75,7 +82,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz, latestAttempt }) => {
         <Button 
           variant="default" 
           className="w-full"
-          onClick={() => navigate(`/quizzes/${quiz.id}`)}
+          onClick={handleQuizClick}
         >
           {latestAttempt ? "Refazer Quiz" : "Iniciar Quiz"}
         </Button>
