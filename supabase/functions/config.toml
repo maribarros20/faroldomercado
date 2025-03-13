@@ -10,3 +10,6 @@ verify_jwt = false
 [functions.daily-market-summary]
 verify_jwt = false
 schedule = "0 6 * * *"
+
+[functions.fetch-bcb-news]
+verify_jwt = false

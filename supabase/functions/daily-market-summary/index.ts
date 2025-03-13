@@ -16,6 +16,7 @@ interface NewsItem {
   image_url?: string;
   source: string;
   source_url?: string;
+  created_at?: string;
 }
 
 interface NewsSummarySource {
@@ -110,20 +111,24 @@ async function generateMarketSummary(allNews: NewsItem[]): Promise<NewsItem> {
   summaryContent += '- Negociações comerciais entre EUA e China avançam lentamente, com foco em tecnologia e propriedade intelectual.\n';
   summaryContent += '- Situação no Oriente Médio permanece instável, afetando os preços do petróleo e criando volatilidade nos mercados.\n';
   
-  // Adicionar seção de fontes e referências
+  // Adicionar seção de fontes e referências com detalhes completos
   summaryContent += '\n## Fontes e Referências\n\n';
   
   if (sources.length > 0) {
     sources.forEach((source, index) => {
       const dateFormatted = new Date(source.date).toLocaleDateString('pt-BR');
-      summaryContent += `${index + 1}. [${source.title}](${source.source_url}) - ${source.source} (${dateFormatted})\n`;
+      const sourceTitle = source.title.length > 60 ? source.title.substring(0, 60) + '...' : source.title;
+      
+      // Adicionar fonte com URL mesmo se for inválida (usuário poderá editar manualmente)
+      summaryContent += `${index + 1}. [${sourceTitle}](${source.source_url || '#'}) - ${source.source} (${dateFormatted})\n`;
     });
   } else {
     summaryContent += 'Resumo compilado pela equipe editorial do Farol Investe com base nas tendências observadas nos mercados financeiros.\n';
   }
   
-  // Adicionar link para ler matéria completa (se houver)
-  summaryContent += '\n\n[Ler matéria completa](https://farolinveste.com.br/resumo-mercado)\n';
+  // Adicionar link válido para ler matéria completa
+  const siteUrl = 'https://farolinveste.com.br';
+  summaryContent += `\n\n[Ler matéria completa](${siteUrl}/resumo-mercado)\n`;
   
   // Criar o item de notícia de resumo
   return {
@@ -135,7 +140,7 @@ async function generateMarketSummary(allNews: NewsItem[]): Promise<NewsItem> {
     category: 'Resumo de Mercado',
     image_url: '/lovable-uploads/08c37f81-bb96-41bd-9b6e-2ade4bae59df.png',
     source: 'Farol Investe',
-    source_url: 'https://farolinveste.com.br/resumo-mercado',
+    source_url: `${siteUrl}/resumo-mercado`,
   };
 }
 
@@ -206,6 +211,7 @@ Deno.serve(async (req) => {
           author: 'Farol Investe',
           category: 'Resumo de Mercado',
           image_url: '/lovable-uploads/08c37f81-bb96-41bd-9b6e-2ade4bae59df.png',
+          source: 'Farol Investe',
           source_url: 'https://farolinveste.com.br/resumo-mercado',
           created_at: new Date().toISOString()
         }]);
@@ -213,7 +219,7 @@ Deno.serve(async (req) => {
       if (error) {
         console.error('Erro ao salvar resumo de mercado:', error);
         return new Response(
-          JSON.stringify({ error: 'Erro ao salvar resumo de mercado' }),
+          JSON.stringify({ error: 'Erro ao salvar resumo de mercado', details: error }),
           { 
             status: 400, 
             headers: { 
@@ -250,7 +256,8 @@ Deno.serve(async (req) => {
     console.error('Erro na função daily-market-summary:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message 
+        error: error.message,
+        stack: error.stack
       }),
       { 
         status: 400, 

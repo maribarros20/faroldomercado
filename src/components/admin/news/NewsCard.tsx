@@ -28,9 +28,6 @@ export const NewsCard = ({ newsItem }: NewsCardProps) => {
   // Se a fonte for "manual", mudar para "Farol Investe"
   const displaySource = newsItem.source === "manual" ? "Farol Investe" : newsItem.source;
 
-  // Verificar se o link é válido e não vazio
-  const hasValidLink = !!newsItem.source_url && newsItem.source_url.startsWith('http');
-  
   // Função para validar URL externo
   const getValidSourceUrl = (url?: string): string => {
     if (!url) return '#';
@@ -40,7 +37,7 @@ export const NewsCard = ({ newsItem }: NewsCardProps) => {
       new URL(url);
       return url;
     } catch (e) {
-      console.error("URL inválida:", url);
+      // Tratar silenciosamente urls inválidas sem logar erro
       return '#';
     }
   };
@@ -50,13 +47,23 @@ export const NewsCard = ({ newsItem }: NewsCardProps) => {
     if (newsItem.category === 'Resumo de Mercado' && newsItem.content) {
       const match = newsItem.content.match(/\[Ler matéria completa\]\(([^)]+)\)/);
       if (match && match[1]) {
-        return match[1];
+        try {
+          // Validar a URL extraída
+          new URL(match[1]);
+          return match[1];
+        } catch (e) {
+          // Se URL for inválida, apontar para uma rota interna
+          return '/market-news';
+        }
       }
     }
     return newsItem.source_url || '#';
   };
 
   const sourceUrl = extractReadMoreLink();
+  
+  // Verifica se o link é válido e não vazio
+  const hasValidLink = (sourceUrl !== '#') && sourceUrl.startsWith('http');
 
   return (
     <Card className="overflow-hidden h-full flex flex-col">
@@ -102,10 +109,10 @@ export const NewsCard = ({ newsItem }: NewsCardProps) => {
           )}
         </div>
       </CardContent>
-      {(hasValidLink || newsItem.category === 'Resumo de Mercado') && (
+      {hasValidLink && (
         <CardFooter className="p-4 pt-0">
           <a
-            href={getValidSourceUrl(sourceUrl)}
+            href={sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs flex items-center gap-1 text-primary hover:underline"

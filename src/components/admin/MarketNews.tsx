@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   fetchAllNews, NEWS_CATEGORIES, FINANCIAL_NEWS_SOURCES, NewsItem 
@@ -10,13 +11,14 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Search, RefreshCw, Filter, Newspaper, Twitter, BarChart3
+  Search, RefreshCw, Filter, Newspaper, Twitter, BarChart3, Bank
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { NewsCard } from "./news/NewsCard";
 import { Badge } from "@/components/ui/badge";
 import { TwitterFeed } from "./twitter/TwitterFeed";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 
 // Categorias financeiras para filtro
 const FINANCE_CATEGORIES = [
@@ -28,7 +30,12 @@ const FINANCE_CATEGORIES = [
   "Commodities",
   "Economia",
   "Negócios",
-  "Resumo de Mercado"
+  "Resumo de Mercado",
+  "Comunicados BCB",
+  "Notícias BCB",
+  "Comunicados COPOM",
+  "Relatório de Inflação",
+  "Boletim Focus"
 ];
 
 const MarketNews = () => {
@@ -79,6 +86,27 @@ const MarketNews = () => {
     refetchInterval: 10 * 60 * 1000, // Atualizar a cada 10 minutos
   });
 
+  // Buscar notícias do Banco Central
+  const {
+    data: bcbNews,
+    isLoading: isBcbLoading,
+    refetch: refetchBcb
+  } = useQuery({
+    queryKey: ['bcb-news'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('fetch-bcb-news');
+      
+      if (error) {
+        console.error("Erro ao buscar notícias do Banco Central:", error);
+        return [];
+      }
+      
+      return data || [];
+    },
+    staleTime: 30 * 60 * 1000, // 30 minutos
+    refetchInterval: 60 * 60 * 1000, // Atualizar a cada 1 hora
+  });
+
   // Filtrar tweets
   const twitterPosts = React.useMemo(() => {
     if (!news) return [];
@@ -91,6 +119,17 @@ const MarketNews = () => {
     return news.filter(item => item.category === 'Resumo de Mercado');
   }, [news]);
 
+  // Filtrar notícias do Banco Central por categoria
+  const getBcbNewsByCategory = (category?: string) => {
+    if (!bcbNews) return [];
+    
+    if (category) {
+      return bcbNews.filter(item => item.category === category);
+    }
+    
+    return bcbNews;
+  };
+
   // Extrair fontes únicas das notícias para o filtro
   const getUniqueSources = () => {
     if (!news) return [];
@@ -101,6 +140,7 @@ const MarketNews = () => {
 
   const handleRefresh = () => {
     refetch();
+    refetchBcb();
     toast({
       title: "Atualizando notícias",
       description: "Buscando as notícias mais recentes do mercado financeiro.",
@@ -320,6 +360,10 @@ const MarketNews = () => {
             <Twitter size={14} />
             Twitter
           </TabsTrigger>
+          <TabsTrigger value="bcb" className="flex items-center gap-1">
+            <Bank size={14} />
+            Banco Central
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="all">
@@ -397,6 +441,122 @@ const MarketNews = () => {
               <TwitterFeed tweets={twitterPosts} />
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="bcb">
+          {isBcbLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="h-6 bg-gray-200 rounded w-3/4" />
+                    <div className="h-4 bg-gray-200 rounded w-full" />
+                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : bcbNews && bcbNews.length > 0 ? (
+            <div className="space-y-6">
+              {/* Abas secundárias para categorias do BCB */}
+              <Tabs defaultValue="all">
+                <TabsList>
+                  <TabsTrigger value="all">Todos</TabsTrigger>
+                  <TabsTrigger value="Comunicados BCB">Comunicados</TabsTrigger>
+                  <TabsTrigger value="Notícias BCB">Notícias</TabsTrigger>
+                  <TabsTrigger value="Comunicados COPOM">COPOM</TabsTrigger>
+                  <TabsTrigger value="Relatório de Inflação">RI</TabsTrigger>
+                  <TabsTrigger value="Boletim Focus">Focus</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="all" className="mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {bcbNews.map((item, index) => (
+                      <Card key={`bcb-${index}`}>
+                        <CardContent className="p-4">
+                          <Badge variant="outline" className="mb-2">{item.category}</Badge>
+                          <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                          <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                            {item.content}
+                          </p>
+                          <div className="text-xs text-muted-foreground mb-3">
+                            {new Date(item.publication_date).toLocaleDateString('pt-BR')}
+                          </div>
+                          {item.source_url && (
+                            <a
+                              href={item.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs flex items-center gap-1 text-primary hover:underline"
+                            >
+                              <ExternalLink size={12} />
+                              Ver no site do BCB
+                            </a>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </TabsContent>
+                
+                {["Comunicados BCB", "Notícias BCB", "Comunicados COPOM", "Relatório de Inflação", "Boletim Focus"].map(category => (
+                  <TabsContent key={category} value={category} className="mt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {getBcbNewsByCategory(category).map((item, index) => (
+                        <Card key={`bcb-cat-${index}`}>
+                          <CardContent className="p-4">
+                            <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                            <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                              {item.content}
+                            </p>
+                            <div className="text-xs text-muted-foreground mb-3">
+                              {new Date(item.publication_date).toLocaleDateString('pt-BR')}
+                            </div>
+                            {item.source_url && (
+                              <a
+                                href={item.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs flex items-center gap-1 text-primary hover:underline"
+                              >
+                                <ExternalLink size={12} />
+                                Ver no site do BCB
+                              </a>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                      {getBcbNewsByCategory(category).length === 0 && (
+                        <Card className="col-span-full">
+                          <CardContent className="p-6 text-center">
+                            <p className="text-muted-foreground">
+                              Nenhuma notícia encontrada para esta categoria.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-muted-foreground">
+                  Nenhuma notícia do Banco Central encontrada.
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => refetchBcb()}
+                  className="mt-4"
+                >
+                  <RefreshCw size={16} className="mr-2" />
+                  Buscar notícias do BCB
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
