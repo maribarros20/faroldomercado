@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -7,12 +8,9 @@ import {
   AlertTriangle, 
   Clock, 
   BarChart4, 
-  LineChart as LineChartIcon, 
   DollarSign, 
   Activity, 
   Landmark,
-  GlobeLock,
-  ChevronDown,
   ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,12 +19,11 @@ import VixPanel from "@/components/market/VixPanel";
 import MarketAlertPanel from "@/components/market/MarketAlertPanel";
 import ADRPanel from "@/components/market/ADRPanel";
 import CommoditiesPanel from "@/components/market/CommoditiesPanel";
-import MarketIndicesPanel from "@/components/market/MarketIndicesPanel";
 import SafetyAssetsPanel from "@/components/market/SafetyAssetsPanel";
 import EconomicDataPanel from "@/components/market/EconomicDataPanel";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ResponsiveContainer, Line, LineChart, XAxis, YAxis } from "recharts";
+import { ResponsiveContainer, Line, LineChart } from "recharts";
 
 const MarketOverviewTab: React.FC = () => {
   const [marketData, setMarketData] = useState<MarketDataResponse | null>(null);
@@ -75,6 +72,11 @@ const MarketOverviewTab: React.FC = () => {
 
   const formatTime = (time: string) => {
     return time || "Sem horário";
+  };
+
+  const isNegative = (change: string) => {
+    if (!change) return false;
+    return change.includes('-');
   };
 
   if (isLoading && !marketData) {
@@ -149,7 +151,13 @@ const MarketOverviewTab: React.FC = () => {
       {/* ADRs and Commodities Summary Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* ADRs Current Status Card */}
-        <Card className={`border-l-4 shadow-lg ${marketData.adrsCurrent.isNegative ? 'border-l-red-500' : 'border-l-green-500'} bg-white`}>
+        <Card className={`border-l-4 shadow-lg ${
+          marketData.adrsCurrent.isNegative
+            ? 'border-l-[#ef4444]' 
+            : marketData.adrsCurrent.value === '0%'
+              ? 'border-l-[#0066FF]' 
+              : 'border-l-[#22c55e]'
+        } bg-white`}>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-lg">
               <span className="flex items-center">
@@ -167,7 +175,13 @@ const MarketOverviewTab: React.FC = () => {
               <div className="text-3xl font-bold">
                 {marketData.adrsCurrent.value}
               </div>
-              <div className={`text-2xl font-bold ${marketData.adrsCurrent.isNegative ? 'text-red-600' : 'text-green-600'}`}>
+              <div className={`text-2xl font-bold ${
+                marketData.adrsCurrent.isNegative
+                  ? 'text-[#ef4444]' 
+                  : marketData.adrsCurrent.value === '0%'
+                    ? 'text-black' 
+                    : 'text-[#22c55e]'
+              }`}>
                 {marketData.adrsCurrent.parameter}
               </div>
             </div>
@@ -175,7 +189,13 @@ const MarketOverviewTab: React.FC = () => {
         </Card>
 
         {/* ADRs Closing Status Card */}
-        <Card className={`border-l-4 shadow-lg ${!marketData.adrsClosing.isPositive ? 'border-l-red-500' : 'border-l-green-500'} bg-white`}>
+        <Card className={`border-l-4 shadow-lg ${
+          !marketData.adrsClosing.isPositive
+            ? 'border-l-[#ef4444]' 
+            : marketData.adrsClosing.value === '0%'
+              ? 'border-l-[#0066FF]' 
+              : 'border-l-[#22c55e]'
+        } bg-white`}>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-lg">
               <span className="flex items-center">
@@ -193,7 +213,13 @@ const MarketOverviewTab: React.FC = () => {
               <div className="text-3xl font-bold">
                 {marketData.adrsClosing.value}
               </div>
-              <div className={`text-2xl font-bold ${!marketData.adrsClosing.isPositive ? 'text-red-600' : 'text-green-600'}`}>
+              <div className={`text-2xl font-bold ${
+                !marketData.adrsClosing.isPositive
+                  ? 'text-[#ef4444]' 
+                  : marketData.adrsClosing.value === '0%'
+                    ? 'text-black' 
+                    : 'text-[#22c55e]'
+              }`}>
                 {marketData.adrsClosing.parameter}
               </div>
             </div>
@@ -201,7 +227,13 @@ const MarketOverviewTab: React.FC = () => {
         </Card>
 
         {/* ADRs After Market Status Card */}
-        <Card className={`border-l-4 shadow-lg ${!marketData.adrsAfterMarket.isPositive ? 'border-l-red-500' : 'border-l-green-500'} bg-white`}>
+        <Card className={`border-l-4 shadow-lg ${
+          !marketData.adrsAfterMarket.isPositive
+            ? 'border-l-[#ef4444]' 
+            : marketData.adrsAfterMarket.value === '0%'
+              ? 'border-l-[#0066FF]' 
+              : 'border-l-[#22c55e]'
+        } bg-white`}>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-lg">
               <span className="flex items-center">
@@ -219,7 +251,13 @@ const MarketOverviewTab: React.FC = () => {
               <div className="text-3xl font-bold">
                 {marketData.adrsAfterMarket.value}
               </div>
-              <div className={`text-2xl font-bold ${!marketData.adrsAfterMarket.isPositive ? 'text-red-600' : 'text-green-600'}`}>
+              <div className={`text-2xl font-bold ${
+                !marketData.adrsAfterMarket.isPositive
+                  ? 'text-[#ef4444]' 
+                  : marketData.adrsAfterMarket.value === '0%'
+                    ? 'text-black' 
+                    : 'text-[#22c55e]'
+              }`}>
                 {marketData.adrsAfterMarket.parameter}
               </div>
             </div>
@@ -227,7 +265,13 @@ const MarketOverviewTab: React.FC = () => {
         </Card>
 
         {/* Commodities Status Card */}
-        <Card className={`border-l-4 shadow-lg ${marketData.commodities.isNegative ? 'border-l-red-500' : 'border-l-green-500'} bg-white`}>
+        <Card className={`border-l-4 shadow-lg ${
+          marketData.commodities.isNegative
+            ? 'border-l-[#ef4444]' 
+            : marketData.commodities.value === '0%'
+              ? 'border-l-[#0066FF]' 
+              : 'border-l-[#22c55e]'
+        } bg-white`}>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-lg">
               <span className="flex items-center">
@@ -245,7 +289,13 @@ const MarketOverviewTab: React.FC = () => {
               <div className="text-3xl font-bold">
                 {marketData.commodities.value}
               </div>
-              <div className={`text-2xl font-bold ${marketData.commodities.isNegative ? 'text-red-600' : 'text-green-600'}`}>
+              <div className={`text-2xl font-bold ${
+                marketData.commodities.isNegative
+                  ? 'text-[#ef4444]' 
+                  : marketData.commodities.value === '0%'
+                    ? 'text-black' 
+                    : 'text-[#22c55e]'
+              }`}>
                 {marketData.commodities.parameter}
               </div>
             </div>
@@ -256,10 +306,19 @@ const MarketOverviewTab: React.FC = () => {
       {/* VIX Panel */}
       <VixPanel />
 
+      {/* Market Alerts */}
+      <MarketAlertPanel alerts={marketData.alerts} />
+
       {/* Brazilian Market Indices - Row of Cards - Moved below VIX */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {marketData.marketIndices && marketData.marketIndices.IBOV && (
-          <Card className={`shadow-md ${marketData.marketIndices.IBOV.change.includes('-') ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-green-500'}`}>
+          <Card className={`shadow-md ${
+            marketData.marketIndices.IBOV.change.includes('-')
+              ? 'border-l-4 border-l-[#ef4444]' 
+              : marketData.marketIndices.IBOV.change === '0%'
+                ? 'border-l-4 border-l-[#0066FF]' 
+                : 'border-l-4 border-l-[#22c55e]'
+          }`}>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center justify-between">
                 <span>IBOV</span>
@@ -269,7 +328,13 @@ const MarketOverviewTab: React.FC = () => {
             <CardContent className="p-3">
               <div className="flex justify-between items-center">
                 <div className="text-xl font-bold">{marketData.marketIndices.IBOV.value}</div>
-                <div className={`text-xl font-bold ${marketData.marketIndices.IBOV.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`text-xl font-bold ${
+                  marketData.marketIndices.IBOV.change.includes('-')
+                    ? 'text-[#ef4444]' 
+                    : marketData.marketIndices.IBOV.change === '0%'
+                      ? 'text-black' 
+                      : 'text-[#22c55e]'
+                }`}>
                   {marketData.marketIndices.IBOV.change}
                 </div>
               </div>
@@ -283,12 +348,10 @@ const MarketOverviewTab: React.FC = () => {
                       <Line 
                         type="monotone" 
                         dataKey="value" 
-                        stroke={marketData.marketIndices.IBOV.change.includes('-') ? '#ef4444' : '#22c55e'}
+                        stroke="#0066FF"
                         strokeWidth={1.5}
                         dot={false}
                       />
-                      <XAxis dataKey="time" hide={true} />
-                      <YAxis domain={['auto', 'auto']} hide={true} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -298,7 +361,13 @@ const MarketOverviewTab: React.FC = () => {
         )}
         
         {marketData.marketIndices && marketData.marketIndices.VALE3 && (
-          <Card className={`shadow-md ${marketData.marketIndices.VALE3.change.includes('-') ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-green-500'}`}>
+          <Card className={`shadow-md ${
+            marketData.marketIndices.VALE3.change.includes('-')
+              ? 'border-l-4 border-l-[#ef4444]' 
+              : marketData.marketIndices.VALE3.change === '0%'
+                ? 'border-l-4 border-l-[#0066FF]' 
+                : 'border-l-4 border-l-[#22c55e]'
+          }`}>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center justify-between">
                 <span>VALE3</span>
@@ -308,7 +377,13 @@ const MarketOverviewTab: React.FC = () => {
             <CardContent className="p-3">
               <div className="flex justify-between items-center">
                 <div className="text-xl font-bold">{marketData.marketIndices.VALE3.value}</div>
-                <div className={`text-xl font-bold ${marketData.marketIndices.VALE3.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`text-xl font-bold ${
+                  marketData.marketIndices.VALE3.change.includes('-')
+                    ? 'text-[#ef4444]' 
+                    : marketData.marketIndices.VALE3.change === '0%'
+                      ? 'text-black' 
+                      : 'text-[#22c55e]'
+                }`}>
                   {marketData.marketIndices.VALE3.change}
                 </div>
               </div>
@@ -322,12 +397,10 @@ const MarketOverviewTab: React.FC = () => {
                       <Line 
                         type="monotone" 
                         dataKey="value" 
-                        stroke={marketData.marketIndices.VALE3.change.includes('-') ? '#ef4444' : '#22c55e'}
+                        stroke="#0066FF"
                         strokeWidth={1.5}
                         dot={false}
                       />
-                      <XAxis dataKey="time" hide={true} />
-                      <YAxis domain={['auto', 'auto']} hide={true} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -337,7 +410,13 @@ const MarketOverviewTab: React.FC = () => {
         )}
         
         {marketData.marketIndices && marketData.marketIndices.PETR4 && (
-          <Card className={`shadow-md ${marketData.marketIndices.PETR4.change.includes('-') ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-green-500'}`}>
+          <Card className={`shadow-md ${
+            marketData.marketIndices.PETR4.change.includes('-')
+              ? 'border-l-4 border-l-[#ef4444]' 
+              : marketData.marketIndices.PETR4.change === '0%'
+                ? 'border-l-4 border-l-[#0066FF]' 
+                : 'border-l-4 border-l-[#22c55e]'
+          }`}>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center justify-between">
                 <span>PETR4</span>
@@ -347,7 +426,13 @@ const MarketOverviewTab: React.FC = () => {
             <CardContent className="p-3">
               <div className="flex justify-between items-center">
                 <div className="text-xl font-bold">{marketData.marketIndices.PETR4.value}</div>
-                <div className={`text-xl font-bold ${marketData.marketIndices.PETR4.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`text-xl font-bold ${
+                  marketData.marketIndices.PETR4.change.includes('-')
+                    ? 'text-[#ef4444]' 
+                    : marketData.marketIndices.PETR4.change === '0%'
+                      ? 'text-black' 
+                      : 'text-[#22c55e]'
+                }`}>
                   {marketData.marketIndices.PETR4.change}
                 </div>
               </div>
@@ -361,12 +446,10 @@ const MarketOverviewTab: React.FC = () => {
                       <Line 
                         type="monotone" 
                         dataKey="value" 
-                        stroke={marketData.marketIndices.PETR4.change.includes('-') ? '#ef4444' : '#22c55e'}
+                        stroke="#0066FF"
                         strokeWidth={1.5}
                         dot={false}
                       />
-                      <XAxis dataKey="time" hide={true} />
-                      <YAxis domain={['auto', 'auto']} hide={true} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -376,7 +459,13 @@ const MarketOverviewTab: React.FC = () => {
         )}
         
         {marketData.marketIndices && marketData.marketIndices.EWZ && (
-          <Card className={`shadow-md ${marketData.marketIndices.EWZ.change.includes('-') ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-green-500'}`}>
+          <Card className={`shadow-md ${
+            marketData.marketIndices.EWZ.change.includes('-')
+              ? 'border-l-4 border-l-[#ef4444]' 
+              : marketData.marketIndices.EWZ.change === '0%'
+                ? 'border-l-4 border-l-[#0066FF]' 
+                : 'border-l-4 border-l-[#22c55e]'
+          }`}>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center justify-between">
                 <span>EWZ</span>
@@ -386,7 +475,13 @@ const MarketOverviewTab: React.FC = () => {
             <CardContent className="p-3">
               <div className="flex justify-between items-center">
                 <div className="text-xl font-bold">{marketData.marketIndices.EWZ.value}</div>
-                <div className={`text-xl font-bold ${marketData.marketIndices.EWZ.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`text-xl font-bold ${
+                  marketData.marketIndices.EWZ.change.includes('-')
+                    ? 'text-[#ef4444]' 
+                    : marketData.marketIndices.EWZ.change === '0%'
+                      ? 'text-black' 
+                      : 'text-[#22c55e]'
+                }`}>
                   {marketData.marketIndices.EWZ.change}
                 </div>
               </div>
@@ -400,12 +495,10 @@ const MarketOverviewTab: React.FC = () => {
                       <Line 
                         type="monotone" 
                         dataKey="value" 
-                        stroke={marketData.marketIndices.EWZ.change.includes('-') ? '#ef4444' : '#22c55e'}
+                        stroke="#0066FF"
                         strokeWidth={1.5}
                         dot={false}
                       />
-                      <XAxis dataKey="time" hide={true} />
-                      <YAxis domain={['auto', 'auto']} hide={true} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -415,7 +508,13 @@ const MarketOverviewTab: React.FC = () => {
         )}
         
         {marketData.marketIndices && marketData.marketIndices.BIT_FUT && (
-          <Card className={`shadow-md ${marketData.marketIndices.BIT_FUT.change.includes('-') ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-green-500'}`}>
+          <Card className={`shadow-md ${
+            marketData.marketIndices.BIT_FUT.change.includes('-')
+              ? 'border-l-4 border-l-[#ef4444]' 
+              : marketData.marketIndices.BIT_FUT.change === '0%'
+                ? 'border-l-4 border-l-[#0066FF]' 
+                : 'border-l-4 border-l-[#22c55e]'
+          }`}>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center justify-between">
                 <span>BIT FUT</span>
@@ -425,7 +524,13 @@ const MarketOverviewTab: React.FC = () => {
             <CardContent className="p-3">
               <div className="flex justify-between items-center">
                 <div className="text-xl font-bold">{marketData.marketIndices.BIT_FUT.value}</div>
-                <div className={`text-xl font-bold ${marketData.marketIndices.BIT_FUT.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`text-xl font-bold ${
+                  marketData.marketIndices.BIT_FUT.change.includes('-')
+                    ? 'text-[#ef4444]' 
+                    : marketData.marketIndices.BIT_FUT.change === '0%'
+                      ? 'text-black' 
+                      : 'text-[#22c55e]'
+                }`}>
                   {marketData.marketIndices.BIT_FUT.change}
                 </div>
               </div>
@@ -439,12 +544,10 @@ const MarketOverviewTab: React.FC = () => {
                       <Line 
                         type="monotone" 
                         dataKey="value" 
-                        stroke={marketData.marketIndices.BIT_FUT.change.includes('-') ? '#ef4444' : '#22c55e'}
+                        stroke="#0066FF"
                         strokeWidth={1.5}
                         dot={false}
                       />
-                      <XAxis dataKey="time" hide={true} />
-                      <YAxis domain={['auto', 'auto']} hide={true} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -453,6 +556,12 @@ const MarketOverviewTab: React.FC = () => {
           </Card>
         )}
       </div>
+
+      {/* Economic Data Panel with DI Rates and US Interest Rates */}
+      <EconomicDataPanel 
+        usTreasuryRates={marketData.safetyAssets} 
+        brDiRates={marketData.economicDataBrazil} 
+      />
 
       {/* Two column layout for Market Indices and Safety Assets */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -472,67 +581,51 @@ const MarketOverviewTab: React.FC = () => {
                   <TableHead className="text-right font-semibold">Valor</TableHead>
                   <TableHead className="text-right font-semibold">Variação</TableHead>
                   <TableHead className="text-right font-semibold">Hora</TableHead>
+                  <TableHead className="text-right font-semibold">Parâmetro</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {marketData.marketIndices && Object.entries(marketData.marketIndices)
                   .filter(([key]) => ['SP500', 'DOW', 'NASDAQ', 'EURO_STOXX', 'FTSE100', 'CHINA_A50'].includes(key))
-                  .map(([key, index]) => (
-                    <TableRow key={key} className="hover:bg-gray-50">
-                      <TableCell className="font-medium">{index.name}</TableCell>
-                      <TableCell className="text-right">{index.value}</TableCell>
-                      <TableCell 
-                        className={`text-right font-medium ${index.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}
-                      >
-                        {index.change}
-                      </TableCell>
-                      <TableCell className="text-right text-gray-500 text-sm">{formatTime(index.time)}</TableCell>
-                    </TableRow>
-                  ))}
+                  .map(([key, index]) => {
+                    // Remove "Índices Futuros" prefix from name
+                    const displayName = index.name.replace(/^Índices Futuros\s+/i, '');
+                    return (
+                      <TableRow key={key} className="hover:bg-gray-50">
+                        <TableCell className="font-medium">{displayName}</TableCell>
+                        <TableCell className="text-right">{index.value}</TableCell>
+                        <TableCell 
+                          className={`text-right font-medium ${
+                            isNegative(index.change)
+                              ? 'text-[#ef4444]' 
+                              : index.change === '0%' || index.change === '0.00%'
+                                ? 'text-black' 
+                                : 'text-[#22c55e]'
+                          }`}
+                        >
+                          {index.change}
+                        </TableCell>
+                        <TableCell className="text-right text-gray-500 text-sm">{formatTime(index.time)}</TableCell>
+                        <TableCell className={`text-right text-sm ${
+                          index.parameter?.includes('NEGATIV') 
+                            ? 'text-[#ef4444]' 
+                            : index.parameter?.includes('POSITIV') 
+                              ? 'text-[#22c55e]' 
+                              : 'text-gray-600'
+                        }`}>
+                          {index.parameter || ""}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
 
         {/* Safety Assets */}
-        <Card className="shadow-lg bg-white">
-          <CardHeader className="pb-2 border-b">
-            <CardTitle className="text-xl text-[#0066FF] flex items-center">
-              <ShieldCheck className="h-6 w-6 mr-2" />
-              Ativos de Segurança
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="font-semibold">Ativo</TableHead>
-                  <TableHead className="text-right font-semibold">Valor</TableHead>
-                  <TableHead className="text-right font-semibold">Variação</TableHead>
-                  <TableHead className="text-right font-semibold">Hora</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {marketData.safetyAssets && Object.entries(marketData.safetyAssets).map(([key, asset]) => (
-                  <TableRow key={key} className="hover:bg-gray-50">
-                    <TableCell className="font-medium">{asset.name}</TableCell>
-                    <TableCell className="text-right">{asset.value}</TableCell>
-                    <TableCell 
-                      className={`text-right font-medium ${asset.change.includes('-') ? 'text-red-600' : 'text-green-600'}`}
-                    >
-                      {asset.change}
-                    </TableCell>
-                    <TableCell className="text-right text-gray-500 text-sm">{formatTime(asset.time)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <SafetyAssetsPanel assets={marketData.safetyAssets} />
       </div>
-
-      {/* Market Alerts */}
-      <MarketAlertPanel alerts={marketData.alerts} />
 
       {/* Two column layout for ADRs and Commodities */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -542,61 +635,6 @@ const MarketOverviewTab: React.FC = () => {
         {/* Commodities Detail Panel */}
         <CommoditiesPanel commodities={marketData.commoditiesList} />
       </div>
-
-      {/* Economic Data - Split US and BR Data */}
-      <Card className="shadow-lg bg-white">
-        <CardHeader className="pb-2 border-b">
-          <CardTitle className="text-xl text-[#0066FF] flex items-center">
-            <DollarSign className="h-6 w-6 mr-2" />
-            Dados Econômicos
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* US Economic Data */}
-            <div className="border rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">Estados Unidos</h3>
-              <div className="space-y-4">
-                {marketData.economicDataUS && Object.entries(marketData.economicDataUS).map(([key, data]) => (
-                  <div key={key} className="flex justify-between items-start">
-                    <div>
-                      <div className="font-semibold">{data.name}</div>
-                      {data.parameter && (
-                        <div className="text-sm text-gray-600 mt-1">{data.parameter}</div>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold">{data.value}</div>
-                      <div className="text-sm text-gray-500">{formatTime(data.time)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* Brazil Economic Data */}
-            <div className="border rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">Brasil</h3>
-              <div className="space-y-4">
-                {marketData.economicDataBrazil && Object.entries(marketData.economicDataBrazil).map(([key, data]) => (
-                  <div key={key} className="flex justify-between items-start">
-                    <div>
-                      <div className="font-semibold">{data.name}</div>
-                      {data.parameter && (
-                        <div className="text-sm text-gray-600 mt-1">{data.parameter}</div>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold">{data.value}</div>
-                      <div className="text-sm text-gray-500">{formatTime(data.time)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

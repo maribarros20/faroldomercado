@@ -32,6 +32,11 @@ const ADRPanel: React.FC<ADRPanelProps> = ({ adrs }) => {
     return names[ticker] || ticker;
   };
 
+  const isNegative = (change: string) => {
+    if (!change) return false;
+    return change.includes('-');
+  };
+
   return (
     <Card className="bg-white shadow-lg">
       <CardHeader className="pb-2 border-b">
@@ -54,9 +59,9 @@ const ADRPanel: React.FC<ADRPanelProps> = ({ adrs }) => {
           </TableHeader>
           <TableBody>
             {Object.entries(adrs).map(([key, adr]) => {
-              const isChangePositive = !adr.change.includes("-");
-              const isPrevChangePositive = !adr.prevChange.includes("-");
-              const isAfterChangePositive = !adr.afterChange.includes("-");
+              const isChangePositive = !isNegative(adr.change);
+              const isPrevChangePositive = !isNegative(adr.prevChange);
+              const isAfterChangePositive = !isNegative(adr.afterChange);
               
               return (
                 <TableRow key={key} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
@@ -71,13 +76,31 @@ const ADRPanel: React.FC<ADRPanelProps> = ({ adrs }) => {
                     </div>
                   </TableCell>
                   <TableCell className="text-right font-medium">${adr.value}</TableCell>
-                  <TableCell className={`text-right font-medium ${isChangePositive ? 'text-green-600' : 'text-red-600'}`}>
+                  <TableCell className={`text-right font-medium ${
+                    isNegative(adr.change) 
+                      ? 'text-[#ef4444]' 
+                      : adr.change === '0%' || adr.change === '0.00%' 
+                        ? 'text-black' 
+                        : 'text-[#22c55e]'
+                  }`}>
                     {adr.change}
                   </TableCell>
-                  <TableCell className={`text-right font-medium ${isPrevChangePositive ? 'text-green-600' : 'text-red-600'}`}>
+                  <TableCell className={`text-right font-medium ${
+                    isNegative(adr.prevChange)
+                      ? 'text-[#ef4444]' 
+                      : adr.prevChange === '0%' || adr.prevChange === '0.00%' 
+                        ? 'text-black' 
+                        : 'text-[#22c55e]'
+                  }`}>
                     {adr.prevChange}
                   </TableCell>
-                  <TableCell className={`text-right font-medium ${isAfterChangePositive ? 'text-green-600' : 'text-red-600'}`}>
+                  <TableCell className={`text-right font-medium ${
+                    isNegative(adr.afterChange)
+                      ? 'text-[#ef4444]' 
+                      : adr.afterChange === '0%' || adr.afterChange === '0.00%' 
+                        ? 'text-black' 
+                        : 'text-[#22c55e]'
+                  }`}>
                     {adr.afterChange}
                   </TableCell>
                 </TableRow>

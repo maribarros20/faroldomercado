@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface SafetyAssetsPanelProps {
@@ -63,12 +63,28 @@ const SafetyAssetsPanel: React.FC<SafetyAssetsPanelProps> = ({ assets }) => {
                   <TableCell className="font-medium">{displayName}</TableCell>
                   <TableCell className="text-right">{asset.value}</TableCell>
                   <TableCell 
-                    className={`text-right font-medium ${isNegative(asset.change) ? 'text-red-600' : 'text-green-600'}`}
+                    className={`text-right font-medium ${
+                      isNegative(asset.change) 
+                        ? 'text-[#ef4444]' 
+                        : asset.change === '0%' || asset.change === '0.00%' 
+                          ? 'text-black' 
+                          : 'text-[#22c55e]'
+                    }`}
                   >
                     {asset.change}
                   </TableCell>
                   <TableCell className="text-right text-gray-500 text-sm">{formatTime(asset.time)}</TableCell>
-                  <TableCell className="text-right text-gray-600 text-sm">{asset.parameter || ""}</TableCell>
+                  <TableCell 
+                    className={`text-right text-sm ${
+                      asset.parameter?.includes('NEGATIV') 
+                        ? 'text-[#ef4444]' 
+                        : asset.parameter?.includes('POSITIV') 
+                          ? 'text-[#22c55e]' 
+                          : 'text-gray-600'
+                    }`}
+                  >
+                    {asset.parameter || ""}
+                  </TableCell>
                 </TableRow>
               );
             })}

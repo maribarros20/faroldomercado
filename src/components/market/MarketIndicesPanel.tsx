@@ -127,12 +127,28 @@ const MarketIndicesPanel: React.FC = () => {
                     <TableCell className="font-medium">{getDisplayName(index.name)}</TableCell>
                     <TableCell className="text-right">{index.value}</TableCell>
                     <TableCell 
-                      className={`text-right font-medium ${isNegative(index.change_value) ? 'text-red-600' : 'text-green-600'}`}
+                      className={`text-right font-medium ${
+                        isNegative(index.change_value) 
+                          ? 'text-[#ef4444]' 
+                          : index.change_value === '0%' || index.change_value === '0.00%' 
+                            ? 'text-black' 
+                            : 'text-[#22c55e]'
+                      }`}
                     >
                       {index.change_value}
                     </TableCell>
                     <TableCell className="text-right text-gray-500 text-sm">{formatTime(index.time_data)}</TableCell>
-                    <TableCell className="text-right text-gray-600 text-sm">{index.parameter || ""}</TableCell>
+                    <TableCell 
+                      className={`text-right text-sm ${
+                        index.parameter?.includes('NEGATIV') 
+                          ? 'text-[#ef4444]' 
+                          : index.parameter?.includes('POSITIV') 
+                            ? 'text-[#22c55e]' 
+                            : 'text-gray-600'
+                      }`}
+                    >
+                      {index.parameter || ""}
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
@@ -152,7 +168,16 @@ const MarketIndicesPanel: React.FC = () => {
       {/* Charts for IBOV, VALE3, PETR4, EWZ, BIT_FUT */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {chartIndices.map((index, idx) => (
-          <Card key={idx} className="shadow-sm">
+          <Card 
+            key={idx} 
+            className={`shadow-sm border-l-4 ${
+              isNegative(index.change_value) 
+                ? 'border-l-[#ef4444]' 
+                : index.change_value === '0%' || index.change_value === '0.00%' 
+                  ? 'border-l-[#0066FF]' 
+                  : 'border-l-[#22c55e]'
+            }`}
+          >
             <CardHeader className="py-2 px-4 border-b">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-base font-medium">{getDisplayName(index.name)}</CardTitle>
@@ -165,7 +190,13 @@ const MarketIndicesPanel: React.FC = () => {
             <CardContent className="p-4">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-lg font-bold">{index.value}</span>
-                <span className={`text-xl font-medium ${isNegative(index.change_value) ? 'text-red-600' : 'text-green-600'}`}>
+                <span className={`text-xl font-medium ${
+                  isNegative(index.change_value) 
+                    ? 'text-[#ef4444]' 
+                    : index.change_value === '0%' || index.change_value === '0.00%' 
+                      ? 'text-black' 
+                      : 'text-[#22c55e]'
+                }`}>
                   {isNegative(index.change_value) ? (
                     <TrendingDown className="h-4 w-4 inline mr-1" />
                   ) : (
@@ -182,7 +213,7 @@ const MarketIndicesPanel: React.FC = () => {
                       <Line 
                         type="monotone" 
                         dataKey="value" 
-                        stroke={isNegative(index.change_value) ? '#ef4444' : '#22c55e'}
+                        stroke="#0066FF"
                         strokeWidth={1.5}
                         dot={false}
                       />

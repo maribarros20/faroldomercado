@@ -11,6 +11,7 @@ interface CommoditiesPanelProps {
       time: string;
       value: string;
       change: string;
+      parameter?: string;
     };
   };
 }
@@ -43,6 +44,11 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
     }
   };
 
+  const isNegative = (change: string) => {
+    if (!change) return false;
+    return change.includes('-');
+  };
+
   return (
     <Card className="bg-white shadow-lg">
       <CardHeader className="pb-2 border-b">
@@ -59,12 +65,13 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
               <TableHead className="text-right font-semibold">Valor</TableHead>
               <TableHead className="text-right font-semibold">Variação</TableHead>
               <TableHead className="text-right font-semibold">Hora</TableHead>
+              <TableHead className="text-right font-semibold">Parâmetro</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {Object.entries(commodities).map(([key, commodity]) => {
               const { name, description } = getCommodityDisplayInfo(key);
-              const isChangePositive = !commodity.change.includes("-");
+              const isChangeNegative = isNegative(commodity.change);
               
               return (
                 <TableRow key={key} className="hover:bg-gray-50">
@@ -73,7 +80,13 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
                     <div className="text-xs text-gray-500">{description}</div>
                   </TableCell>
                   <TableCell className="text-right font-medium">{commodity.value}</TableCell>
-                  <TableCell className={`text-right font-medium ${isChangePositive ? 'text-green-600' : 'text-red-600'}`}>
+                  <TableCell className={`text-right font-medium ${
+                    isChangeNegative
+                      ? 'text-[#ef4444]' 
+                      : commodity.change === '0%' || commodity.change === '0.00%' 
+                        ? 'text-black' 
+                        : 'text-[#22c55e]'
+                  }`}>
                     {commodity.change}
                   </TableCell>
                   <TableCell className="text-right text-sm text-gray-500">
@@ -83,6 +96,15 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
                         <span>{commodity.time}</span>
                       </div>
                     )}
+                  </TableCell>
+                  <TableCell className={`text-right text-sm ${
+                    commodity.parameter?.includes('NEGATIV') 
+                      ? 'text-[#ef4444]' 
+                      : commodity.parameter?.includes('POSITIV') 
+                        ? 'text-[#22c55e]' 
+                        : 'text-gray-600'
+                  }`}>
+                    {commodity.parameter || ""}
                   </TableCell>
                 </TableRow>
               );

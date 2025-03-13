@@ -103,13 +103,13 @@ const VixPanel: React.FC = () => {
           VIX (CBOE Volatility Index)
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-4 pt-4 pb-0">
+      <CardContent className="px-4 pt-4 pb-4">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           {/* Left Column: VIX Stats */}
           <div className="md:col-span-7">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Current VIX */}
-              <Card className={`border-l-4 ${isCurrentNegative ? 'border-l-green-500' : 'border-l-red-500'} shadow-sm`}>
+              <Card className={`border-l-4 ${isCurrentNegative ? 'border-l-[#22c55e]' : vixData.curr_change === '0%' ? 'border-l-[#0066FF]' : 'border-l-[#ef4444]'} shadow-sm`}>
                 <CardHeader className="py-2 px-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">VIX Atual</span>
@@ -124,18 +124,21 @@ const VixPanel: React.FC = () => {
                     <div className="text-xl font-bold">
                       {vixData.curr_value}
                     </div>
-                    <div className={`text-xl font-medium ${isCurrentNegative ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className={`text-xl font-medium ${isCurrentNegative ? 'text-[#22c55e]' : vixData.curr_change === '0%' ? 'text-black' : 'text-[#ef4444]'}`}>
                       {vixData.curr_change}
                     </div>
                   </div>
-                  <div className="text-sm text-gray-600 mt-2 w-full">
+                  <div className={`text-sm mt-2 w-full ${vixData.curr_value_parameter.includes('NEGATIV') ? 'text-[#ef4444]' : vixData.curr_value_parameter.includes('POSITIV') ? 'text-[#22c55e]' : 'text-gray-600'}`}>
                     {vixData.curr_value_parameter}
+                  </div>
+                  <div className={`text-sm mt-1 w-full ${vixData.curr_change_parameter.includes('NEGATIV') ? 'text-[#ef4444]' : vixData.curr_change_parameter.includes('POSITIV') ? 'text-[#22c55e]' : 'text-gray-600'}`}>
+                    {vixData.curr_change_parameter}
                   </div>
                 </CardContent>
               </Card>
               
               {/* Closing VIX */}
-              <Card className={`border-l-4 ${isClosingNegative ? 'border-l-green-500' : 'border-l-red-500'} shadow-sm`}>
+              <Card className={`border-l-4 ${isClosingNegative ? 'border-l-[#22c55e]' : vixData.closing_change === '0%' ? 'border-l-[#0066FF]' : 'border-l-[#ef4444]'} shadow-sm`}>
                 <CardHeader className="py-2 px-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">VIX Fechamento</span>
@@ -148,7 +151,7 @@ const VixPanel: React.FC = () => {
                 <CardContent className="py-2 px-3">
                   <div className="flex justify-between items-center">
                     <div className="text-xl font-bold">{vixData.closing_value}</div>
-                    <div className={`text-xl font-medium ${isClosingNegative ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className={`text-xl font-medium ${isClosingNegative ? 'text-[#22c55e]' : vixData.closing_change === '0%' ? 'text-black' : 'text-[#ef4444]'}`}>
                       {vixData.closing_change}
                     </div>
                   </div>
@@ -156,7 +159,7 @@ const VixPanel: React.FC = () => {
               </Card>
               
               {/* Opening VIX */}
-              <Card className={`border-l-4 ${isOpeningNegative ? 'border-l-green-500' : 'border-l-red-500'} shadow-sm`}>
+              <Card className={`border-l-4 ${isOpeningNegative ? 'border-l-[#22c55e]' : vixData.opening_change === '0%' ? 'border-l-[#0066FF]' : 'border-l-[#ef4444]'} shadow-sm`}>
                 <CardHeader className="py-2 px-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">VIX Abertura</span>
@@ -169,11 +172,11 @@ const VixPanel: React.FC = () => {
                 <CardContent className="py-2 px-3">
                   <div className="flex justify-between items-center">
                     <div className="text-xl font-bold">{vixData.opening_value}</div>
-                    <div className={`text-xl font-medium ${isOpeningNegative ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className={`text-xl font-medium ${isOpeningNegative ? 'text-[#22c55e]' : vixData.opening_change === '0%' ? 'text-black' : 'text-[#ef4444]'}`}>
                       {vixData.opening_change}
                     </div>
                   </div>
-                  <div className="text-sm text-gray-600 mt-2 w-full">
+                  <div className={`text-sm mt-2 w-full ${vixData.opening_change_parameter.includes('NEGATIV') ? 'text-[#ef4444]' : vixData.opening_change_parameter.includes('POSITIV') ? 'text-[#22c55e]' : 'text-gray-600'}`}>
                     {vixData.opening_change_parameter}
                   </div>
                 </CardContent>
@@ -189,7 +192,9 @@ const VixPanel: React.FC = () => {
                   {vixData.tendency_time_data || "Sem horário"}
                 </span>
               </div>
-              <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{vixData.tendency_parameter}</div>
+              <div className={`text-sm bg-gray-50 p-2 rounded ${vixData.tendency_parameter.includes('NEGATIV') ? 'text-[#ef4444]' : vixData.tendency_parameter.includes('POSITIV') ? 'text-[#22c55e]' : 'text-gray-700'}`}>
+                {vixData.tendency_parameter}
+              </div>
             </div>
           </div>
           
@@ -200,7 +205,7 @@ const VixPanel: React.FC = () => {
                 <Line 
                   type="monotone" 
                   dataKey="value" 
-                  stroke="#3b82f6" 
+                  stroke="#0066FF" 
                   strokeWidth={2} 
                   dot={false} 
                 />
