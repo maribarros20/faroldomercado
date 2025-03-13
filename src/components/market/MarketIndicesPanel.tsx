@@ -1,8 +1,8 @@
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart4, Clock, TrendingDown, TrendingUp } from "lucide-react";
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Line, LineChart, ResponsiveContainer, Tooltip } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -73,6 +73,11 @@ const MarketIndicesPanel: React.FC = () => {
     }));
   };
 
+  // Clean display names by removing "Índices Futuros" prefix
+  const getDisplayName = (name: string) => {
+    return name.replace(/^Índices Futuros\s+/i, '');
+  };
+
   // Filter indices for display - only US, European and international futures
   const displayIndices = indices
     .filter(index => ['SP500', 'DOW', 'NASDAQ', 'EURO_STOXX', 'FTSE100', 'CHINA_A50'].includes(index.key))
@@ -112,13 +117,14 @@ const MarketIndicesPanel: React.FC = () => {
                 <TableHead className="text-right font-semibold">Valor</TableHead>
                 <TableHead className="text-right font-semibold">Variação</TableHead>
                 <TableHead className="text-right font-semibold">Hora</TableHead>
+                <TableHead className="text-right font-semibold">Parâmetro</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {displayIndices.length > 0 ? (
                 displayIndices.map((index, idx) => (
                   <TableRow key={idx} className="hover:bg-gray-50">
-                    <TableCell className="font-medium">{index.name}</TableCell>
+                    <TableCell className="font-medium">{getDisplayName(index.name)}</TableCell>
                     <TableCell className="text-right">{index.value}</TableCell>
                     <TableCell 
                       className={`text-right font-medium ${isNegative(index.change_value) ? 'text-red-600' : 'text-green-600'}`}
@@ -126,11 +132,12 @@ const MarketIndicesPanel: React.FC = () => {
                       {index.change_value}
                     </TableCell>
                     <TableCell className="text-right text-gray-500 text-sm">{formatTime(index.time_data)}</TableCell>
+                    <TableCell className="text-right text-gray-600 text-sm">{index.parameter || ""}</TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-4">
+                  <TableCell colSpan={5} className="text-center py-4">
                     Nenhum dado disponível
                   </TableCell>
                 </TableRow>
@@ -140,13 +147,15 @@ const MarketIndicesPanel: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* VIX panel should be here, but it's already created separately */}
+
       {/* Charts for IBOV, VALE3, PETR4, EWZ, BIT_FUT */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {chartIndices.map((index, idx) => (
           <Card key={idx} className="shadow-sm">
             <CardHeader className="py-2 px-4 border-b">
               <div className="flex justify-between items-center">
-                <CardTitle className="text-base font-medium">{index.name}</CardTitle>
+                <CardTitle className="text-base font-medium">{getDisplayName(index.name)}</CardTitle>
                 <div className="text-xs text-gray-500 flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
                   {formatTime(index.time_data)}
@@ -156,7 +165,7 @@ const MarketIndicesPanel: React.FC = () => {
             <CardContent className="p-4">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-lg font-bold">{index.value}</span>
-                <span className={`text-sm font-medium ${isNegative(index.change_value) ? 'text-red-600' : 'text-green-600'}`}>
+                <span className={`text-xl font-medium ${isNegative(index.change_value) ? 'text-red-600' : 'text-green-600'}`}>
                   {isNegative(index.change_value) ? (
                     <TrendingDown className="h-4 w-4 inline mr-1" />
                   ) : (
@@ -177,8 +186,6 @@ const MarketIndicesPanel: React.FC = () => {
                         strokeWidth={1.5}
                         dot={false}
                       />
-                      <XAxis dataKey="time" hide={true} />
-                      <YAxis domain={['auto', 'auto']} hide={true} />
                       <Tooltip 
                         contentStyle={{ backgroundColor: 'white', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }}
                         formatter={(value) => [`${value}`, index.name]}

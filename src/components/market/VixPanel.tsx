@@ -1,8 +1,8 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ActivitySquare, ArrowDownRight, ArrowUpRight, Clock, TrendingUp, TrendingDown } from "lucide-react";
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ActivitySquare, Clock } from "lucide-react";
+import { Line, LineChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -120,18 +120,16 @@ const VixPanel: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="py-2 px-3">
-                  <div className="flex flex-col">
-                    <div className="flex justify-between items-center">
-                      <div className="text-xl font-bold">
-                        {vixData.curr_value}
-                      </div>
-                      <div className={`text-lg font-medium ${isCurrentNegative ? 'text-green-600' : 'text-red-600'}`}>
-                        {vixData.curr_change}
-                      </div>
+                  <div className="flex justify-between items-center">
+                    <div className="text-xl font-bold">
+                      {vixData.curr_value}
                     </div>
-                    <div className="text-sm text-gray-600 mt-2 w-full">
-                      {vixData.curr_value_parameter}
+                    <div className={`text-xl font-medium ${isCurrentNegative ? 'text-green-600' : 'text-red-600'}`}>
+                      {vixData.curr_change}
                     </div>
+                  </div>
+                  <div className="text-sm text-gray-600 mt-2 w-full">
+                    {vixData.curr_value_parameter}
                   </div>
                 </CardContent>
               </Card>
@@ -148,15 +146,10 @@ const VixPanel: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="py-2 px-3">
-                  <div className="flex flex-col">
-                    <div className="flex justify-between items-center">
-                      <div className="text-xl font-bold">{vixData.closing_value}</div>
-                      <div className={`text-lg font-medium ${isClosingNegative ? 'text-green-600' : 'text-red-600'}`}>
-                        {vixData.closing_change}
-                      </div>
-                    </div>
-                    <div className="text-sm text-gray-600 mt-2 w-full">
-                      {/* Parameter placeholder */}
+                  <div className="flex justify-between items-center">
+                    <div className="text-xl font-bold">{vixData.closing_value}</div>
+                    <div className={`text-xl font-medium ${isClosingNegative ? 'text-green-600' : 'text-red-600'}`}>
+                      {vixData.closing_change}
                     </div>
                   </div>
                 </CardContent>
@@ -174,35 +167,27 @@ const VixPanel: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="py-2 px-3">
-                  <div className="flex flex-col">
-                    <div className="flex justify-between items-center">
-                      <div className="text-xl font-bold">{vixData.opening_value}</div>
-                      <div className={`text-lg font-medium ${isOpeningNegative ? 'text-green-600' : 'text-red-600'}`}>
-                        {vixData.opening_change}
-                      </div>
+                  <div className="flex justify-between items-center">
+                    <div className="text-xl font-bold">{vixData.opening_value}</div>
+                    <div className={`text-xl font-medium ${isOpeningNegative ? 'text-green-600' : 'text-red-600'}`}>
+                      {vixData.opening_change}
                     </div>
-                    <div className="text-sm text-gray-600 mt-2 w-full">
-                      {vixData.opening_change_parameter}
-                    </div>
+                  </div>
+                  <div className="text-sm text-gray-600 mt-2 w-full">
+                    {vixData.opening_change_parameter}
                   </div>
                 </CardContent>
               </Card>
             </div>
             
-            {/* VIX Tendência */}
+            {/* VIX Trend Information */}
             <div className="mt-4">
-              <div className="font-medium mb-1 flex items-center justify-between">
-                <span>Tendência</span>
+              <div className="flex justify-between items-center mb-1">
+                <span className="font-medium">Tendência</span>
                 <span className="text-xs text-gray-500 flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
                   {vixData.tendency_time_data || "Sem horário"}
                 </span>
-              </div>
-              <div className="h-24 md:h-28 bg-gray-50 rounded shadow-inner mb-2">
-                {/* Trend chart would go here */}
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  <span>Gráfico de tendência</span>
-                </div>
               </div>
               <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{vixData.tendency_parameter}</div>
             </div>
@@ -215,12 +200,10 @@ const VixPanel: React.FC = () => {
                 <Line 
                   type="monotone" 
                   dataKey="value" 
-                  stroke="#8884d8" 
+                  stroke="#3b82f6" 
                   strokeWidth={2} 
                   dot={false} 
                 />
-                <XAxis dataKey="time" hide={true} />
-                <YAxis domain={['auto', 'auto']} hide={false} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'white', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }} 
                   formatter={(value) => [`${value}`, 'VIX']}
