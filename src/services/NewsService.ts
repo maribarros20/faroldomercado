@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface NewsItem {
@@ -177,18 +178,35 @@ export const fetchAllNews = async (
   search?: string
 ): Promise<NewsItem[]> => {
   try {
-    // Chamar a edge function que lida com todas as fontes de notícias
-    const { data, error } = await supabase.functions.invoke('fetch-news', {
+    console.log("Iniciando fetchAllNews com categoria:", category, "e busca:", search);
+    
+    // Primeiro, buscar notícias da edge function fetch-news
+    const { data: newsData, error: newsError } = await supabase.functions.invoke('fetch-news', {
       body: { category }
     });
     
-    if (error) {
-      console.error("Erro ao buscar todas as notícias:", error);
-      return [];
+    if (newsError) {
+      console.error("Erro ao buscar notícias principais:", newsError);
     }
     
+    // Depois, buscar notícias do Twitter e outras redes sociais
+    const { data: socialData, error: socialError } = await supabase.functions.invoke('fetch-twitter-news');
+    
+    if (socialError) {
+      console.error("Erro ao buscar notícias de redes sociais:", socialError);
+    }
+    
+    console.log("Notícias principais obtidas:", newsData?.length || 0);
+    console.log("Notícias sociais obtidas:", socialData?.length || 0);
+    
+    // Combinar todas as fontes
+    const allNews = [
+      ...(newsData || []), 
+      ...(socialData || [])
+    ];
+    
     // Garantir que todo o conteúdo esteja limpo de tags CDATA e HTML
-    let allNews = data ? data.map((item: NewsItem) => ({
+    let processedNews = allNews.map((item: NewsItem) => ({
       ...item,
       title: cleanTextContent(item.title),
       subtitle: cleanTextContent(item.subtitle),
@@ -196,12 +214,12 @@ export const fetchAllNews = async (
       author: cleanTextContent(item.author),
       category: cleanTextContent(item.category),
       image_url: getValidImageUrl(item.image_url)
-    })) : [];
+    }));
     
     // Filtrar por termo de busca se especificado
     if (search) {
       const searchLower = search.toLowerCase();
-      allNews = allNews.filter(news => 
+      processedNews = processedNews.filter(news => 
         news.title.toLowerCase().includes(searchLower) || 
         news.content.toLowerCase().includes(searchLower) || 
         news.subtitle?.toLowerCase().includes(searchLower) || 
@@ -211,13 +229,14 @@ export const fetchAllNews = async (
     }
     
     // Ordenar por data (mais recentes primeiro)
-    allNews.sort((a, b) => {
+    processedNews.sort((a, b) => {
       const dateA = new Date(a.publication_date || a.created_at || "").getTime();
       const dateB = new Date(b.publication_date || b.created_at || "").getTime();
       return dateB - dateA;
     });
     
-    return allNews;
+    console.log(`Total de notícias após processamento: ${processedNews.length}`);
+    return processedNews;
   } catch (error) {
     console.error("Erro ao buscar todas as notícias:", error);
     return [];

@@ -23,6 +23,8 @@ export const TwitterFeed = ({ tweets }: TwitterFeedProps) => {
     );
   }
 
+  console.log("Tweets recebidos:", tweets.length);
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
     try {
@@ -51,13 +53,13 @@ export const TwitterFeed = ({ tweets }: TwitterFeedProps) => {
   const getProfilePicture = (author?: string): string => {
     switch (author) {
       case "Donald Trump":
-        return "https://unavatar.io/twitter/realDonaldTrump";
+        return "https://pbs.twimg.com/profile_images/1734739429845327872/V3JsD5Io_400x400.jpg";
       case "Luiz Inácio Lula da Silva":
-        return "https://unavatar.io/twitter/LulaOficial";
+        return "https://pbs.twimg.com/profile_images/1710640007863353344/DNH94mas_400x400.jpg";
       case "Elon Musk":
-        return "https://unavatar.io/twitter/elonmusk";
+        return "https://pbs.twimg.com/profile_images/1683325380441128960/yRsRRjGO_400x400.jpg";
       case "Fernando Haddad":
-        return "https://unavatar.io/twitter/FernandoHaddad";
+        return "https://pbs.twimg.com/profile_images/1674432311520882689/hFyDAZtL_400x400.jpg";
       default:
         return "https://unavatar.io/twitter/farolinveste";
     }
@@ -116,13 +118,14 @@ export const TwitterFeed = ({ tweets }: TwitterFeedProps) => {
                     <div className="mt-3">
                       <p className="text-base whitespace-pre-line">{tweet.content}</p>
                       
-                      {tweet.image_url && tweet.image_url.startsWith('http') && !tweet.image_url.includes('unavatar.io') && (
+                      {tweet.image_url && !tweet.image_url.includes('unavatar.io') && (
                         <div className="mt-4 rounded-lg overflow-hidden">
                           <img 
                             src={tweet.image_url} 
                             alt="Tweet media" 
                             className="w-full h-auto rounded-lg shadow-sm hover:shadow-md transition-shadow"
                             onError={(e) => {
+                              console.error("Erro ao carregar imagem:", tweet.image_url);
                               e.currentTarget.style.display = 'none';
                             }}
                           />
@@ -135,19 +138,19 @@ export const TwitterFeed = ({ tweets }: TwitterFeedProps) => {
                     <div className="flex justify-between mt-1 text-muted-foreground">
                       <button className="text-sm flex items-center gap-1 hover:text-blue-500 transition-colors">
                         <MessageCircle size={16} />
-                        <span>Comentar</span>
+                        <span className="hidden sm:inline">Comentar</span>
                       </button>
                       <button className="text-sm flex items-center gap-1 hover:text-green-500 transition-colors">
                         <Repeat size={16} />
-                        <span>Repostar</span>
+                        <span className="hidden sm:inline">Repostar</span>
                       </button>
                       <button className="text-sm flex items-center gap-1 hover:text-red-500 transition-colors">
                         <Heart size={16} />
-                        <span>Curtir</span>
+                        <span className="hidden sm:inline">Curtir</span>
                       </button>
                       <button className="text-sm flex items-center gap-1 hover:text-blue-500 transition-colors">
                         <Share2 size={16} />
-                        <span>Compartilhar</span>
+                        <span className="hidden sm:inline">Compartilhar</span>
                       </button>
                       {tweet.source_url && (
                         <a
@@ -157,7 +160,7 @@ export const TwitterFeed = ({ tweets }: TwitterFeedProps) => {
                           className="text-sm flex items-center gap-1 hover:text-blue-500 transition-colors"
                         >
                           <ExternalLink size={16} />
-                          <span>Ver no X</span>
+                          <span className="hidden sm:inline">Ver no X</span>
                         </a>
                       )}
                     </div>

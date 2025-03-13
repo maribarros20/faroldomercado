@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -47,7 +48,7 @@ function cleanContent(content: string): string {
 
 // Função para extrair imagens de tweets
 function extractMediaFromTweet(tweet: any): string | null {
-  if (tweet.includes?.media && tweet.includes.media.length > 0) {
+  if (tweet && tweet.includes && tweet.includes.media && tweet.includes.media.length > 0) {
     return tweet.includes.media[0].url || tweet.includes.media[0].preview_image_url;
   }
   return null;
@@ -79,10 +80,13 @@ async function fetchTwitterPosts(): Promise<NewsItem[]> {
         
         if (!userResponse.ok) {
           console.error(`Erro ao buscar ID do usuário ${account.username}: ${userResponse.statusText}`);
+          console.error('Resposta completa:', await userResponse.text());
           continue;
         }
         
         const userData = await userResponse.json();
+        console.log(`Dados do usuário ${account.username}:`, JSON.stringify(userData));
+        
         const userId = userData.data?.id;
         
         if (!userId) {
@@ -92,7 +96,7 @@ async function fetchTwitterPosts(): Promise<NewsItem[]> {
         
         // Agora busca os tweets recentes
         const tweetsResponse = await fetch(
-          `https://api.twitter.com/2/users/${userId}/tweets?max_results=10&expansions=attachments.media_keys&tweet.fields=created_at,text,entities,public_metrics&media.fields=url,preview_image_url,width,height`,
+          `https://api.twitter.com/2/users/${userId}/tweets?max_results=5&expansions=attachments.media_keys&tweet.fields=created_at,text,entities&media.fields=url,preview_image_url`,
           {
             headers: {
               Authorization: `Bearer ${twitterBearerToken}`,
@@ -102,10 +106,12 @@ async function fetchTwitterPosts(): Promise<NewsItem[]> {
         
         if (!tweetsResponse.ok) {
           console.error(`Erro ao buscar tweets de ${account.username}: ${tweetsResponse.statusText}`);
+          console.error('Resposta completa:', await tweetsResponse.text());
           continue;
         }
         
         const tweetsData = await tweetsResponse.json();
+        console.log(`Resposta do Twitter para ${account.username}:`, JSON.stringify(tweetsData));
         
         if (!tweetsData.data || tweetsData.data.length === 0) {
           console.log(`Nenhum tweet encontrado para ${account.username}`);
@@ -170,7 +176,7 @@ async function fetchReutersNews(): Promise<NewsItem[]> {
         category: 'Economia',
         image_url: 'https://s3.ap-southeast-1.amazonaws.com/thomson-media-resources/images/logos/tr-new.svg',
         source: 'Reuters',
-        source_url: 'https://www.reuters.com/finance/markets',
+        source_url: 'https://www.reuters.com/markets',
       },
       {
         title: 'Petróleo sobe após dados de estoques nos EUA',
@@ -181,7 +187,7 @@ async function fetchReutersNews(): Promise<NewsItem[]> {
         category: 'Commodities',
         image_url: 'https://s3.ap-southeast-1.amazonaws.com/thomson-media-resources/images/logos/tr-new.svg',
         source: 'Reuters',
-        source_url: 'https://www.reuters.com/finance/commodities',
+        source_url: 'https://www.reuters.com/markets',
       }
     ];
     
@@ -266,6 +272,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('Iniciando função fetch-twitter-news');
     // Criar cliente Supabase para ler os dados
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
