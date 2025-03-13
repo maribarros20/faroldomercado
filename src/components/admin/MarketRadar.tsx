@@ -166,7 +166,7 @@ export default function MarketRadar() {
   return <div className="space-y-6 pb-6 bg-gray-100 rounded-lg p-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-[#0066FF]">Acompanhamento da Carteira</h2>
+          <h2 className="text-2xl font-bold text-[#0066FF]">Acompanhamento do mercado</h2>
           <p className="text-gray-600">Acompanhe suas ações e principais índices de mercado</p>
           <p className="text-xs text-gray-500">
             Última atualização: {new Date().toLocaleTimeString()} 
