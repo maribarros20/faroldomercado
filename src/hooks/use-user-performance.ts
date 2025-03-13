@@ -263,15 +263,6 @@ export const useCurrentUserPerformance = (userId?: string) => {
         console.error("Erro ao buscar atividades:", activitiesError);
       }
       
-      const { data: achievements, error: achievementsError } = await supabase
-        .from('user_achievements')
-        .select('*')
-        .eq('user_id', userId);
-      
-      if (achievementsError) {
-        console.error("Erro ao buscar conquistas:", achievementsError);
-      }
-      
       let studyTimeMinutes = 0;
       if (userActivities) {
         studyTimeMinutes = userActivities.reduce((total, activity) => {
@@ -288,23 +279,10 @@ export const useCurrentUserPerformance = (userId?: string) => {
         }, 0);
       }
       
-      const statsData = stats || {
-        materials_read: 0,
-        videos_watched: 0,
-        quizzes_completed: 0,
-        active_days: 0
-      };
-
       const materialsCompleted = statsData.materials_read || 0;
       const videosWatched = statsData.videos_watched || 0;
       const quizzesCompleted = statsData.quizzes_completed || 0;
       const quizzesPassed = Math.round(quizzesCompleted * 0.7);
-      
-      const totalMaterials = progress?.length || 0;
-      const completedMaterials = progress?.filter(p => p.is_completed)?.length || 0;
-      const totalProgress = totalMaterials > 0 
-        ? Math.round((completedMaterials / totalMaterials) * 100) 
-        : 0;
       
       const experiencePoints = calculateExperiencePoints(
         materialsCompleted,
@@ -316,16 +294,6 @@ export const useCurrentUserPerformance = (userId?: string) => {
       
       const levelInfo = calculateUserLevel(experiencePoints);
       
-      const { data: quizAttempts } = await supabase
-        .from('user_quiz_attempts')
-        .select('score')
-        .eq('user_id', userId);
-      
-      const quizScores = quizAttempts || [];
-      const quizzesScore = quizScores.length > 0 
-        ? Math.round(quizScores.reduce((sum, quiz) => sum + quiz.score, 0) / quizScores.length) 
-        : 0;
-      
       return {
         id: userId,
         user_id: userId,
@@ -333,7 +301,7 @@ export const useCurrentUserPerformance = (userId?: string) => {
         videos_watched: videosWatched,
         quizzes_completed: quizzesCompleted,
         quizzes_passed: quizzesPassed,
-        quizzes_score: quizzesScore,
+        quizzes_score: 0,
         active_days: statsData.active_days || 0,
         achievements_count: achievements?.length || 0,
         total_progress: totalProgress,
@@ -355,3 +323,4 @@ export const useCurrentUserPerformance = (userId?: string) => {
     }
   });
 };
+
