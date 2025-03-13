@@ -56,7 +56,7 @@ const QuizEditPage: React.FC = () => {
       const newQuestion = {
         quiz_id: quizId,
         question: "Nova pergunta",
-        question_type: "multiple_choice",
+        question_type: "multiple_choice" as "multiple_choice" | "true_false",
         options: ["Opção 1", "Opção 2", "Opção 3", "Opção 4"],
         correct_answer: "Opção 1",
         explanation: "Explicação da resposta correta",
