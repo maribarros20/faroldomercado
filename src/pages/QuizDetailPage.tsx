@@ -10,10 +10,10 @@ const QuizDetailPage: React.FC = () => {
   const { data: quiz, isLoading, error } = useQuiz(quizId);
   
   useEffect(() => {
-    console.log("Quiz ID from params:", quizId);
-    console.log("Quiz data:", quiz);
-    console.log("Is loading:", isLoading);
-    console.log("Error:", error);
+    console.log("QuizDetailPage - Quiz ID from params:", quizId);
+    console.log("QuizDetailPage - Quiz data:", quiz);
+    console.log("QuizDetailPage - Is loading:", isLoading);
+    console.log("QuizDetailPage - Error:", error);
   }, [quizId, quiz, isLoading, error]);
 
   if (isLoading) {
