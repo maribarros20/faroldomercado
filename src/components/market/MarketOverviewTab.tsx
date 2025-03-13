@@ -92,12 +92,26 @@ const MarketOverviewTab: React.FC = () => {
     change: "0%"
   };
 
+  // Extract data for MarketSnapshot
+  const snapshotData = {
+    title: "Market Overview",
+    value: data.marketIndices.IBOV?.value || "0",
+    prevClose: parseFloat(data.marketIndices.IBOV?.prevClose || "0"),
+    open: parseFloat(data.marketIndices.IBOV?.open || "0"),
+    dayLow: parseFloat(data.marketIndices.IBOV?.dayLow || "0"),
+    dayHigh: parseFloat(data.marketIndices.IBOV?.dayHigh || "0"),
+    weekLow: parseFloat(data.marketIndices.IBOV?.weekLow || "0"),
+    weekHigh: parseFloat(data.marketIndices.IBOV?.weekHigh || "0"),
+    time: data.marketIndices.IBOV?.time || "",
+    date: data.marketIndices.IBOV?.date || ""
+  };
+
   return (
     <div className="space-y-6 p-4">
-      <MarketSnapshot data={data} />
+      <MarketSnapshot {...snapshotData} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <VixPanel vixData={data.vix} />
+        <VixPanel />
         <MarketAlertWidget alerts={data.alerts} />
       </div>
 
@@ -121,7 +135,7 @@ const MarketOverviewTab: React.FC = () => {
         </TabsList>
 
         <TabsContent value="market-indices">
-          <MarketIndicesPanel indices={data.marketIndices} />
+          <MarketIndicesPanel />
         </TabsContent>
 
         <TabsContent value="di-rates">
