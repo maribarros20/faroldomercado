@@ -28,7 +28,8 @@ const QuizContent = () => {
   
   useEffect(() => {
     const timer = setInterval(() => {
-      setElapsedTime(prev => prev + 1);
+      // Fix: This is the problematic line - we need to pass a number directly instead of a function
+      setElapsedTime((prev) => prev + 1);
     }, 1000);
     
     return () => clearInterval(timer);

@@ -9,7 +9,7 @@ interface QuizContextType {
   setAnswers: (answers: QuizAnswer[]) => void;
   startTime: string;
   elapsedTime: number;
-  setElapsedTime: (time: number) => void;
+  setElapsedTime: React.Dispatch<React.SetStateAction<number>>;
   showHint: boolean;
   setShowHint: (show: boolean) => void;
   handleAnswerChange: (questionId: string, answer: string) => void;
