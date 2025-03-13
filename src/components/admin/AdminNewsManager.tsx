@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
@@ -13,12 +14,13 @@ import {
   createNews, updateNews, deleteNews, getNewsById, NEWS_CATEGORIES 
 } from "@/services/NewsService";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, RefreshCw, Edit, Trash2, Save, X } from "lucide-react";
+import { PlusCircle, RefreshCw, Edit, Trash2, Save, X, Newspaper, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { NewsItem } from "@/services/NewsService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchManualNews } from "@/services/NewsService";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminNewsManager = () => {
   const { toast } = useToast();
@@ -185,6 +187,49 @@ const AdminNewsManager = () => {
     setIsEditing(false);
   };
 
+  const handleGenerateMarketSummary = async () => {
+    try {
+      toast({
+        title: "Gerando resumo do mercado",
+        description: "Aguarde enquanto geramos o resumo do mercado para o dia de hoje.",
+      });
+      
+      const { data, error } = await supabase.functions.invoke('daily-market-summary');
+      
+      if (error) {
+        throw new Error('Erro ao gerar resumo: ' + error.message);
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['admin-news'] });
+      
+      toast({
+        title: data.success ? "Resumo gerado com sucesso" : "Aviso",
+        description: data.message,
+      });
+      
+    } catch (error) {
+      console.error("Erro ao gerar resumo do mercado:", error);
+      toast({
+        title: "Erro ao gerar resumo",
+        description: error instanceof Error ? error.message : "Ocorreu um erro inesperado",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Agrupa as notícias por categoria
+  const getCategoryNewsCount = () => {
+    if (!newsList) return {};
+    
+    return newsList.reduce((acc: Record<string, number>, news) => {
+      const category = news.category || 'Sem categoria';
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {});
+  };
+
+  const categoryNewsCount = getCategoryNewsCount();
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -203,6 +248,14 @@ const AdminNewsManager = () => {
             Nova Notícia
           </Button>
           <Button 
+            onClick={handleGenerateMarketSummary}
+            variant="secondary"
+            className="flex items-center gap-2"
+          >
+            <BarChart3 size={16} />
+            Gerar Resumo do Mercado
+          </Button>
+          <Button 
             onClick={() => refetch()} 
             variant="outline" 
             className="flex items-center gap-2 hover:bg-[#e6f0ff] hover:text-[#0066FF]"
@@ -211,6 +264,35 @@ const AdminNewsManager = () => {
             Atualizar
           </Button>
         </div>
+      </div>
+
+      {/* Estatísticas rápidas das notícias */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total de Notícias</p>
+                <h3 className="text-2xl font-bold">{newsList?.length || 0}</h3>
+              </div>
+              <Newspaper className="h-8 w-8 text-blue-500 opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Resumos de Mercado</p>
+                <h3 className="text-2xl font-bold">{categoryNewsCount['Resumo de Mercado'] || 0}</h3>
+              </div>
+              <BarChart3 className="h-8 w-8 text-green-500 opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Adicione mais cards de estatísticas conforme necessário */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -381,7 +463,9 @@ const AdminNewsManager = () => {
                   {newsList?.map((news) => (
                     <li 
                       key={news.id} 
-                      className="border rounded-md p-3 hover:bg-muted/50 transition-colors"
+                      className={`border rounded-md p-3 hover:bg-muted/50 transition-colors ${
+                        news.category === 'Resumo de Mercado' ? 'border-l-4 border-l-green-500' : ''
+                      }`}
                     >
                       <div className="flex justify-between">
                         <div className="flex-1 overflow-hidden">
@@ -442,4 +526,3 @@ const AdminNewsManager = () => {
 };
 
 export default AdminNewsManager;
-

@@ -28,8 +28,8 @@ export const NewsCard = ({ newsItem }: NewsCardProps) => {
   // Se a fonte for "manual", mudar para "Farol Investe"
   const displaySource = newsItem.source === "manual" ? "Farol Investe" : newsItem.source;
 
-  // Verificar se o link é válido
-  const hasValidLink = newsItem.source_url && newsItem.source_url.startsWith('http');
+  // Verificar se o link é válido e não vazio
+  const hasValidLink = !!newsItem.source_url && newsItem.source_url.startsWith('http');
   
   // Função para validar URL externo
   const getValidSourceUrl = (url?: string): string => {
@@ -44,6 +44,19 @@ export const NewsCard = ({ newsItem }: NewsCardProps) => {
       return '#';
     }
   };
+
+  // Para resumos de mercado, verificar se há link de "Ler matéria completa" no conteúdo
+  const extractReadMoreLink = (): string => {
+    if (newsItem.category === 'Resumo de Mercado' && newsItem.content) {
+      const match = newsItem.content.match(/\[Ler matéria completa\]\(([^)]+)\)/);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    return newsItem.source_url || '#';
+  };
+
+  const sourceUrl = extractReadMoreLink();
 
   return (
     <Card className="overflow-hidden h-full flex flex-col">
@@ -89,16 +102,16 @@ export const NewsCard = ({ newsItem }: NewsCardProps) => {
           )}
         </div>
       </CardContent>
-      {hasValidLink && (
+      {(hasValidLink || newsItem.category === 'Resumo de Mercado') && (
         <CardFooter className="p-4 pt-0">
           <a
-            href={getValidSourceUrl(newsItem.source_url)}
+            href={getValidSourceUrl(sourceUrl)}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs flex items-center gap-1 text-primary hover:underline"
           >
             <ExternalLink size={12} />
-            Ler notícia completa
+            {newsItem.category === 'Resumo de Mercado' ? 'Ler resumo completo' : 'Ler notícia completa'}
           </a>
         </CardFooter>
       )}

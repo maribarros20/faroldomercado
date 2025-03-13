@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   fetchAllNews, NEWS_CATEGORIES, FINANCIAL_NEWS_SOURCES, NewsItem 
@@ -115,6 +114,87 @@ const MarketNews = () => {
 
   const toggleFinancialNewsFilter = () => {
     setShowOnlyFinancialNews(!showOnlyFinancialNews);
+  };
+
+  const formatMarkdownContent = (content: string) => {
+    // Dividir conteúdo em linhas
+    const lines = content.split('\n');
+    
+    // Array para armazenar o JSX resultante
+    const formattedContent: JSX.Element[] = [];
+    
+    // Processar cada linha
+    lines.forEach((line, i) => {
+      // Processar links markdown
+      const processLinks = (text: string) => {
+        const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+        const parts = [];
+        let lastIndex = 0;
+        let match;
+        
+        while ((match = linkRegex.exec(text)) !== null) {
+          // Adicionar texto antes do link
+          if (match.index > lastIndex) {
+            parts.push(text.substring(lastIndex, match.index));
+          }
+          
+          // Adicionar o link
+          parts.push(
+            <a 
+              key={`link-${i}-${match.index}`}
+              href={match[2]} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:underline"
+            >
+              {match[1]}
+            </a>
+          );
+          
+          lastIndex = match.index + match[0].length;
+        }
+        
+        // Adicionar o restante do texto
+        if (lastIndex < text.length) {
+          parts.push(text.substring(lastIndex));
+        }
+        
+        return parts.length > 1 ? <>{parts}</> : text;
+      };
+      
+      // Renderizar cabeçalhos
+      if (line.startsWith('# ')) {
+        formattedContent.push(
+          <h1 key={i} className="text-2xl font-bold mt-6 mb-4">{processLinks(line.substring(2))}</h1>
+        );
+      } else if (line.startsWith('## ')) {
+        formattedContent.push(
+          <h2 key={i} className="text-xl font-bold mt-5 mb-3">{processLinks(line.substring(3))}</h2>
+        );
+      } else if (line.startsWith('### ')) {
+        formattedContent.push(
+          <h3 key={i} className="text-lg font-bold mt-4 mb-2">{processLinks(line.substring(4))}</h3>
+        );
+      }
+      // Renderizar itens de lista
+      else if (line.startsWith('- ')) {
+        formattedContent.push(
+          <li key={i} className="ml-6 mb-2">{processLinks(line.substring(2))}</li>
+        );
+      }
+      // Renderizar parágrafos (linhas não vazias)
+      else if (line.trim()) {
+        formattedContent.push(
+          <p key={i} className="mb-4">{processLinks(line)}</p>
+        );
+      }
+      // Linhas vazias se tornam quebras
+      else {
+        formattedContent.push(<br key={i} />);
+      }
+    });
+    
+    return formattedContent;
   };
 
   if (isError) {
@@ -294,31 +374,7 @@ const MarketNews = () => {
                     <h3 className="text-xl font-bold mb-2">{item.title}</h3>
                     <p className="text-muted-foreground mb-4">{item.subtitle}</p>
                     <div className="prose max-w-none">
-                      {item.content.split('\n').map((line, i) => {
-                        // Render headings
-                        if (line.startsWith('# ')) {
-                          return <h1 key={i} className="text-2xl font-bold mt-6 mb-4">{line.substring(2)}</h1>;
-                        }
-                        if (line.startsWith('## ')) {
-                          return <h2 key={i} className="text-xl font-bold mt-5 mb-3">{line.substring(3)}</h2>;
-                        }
-                        if (line.startsWith('### ')) {
-                          return <h3 key={i} className="text-lg font-bold mt-4 mb-2">{line.substring(4)}</h3>;
-                        }
-                        
-                        // Render list items
-                        if (line.startsWith('- ')) {
-                          return <li key={i} className="ml-6 mb-2">{line.substring(2)}</li>;
-                        }
-                        
-                        // Render paragraphs (non-empty lines)
-                        if (line.trim()) {
-                          return <p key={i} className="mb-4">{line}</p>;
-                        }
-                        
-                        // Empty lines become breaks
-                        return <br key={i} />;
-                      })}
+                      {formatMarkdownContent(item.content)}
                     </div>
                   </CardContent>
                 </Card>

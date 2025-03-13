@@ -18,6 +18,13 @@ interface NewsItem {
   source_url?: string;
 }
 
+interface NewsSummarySource {
+  title: string;
+  source: string;
+  date: string;
+  source_url: string;
+}
+
 async function generateMarketSummary(allNews: NewsItem[]): Promise<NewsItem> {
   // Filtrar notícias relevantes para o resumo do mercado
   const relevantTopics = ['bolsa', 'índice', 'mercado', 'petróleo', 'ouro', 'minério', 'geopolítica', 'china', 'eua', 'brasil', 'europa'];
@@ -35,6 +42,21 @@ async function generateMarketSummary(allNews: NewsItem[]): Promise<NewsItem> {
   const marketNews = relevantNews.filter(n => n.category === 'Mercado de Ações');
   const economyNews = relevantNews.filter(n => n.category === 'Economia');
   const commoditiesNews = relevantNews.filter(n => n.category === 'Commodities');
+  
+  // Acompanhar fontes para citação
+  const sources: NewsSummarySource[] = [];
+  
+  // Extrair fontes das notícias relevantes
+  relevantNews.slice(0, 10).forEach(news => {
+    if (news.title && news.source) {
+      sources.push({
+        title: news.title,
+        source: news.source,
+        date: news.publication_date || news.created_at || new Date().toISOString(),
+        source_url: news.source_url || ''
+      });
+    }
+  });
   
   // Construir texto do resumo
   const today = new Date().toLocaleDateString('pt-BR', {
@@ -88,6 +110,21 @@ async function generateMarketSummary(allNews: NewsItem[]): Promise<NewsItem> {
   summaryContent += '- Negociações comerciais entre EUA e China avançam lentamente, com foco em tecnologia e propriedade intelectual.\n';
   summaryContent += '- Situação no Oriente Médio permanece instável, afetando os preços do petróleo e criando volatilidade nos mercados.\n';
   
+  // Adicionar seção de fontes e referências
+  summaryContent += '\n## Fontes e Referências\n\n';
+  
+  if (sources.length > 0) {
+    sources.forEach((source, index) => {
+      const dateFormatted = new Date(source.date).toLocaleDateString('pt-BR');
+      summaryContent += `${index + 1}. [${source.title}](${source.source_url}) - ${source.source} (${dateFormatted})\n`;
+    });
+  } else {
+    summaryContent += 'Resumo compilado pela equipe editorial do Farol Investe com base nas tendências observadas nos mercados financeiros.\n';
+  }
+  
+  // Adicionar link para ler matéria completa (se houver)
+  summaryContent += '\n\n[Ler matéria completa](https://farolinveste.com.br/resumo-mercado)\n';
+  
   // Criar o item de notícia de resumo
   return {
     title: `Resumo de Mercado - ${today}`,
@@ -98,7 +135,7 @@ async function generateMarketSummary(allNews: NewsItem[]): Promise<NewsItem> {
     category: 'Resumo de Mercado',
     image_url: '/lovable-uploads/08c37f81-bb96-41bd-9b6e-2ade4bae59df.png',
     source: 'Farol Investe',
-    source_url: '',
+    source_url: 'https://farolinveste.com.br/resumo-mercado',
   };
 }
 
@@ -169,6 +206,7 @@ Deno.serve(async (req) => {
           author: 'Farol Investe',
           category: 'Resumo de Mercado',
           image_url: '/lovable-uploads/08c37f81-bb96-41bd-9b6e-2ade4bae59df.png',
+          source_url: 'https://farolinveste.com.br/resumo-mercado',
           created_at: new Date().toISOString()
         }]);
       
