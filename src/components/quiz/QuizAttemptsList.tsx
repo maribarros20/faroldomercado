@@ -14,6 +14,7 @@ import { QuizAttempt } from "@/types/quiz";
 import { Clock } from "lucide-react";
 import { useUserQuizAttempts } from "@/hooks/use-quizzes";
 import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 
 interface QuizAttemptsListProps {
   attempts?: QuizAttempt[];
@@ -60,7 +61,7 @@ const QuizAttemptsList: React.FC<QuizAttemptsListProps> = ({ attempts: propAttem
                 <TableCell className="font-medium">Quiz ID: {attempt.quiz_id}</TableCell>
                 <TableCell>{attempt.score}%</TableCell>
                 <TableCell>
-                  <Badge variant={badgeVariant} className={badgeClass}>
+                  <Badge variant={badgeVariant} className={cn(badgeClass)}>
                     {attempt.passed ? "Aprovado" : "Reprovado"}
                   </Badge>
                 </TableCell>

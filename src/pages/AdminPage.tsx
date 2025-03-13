@@ -19,6 +19,7 @@ import AdminCommunity from "@/components/admin/AdminCommunity";
 import AdminMentors from "@/components/admin/AdminMentors";
 import AdminUserManager from "@/components/admin/AdminUserManager";
 import AdminPerformance from "@/components/admin/AdminPerformance";
+import AdminQuizzes from "@/components/admin/AdminQuizzes";
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("subscribers");
@@ -152,6 +153,10 @@ const AdminPage = () => {
             className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Vídeos</TabsTrigger>
           <TabsTrigger 
+            value="quizzes"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
+          >Quizzes</TabsTrigger>
+          <TabsTrigger 
             value="community"
             className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Comunidade</TabsTrigger>
@@ -197,6 +202,10 @@ const AdminPage = () => {
             
             <TabsContent value="videos" className="mt-0">
               <AdminVideos />
+            </TabsContent>
+            
+            <TabsContent value="quizzes" className="mt-0">
+              <AdminQuizzes />
             </TabsContent>
             
             <TabsContent value="community" className="mt-0">

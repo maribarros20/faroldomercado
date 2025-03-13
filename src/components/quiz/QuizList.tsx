@@ -76,7 +76,7 @@ const QuizList: React.FC = () => {
             value={categoryFilter}
             onValueChange={setCategoryFilter}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Todas as categorias" />
             </SelectTrigger>
             <SelectContent>
@@ -95,7 +95,7 @@ const QuizList: React.FC = () => {
             value={difficultyFilter}
             onValueChange={setDifficultyFilter}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Todas as dificuldades" />
             </SelectTrigger>
             <SelectContent>

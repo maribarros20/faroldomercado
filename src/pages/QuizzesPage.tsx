@@ -45,7 +45,7 @@ const QuizzesPage: React.FC = () => {
           </div>
           
           {isAdmin && (
-            <Button onClick={() => navigate('/quizzes/create')}>
+            <Button onClick={() => navigate('/quizzes/create')} className="bg-blue-600 hover:bg-blue-700">
               <PlusCircle className="h-4 w-4 mr-2" />
               Criar Quiz
             </Button>
