@@ -8,7 +8,7 @@ const LeftPanel = () => {
       <nav className="flex gap-8 mb-16">
         <a href="/" className="text-white font-medium hover:text-gray-100 hover:scale-105 transition-transform duration-200\n">Site</a>
         <a href="/" className="text-white font-medium hover:text-gray-100 hover:scale-105 transition-transform duration-200\n">Blog</a>
-        <a href="/" className="text-gray-800 hover:text-black font-medium">Falar com Luma</a>
+        <a href="/" className="text-white font-medium hover:text-gray-100 hover:scale-105 transition-transform duration-200\n">Falar com Luma</a>
       </nav>
       
       <div className="flex-grow flex flex-col justify-center">
