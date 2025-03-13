@@ -198,7 +198,7 @@ export default function MarketRadar() {
       {/* Brazilian Stocks Carousel */}
       <Card className="shadow-lg bg-white border-none">
         <CardHeader className="pb-2 border-b">
-          <CardTitle className="text-xl">Maiores Ações Brasileiras</CardTitle>
+          <CardTitle className="text-xl text-trade-blue">7 mais - BRA</CardTitle>
         </CardHeader>
         <CardContent className="p-4">
           <StockCardCarousel stocks={getBrazilianStocks()} title="" isLoading={isLoading} />
