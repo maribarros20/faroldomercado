@@ -120,21 +120,17 @@ const VixPanel: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="py-2 px-3">
-                  <div className="flex items-center">
-                    {isCurrentNegative ? (
-                      <TrendingDown className="h-8 w-8 text-green-500 mr-2" />
-                    ) : (
-                      <TrendingUp className="h-8 w-8 text-red-500 mr-2" />
-                    )}
-                    <div>
-                      <div className="text-xl font-bold flex items-center">
+                  <div className="flex flex-col">
+                    <div className="flex justify-between items-center">
+                      <div className="text-xl font-bold">
                         {vixData.curr_value}
-                        <span className="ml-2 text-xs text-gray-600">{vixData.curr_value_parameter}</span>
                       </div>
-                      <div className={`text-sm font-medium flex items-center ${isCurrentNegative ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className={`text-lg font-medium ${isCurrentNegative ? 'text-green-600' : 'text-red-600'}`}>
                         {vixData.curr_change}
-                        <span className="ml-2 text-xs text-gray-600">{vixData.curr_change_parameter}</span>
                       </div>
+                    </div>
+                    <div className="text-sm text-gray-600 mt-2 w-full">
+                      {vixData.curr_value_parameter}
                     </div>
                   </div>
                 </CardContent>
@@ -152,17 +148,15 @@ const VixPanel: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="py-2 px-3">
-                  <div className="flex items-center">
-                    {isClosingNegative ? (
-                      <TrendingDown className="h-8 w-8 text-green-500 mr-2" />
-                    ) : (
-                      <TrendingUp className="h-8 w-8 text-red-500 mr-2" />
-                    )}
-                    <div>
+                  <div className="flex flex-col">
+                    <div className="flex justify-between items-center">
                       <div className="text-xl font-bold">{vixData.closing_value}</div>
-                      <div className={`text-sm font-medium ${isClosingNegative ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className={`text-lg font-medium ${isClosingNegative ? 'text-green-600' : 'text-red-600'}`}>
                         {vixData.closing_change}
                       </div>
+                    </div>
+                    <div className="text-sm text-gray-600 mt-2 w-full">
+                      {/* Parameter placeholder */}
                     </div>
                   </div>
                 </CardContent>
@@ -180,18 +174,15 @@ const VixPanel: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="py-2 px-3">
-                  <div className="flex items-center">
-                    {isOpeningNegative ? (
-                      <TrendingDown className="h-8 w-8 text-green-500 mr-2" />
-                    ) : (
-                      <TrendingUp className="h-8 w-8 text-red-500 mr-2" />
-                    )}
-                    <div>
+                  <div className="flex flex-col">
+                    <div className="flex justify-between items-center">
                       <div className="text-xl font-bold">{vixData.opening_value}</div>
-                      <div className={`text-sm font-medium flex items-center ${isOpeningNegative ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className={`text-lg font-medium ${isOpeningNegative ? 'text-green-600' : 'text-red-600'}`}>
                         {vixData.opening_change}
-                        <span className="ml-2 text-xs text-gray-600">{vixData.opening_change_parameter}</span>
                       </div>
+                    </div>
+                    <div className="text-sm text-gray-600 mt-2 w-full">
+                      {vixData.opening_change_parameter}
                     </div>
                   </div>
                 </CardContent>
@@ -199,21 +190,27 @@ const VixPanel: React.FC = () => {
             </div>
             
             {/* VIX Tendência */}
-            <div className="mt-4 bg-gray-50 p-3 rounded text-sm">
-              <div className="font-medium mb-1 flex items-center">
-                Tendência
-                <span className="text-xs text-gray-500 ml-2 flex items-center">
+            <div className="mt-4">
+              <div className="font-medium mb-1 flex items-center justify-between">
+                <span>Tendência</span>
+                <span className="text-xs text-gray-500 flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
                   {vixData.tendency_time_data || "Sem horário"}
                 </span>
               </div>
-              <div className="text-gray-700">{vixData.tendency_parameter}</div>
+              <div className="h-24 md:h-28 bg-gray-50 rounded shadow-inner mb-2">
+                {/* Trend chart would go here */}
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  <span>Gráfico de tendência</span>
+                </div>
+              </div>
+              <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{vixData.tendency_parameter}</div>
             </div>
           </div>
           
           {/* Right Column: Chart */}
-          <div className="md:col-span-5 h-48 md:h-auto">
-            <ResponsiveContainer width="100%" height={200}>
+          <div className="md:col-span-5 h-40 md:h-auto">
+            <ResponsiveContainer width="100%" height={160}>
               <LineChart data={chartData}>
                 <Line 
                   type="monotone" 

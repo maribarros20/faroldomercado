@@ -1,326 +1,171 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
-export interface UserPerformance {
-  id: string;
-  user_id: string;
-  materials_completed: number;
-  videos_watched: number;
-  quizzes_completed: number;
-  quizzes_passed: number;
-  quizzes_score: number;
-  active_days: number;
-  achievements_count: number;
-  total_progress: number;
-  tipo_de_conta: string;
-  username?: string;
-  first_name?: string;
-  last_name?: string;
-  experience_points?: number;
-  study_time_minutes?: number;
-  level?: number;
-  next_level_xp?: number;
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useUserProfile } from '@/hooks/use-user-profile';
+
+interface CourseCompletion {
+  course_id: string;
+  course_name: string;
+  completed_lessons: number;
+  total_lessons: number;
+  completion_percentage: number;
 }
 
-export const calculateUserLevel = (xp: number) => {
-  let level = 1;
-  let xpRequired = 100;
-  let totalXpRequired = xpRequired;
+interface ActivityData {
+  date: string;
+  count: number;
+}
+
+interface UserStats {
+  completedCourses: number;
+  activeCourses: number;
+  totalLearningTime: number;
+  averageScore: number;
+}
+
+interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  date_achieved: string;
+  category: string;
+}
+
+export function useUserPerformance() {
+  const [courseCompletions, setCourseCompletions] = useState<CourseCompletion[]>([]);
+  const [activityData, setActivityData] = useState<ActivityData[]>([]);
+  const [userStats, setUserStats] = useState<UserStats>({
+    completedCourses: 0,
+    activeCourses: 0,
+    totalLearningTime: 0,
+    averageScore: 0
+  });
+  const [userAchievements, setUserAchievements] = useState<Achievement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalProgressPercentage, setTotalProgressPercentage] = useState(0);
   
-  while (xp >= totalXpRequired) {
-    level++;
-    xpRequired = Math.round(xpRequired * 1.2);
-    totalXpRequired += xpRequired;
-  }
-  
-  const nextLevelXp = totalXpRequired;
-  const currentLevelXp = nextLevelXp - xpRequired;
+  const { userId, isLoading: isUserLoading } = useUserProfile();
+
+  useEffect(() => {
+    if (isUserLoading || !userId) return;
+    
+    async function fetchUserPerformanceData() {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Fetch course completions
+        const { data: completionsData, error: completionsError } = await supabase
+          .from('user_course_progress')
+          .select(`
+            course_id,
+            courses:course_id (name),
+            completed_lessons,
+            total_lessons
+          `)
+          .eq('user_id', userId);
+        
+        if (completionsError) throw completionsError;
+        
+        // Format course completions data
+        const formattedCompletions = completionsData.map(item => ({
+          course_id: item.course_id,
+          course_name: item.courses?.name || 'Unknown Course',
+          completed_lessons: item.completed_lessons || 0,
+          total_lessons: item.total_lessons || 0,
+          completion_percentage: item.total_lessons > 0 
+            ? Math.round((item.completed_lessons / item.total_lessons) * 100) 
+            : 0
+        }));
+        
+        setCourseCompletions(formattedCompletions);
+        
+        // Calculate total progress percentage
+        if (formattedCompletions.length > 0) {
+          const totalProgress = formattedCompletions.reduce((sum, course) => sum + course.completion_percentage, 0) / formattedCompletions.length;
+          setTotalProgressPercentage(Math.round(totalProgress));
+        }
+        
+        // Fetch activity data (last 30 days)
+        const { data: activityData, error: activityError } = await supabase
+          .from('user_learning_activity')
+          .select('date, action_count')
+          .eq('user_id', userId)
+          .order('date', { ascending: false })
+          .limit(30);
+        
+        if (activityError) throw activityError;
+        
+        // Format activity data
+        const formattedActivity = activityData.map(item => ({
+          date: item.date,
+          count: item.action_count || 0
+        }));
+        
+        setActivityData(formattedActivity);
+        
+        // Fetch user stats
+        const { data: statsData, error: statsError } = await supabase
+          .from('user_learning_stats')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+        
+        if (statsError && statsError.code !== 'PGRST116') throw statsError;
+        
+        if (statsData) {
+          setUserStats({
+            completedCourses: statsData.completed_courses || 0,
+            activeCourses: statsData.active_courses || 0,
+            totalLearningTime: statsData.total_learning_time || 0,
+            averageScore: statsData.average_score || 0
+          });
+        }
+        
+        // Fetch achievements
+        const { data: achievements, error: achievementsError } = await supabase
+          .from('user_achievements')
+          .select(`
+            id,
+            achievements:achievement_id (title, description, icon, category),
+            date_achieved
+          `)
+          .eq('user_id', userId);
+        
+        if (achievementsError) throw achievementsError;
+        
+        // Format achievements data
+        const formattedAchievements = achievements.map(item => ({
+          id: item.id,
+          title: item.achievements?.title || 'Unknown Achievement',
+          description: item.achievements?.description || '',
+          icon: item.achievements?.icon || 'award',
+          date_achieved: item.date_achieved,
+          category: item.achievements?.category || 'general'
+        }));
+        
+        setUserAchievements(formattedAchievements);
+        
+      } catch (err) {
+        console.error('Error fetching user performance data:', err);
+        setError('Failed to load performance data. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchUserPerformanceData();
+  }, [userId, isUserLoading]);
   
   return {
-    level,
-    currentXp: xp,
-    currentLevelXp,
-    nextLevelXp,
-    progress: Math.round(((xp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100)
+    courseCompletions,
+    activityData,
+    stats: userStats,
+    achievements: userAchievements,
+    loading,
+    error,
+    totalProgressPercentage
   };
-};
-
-export const calculateExperiencePoints = (
-  materialsCompleted: number, 
-  videosWatched: number, 
-  quizzesCompleted: number,
-  quizzesPassed: number,
-  achievementsCount: number
-) => {
-  const XP_PER_MATERIAL = 10;
-  const XP_PER_VIDEO = 15;
-  const XP_PER_QUIZ_COMPLETED = 20;
-  const XP_PER_QUIZ_PASSED = 30;
-  const XP_PER_ACHIEVEMENT = 50;
-  
-  return (
-    materialsCompleted * XP_PER_MATERIAL +
-    videosWatched * XP_PER_VIDEO +
-    quizzesCompleted * XP_PER_QUIZ_COMPLETED +
-    quizzesPassed * XP_PER_QUIZ_PASSED +
-    achievementsCount * XP_PER_ACHIEVEMENT
-  );
-};
-
-export const useUserPerformance = () => {
-  return useQuery({
-    queryKey: ['user-performance'],
-    queryFn: async (): Promise<UserPerformance[]> => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error("Não autenticado");
-      }
-      
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*');
-      
-      if (profilesError) {
-        console.error("Erro ao buscar perfis:", profilesError);
-        throw profilesError;
-      }
-      
-      const { data: activities, error: activitiesError } = await supabase
-        .from('user_activities')
-        .select('*');
-      
-      if (activitiesError) {
-        console.error("Erro ao buscar atividades:", activitiesError);
-        throw activitiesError;
-      }
-      
-      const { data: progress, error: progressError } = await supabase
-        .from('user_material_progress')
-        .select('*');
-      
-      if (progressError) {
-        console.error("Erro ao buscar progresso:", progressError);
-        throw progressError;
-      }
-      
-      const { data: achievements, error: achievementsError } = await supabase
-        .from('user_achievements')
-        .select('*');
-      
-      if (achievementsError) {
-        console.error("Erro ao buscar conquistas:", achievementsError);
-        throw achievementsError;
-      }
-      
-      const usersPerformance: UserPerformance[] = profiles.map(profile => {
-        const userActivities = activities.filter(a => a.user_id === profile.id);
-        
-        const materialsRead = userActivities.filter(a => a.activity_type === 'material_read').length;
-        const videosWatched = userActivities.filter(a => a.activity_type === 'video_watched').length;
-        const quizzesCompleted = userActivities.filter(a => a.activity_type === 'quiz_completed').length;
-        
-        const quizzesPassed = userActivities.filter(a => {
-          if (a.activity_type === 'quiz_completed' && a.metadata) {
-            const metadata = a.metadata;
-            if (typeof metadata === 'object' && metadata !== null && 'passed' in metadata) {
-              return metadata.passed === true;
-            }
-          }
-          return false;
-        }).length;
-        
-        const quizScores = userActivities
-          .filter(a => {
-            if (a.activity_type === 'quiz_completed' && a.metadata) {
-              const metadata = a.metadata;
-              return typeof metadata === 'object' && metadata !== null && 'score' in metadata;
-            }
-            return false;
-          })
-          .map(a => {
-            const metadata = a.metadata as Record<string, any>;
-            return typeof metadata.score === 'number' ? metadata.score : 0;
-          });
-        
-        const quizzesScore = quizScores.length > 0 
-          ? Math.round(quizScores.reduce((sum, score) => sum + score, 0) / quizScores.length) 
-          : 0;
-        
-        const activeDays = new Set(
-          userActivities.map(a => new Date(a.created_at).toISOString().split('T')[0])
-        ).size;
-        
-        const achievementsCount = achievements.filter(a => a.user_id === profile.id).length;
-        
-        const userProgress = progress.filter(p => p.user_id === profile.id);
-        const completedCount = userProgress.filter(p => p.is_completed).length;
-        const totalProgress = userProgress.length > 0 
-          ? Math.round((completedCount / userProgress.length) * 100) 
-          : 0;
-        
-        const studyTimeMinutes = userActivities.reduce((total, activity) => {
-          if (activity.metadata && typeof activity.metadata === 'object' && 
-              'duration_minutes' in activity.metadata && 
-              typeof activity.metadata.duration_minutes === 'number') {
-            return total + activity.metadata.duration_minutes;
-          }
-          return total;
-        }, 0);
-        
-        const experiencePoints = calculateExperiencePoints(
-          materialsRead,
-          videosWatched,
-          quizzesCompleted,
-          quizzesPassed,
-          achievementsCount
-        );
-        
-        const levelInfo = calculateUserLevel(experiencePoints);
-        
-        return {
-          id: profile.id,
-          user_id: profile.id,
-          materials_completed: materialsRead,
-          videos_watched: videosWatched,
-          quizzes_completed: quizzesCompleted,
-          quizzes_passed: quizzesPassed,
-          quizzes_score: quizzesScore,
-          active_days: activeDays,
-          achievements_count: achievementsCount,
-          total_progress: totalProgress,
-          tipo_de_conta: profile.tipo_de_conta || 'trader',
-          username: profile.username,
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          experience_points: experiencePoints,
-          study_time_minutes: studyTimeMinutes,
-          level: levelInfo.level,
-          next_level_xp: levelInfo.nextLevelXp
-        };
-      });
-      
-      return usersPerformance;
-    },
-    meta: {
-      onError: (error: any) => {
-        console.error("Erro ao buscar desempenho dos usuários:", error);
-      }
-    }
-  });
-};
-
-export const useCurrentUserPerformance = (userId?: string) => {
-  return useQuery({
-    queryKey: ['user-performance', userId],
-    queryFn: async (): Promise<UserPerformance | null> => {
-      if (!userId) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          return null;
-        }
-        userId = session.user.id;
-      }
-      
-      const { data: stats, error: statsError } = await supabase
-        .from('user_activity_stats')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-      
-      if (statsError && statsError.code !== 'PGRST116') {
-        console.error("Erro ao buscar estatísticas:", statsError);
-        throw statsError;
-      }
-      
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (profileError) {
-        console.error("Erro ao buscar perfil:", profileError);
-        throw profileError;
-      }
-      
-      const { data: progress, error: progressError } = await supabase
-        .from('user_material_progress')
-        .select('*')
-        .eq('user_id', userId);
-      
-      if (progressError) {
-        console.error("Erro ao buscar progresso:", progressError);
-        throw progressError;
-      }
-      
-      const { data: userActivities, error: activitiesError } = await supabase
-        .from('user_activities')
-        .select('metadata, duration_seconds')
-        .eq('user_id', userId);
-        
-      if (activitiesError) {
-        console.error("Erro ao buscar atividades:", activitiesError);
-      }
-      
-      let studyTimeMinutes = 0;
-      if (userActivities) {
-        studyTimeMinutes = userActivities.reduce((total, activity) => {
-          const durationSeconds = activity.duration_seconds || 0;
-          
-          let metadataDuration = 0;
-          if (activity.metadata && typeof activity.metadata === 'object' && 
-              'duration_minutes' in activity.metadata && 
-              typeof activity.metadata.duration_minutes === 'number') {
-            metadataDuration = activity.metadata.duration_minutes * 60;
-          }
-          
-          return total + (durationSeconds > 0 ? durationSeconds / 60 : metadataDuration / 60);
-        }, 0);
-      }
-      
-      const materialsCompleted = statsData.materials_read || 0;
-      const videosWatched = statsData.videos_watched || 0;
-      const quizzesCompleted = statsData.quizzes_completed || 0;
-      const quizzesPassed = Math.round(quizzesCompleted * 0.7);
-      
-      const experiencePoints = calculateExperiencePoints(
-        materialsCompleted,
-        videosWatched,
-        quizzesCompleted,
-        quizzesPassed,
-        achievements?.length || 0
-      );
-      
-      const levelInfo = calculateUserLevel(experiencePoints);
-      
-      return {
-        id: userId,
-        user_id: userId,
-        materials_completed: materialsCompleted,
-        videos_watched: videosWatched,
-        quizzes_completed: quizzesCompleted,
-        quizzes_passed: quizzesPassed,
-        quizzes_score: 0,
-        active_days: statsData.active_days || 0,
-        achievements_count: achievements?.length || 0,
-        total_progress: totalProgress,
-        tipo_de_conta: profile?.tipo_de_conta || 'trader',
-        username: profile?.username,
-        first_name: profile?.first_name,
-        last_name: profile?.last_name,
-        experience_points: experiencePoints,
-        study_time_minutes: Math.round(studyTimeMinutes),
-        level: levelInfo.level,
-        next_level_xp: levelInfo.nextLevelXp
-      };
-    },
-    enabled: !!userId,
-    meta: {
-      onError: (error: any) => {
-        console.error("Erro ao buscar desempenho do usuário:", error);
-      }
-    }
-  });
-};
-
+}
