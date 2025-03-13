@@ -28,8 +28,15 @@ const EconomicDataPanel: React.FC<EconomicDataPanelProps> = ({ brDiRates }) => {
     return change.includes('-');
   };
 
+  // Filter out economic data items (SELIC and IPCA)
+  const filteredDiRates = Object.entries(brDiRates)
+    .filter(([_, data]) => {
+      return !data.name.includes("Taxa de Juros (SELIC)") && 
+             !data.name.includes("Inflação (IPCA)");
+    });
+
   // Sort DI rates by term ascending
-  const sortedDiRates = Object.entries(brDiRates)
+  const sortedDiRates = filteredDiRates
     .sort(([keyA], [keyB]) => {
       const yearA = parseInt(keyA.match(/\d+/)?.[0] || "0");
       const yearB = parseInt(keyB.match(/\d+/)?.[0] || "0");

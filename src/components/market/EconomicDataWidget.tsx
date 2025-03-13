@@ -17,13 +17,17 @@ interface EconomicDataWidgetProps {
   usCpi: EconomicIndicator;
   brSelic: EconomicIndicator;
   brIpca: EconomicIndicator;
+  brDiRates?: {
+    [key: string]: EconomicIndicator;
+  };
 }
 
 const EconomicDataWidget: React.FC<EconomicDataWidgetProps> = ({
   usRate,
   usCpi,
   brSelic,
-  brIpca
+  brIpca,
+  brDiRates = {}
 }) => {
   const formatTime = (time: string) => {
     return time || "Sem horário";
@@ -42,6 +46,25 @@ const EconomicDataWidget: React.FC<EconomicDataWidgetProps> = ({
     // Different scaling for interest rates vs inflation
     return Math.min(Math.max(numValue * 5, 0), 100);
   };
+
+  // Find SELIC and IPCA from brDiRates if provided
+  const findBrSelicFromDiRates = () => {
+    const selicEntry = Object.entries(brDiRates).find(([_, data]) => 
+      data.name.includes("Taxa de Juros (SELIC)")
+    );
+    return selicEntry ? selicEntry[1] : brSelic;
+  };
+
+  const findBrIpcaFromDiRates = () => {
+    const ipcaEntry = Object.entries(brDiRates).find(([_, data]) => 
+      data.name.includes("Inflação (IPCA)")
+    );
+    return ipcaEntry ? ipcaEntry[1] : brIpca;
+  };
+
+  // Use the data from brDiRates if available
+  const actualBrSelic = findBrSelicFromDiRates();
+  const actualBrIpca = findBrIpcaFromDiRates();
 
   return (
     <Card className="shadow-lg bg-white">
@@ -91,7 +114,6 @@ const EconomicDataWidget: React.FC<EconomicDataWidgetProps> = ({
               <Progress 
                 value={calculateProgress(usRate.value)} 
                 className="h-2 bg-gray-100" 
-                indicatorClassName="bg-[#0066FF]" 
               />
               
               {usRate.parameter && (
@@ -141,7 +163,6 @@ const EconomicDataWidget: React.FC<EconomicDataWidgetProps> = ({
               <Progress 
                 value={calculateProgress(usCpi.value)} 
                 className="h-2 bg-gray-100" 
-                indicatorClassName={isNegative(usCpi.change) ? "bg-[#22c55e]" : "bg-[#ef4444]"}
               />
               
               {usCpi.parameter && (
@@ -171,43 +192,42 @@ const EconomicDataWidget: React.FC<EconomicDataWidgetProps> = ({
                 </div>
                 <div className="text-xs text-gray-500 flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {formatTime(brSelic.time)}
+                  {formatTime(actualBrSelic.time)}
                 </div>
               </div>
               
               <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold">{brSelic.value}</span>
+                <span className="text-2xl font-bold">{actualBrSelic.value}</span>
                 <span className={`text-sm font-medium px-2 py-1 rounded-full ${
-                  isNegative(brSelic.change)
+                  isNegative(actualBrSelic.change)
                     ? 'bg-red-100 text-red-600' 
-                    : brSelic.change === '0%' 
+                    : actualBrSelic.change === '0%' 
                       ? 'bg-gray-100 text-gray-600' 
                       : 'bg-green-100 text-green-600'
                 }`}>
-                  {isNegative(brSelic.change) ? (
+                  {isNegative(actualBrSelic.change) ? (
                     <TrendingDown className="h-3 w-3 inline mr-1" />
                   ) : (
                     <TrendingUp className="h-3 w-3 inline mr-1" />
                   )}
-                  {brSelic.change}
+                  {actualBrSelic.change}
                 </span>
               </div>
               
               <Progress 
-                value={calculateProgress(brSelic.value)} 
+                value={calculateProgress(actualBrSelic.value)} 
                 className="h-2 bg-gray-100" 
-                indicatorClassName="bg-[#0066FF]" 
               />
               
-              {brSelic.parameter && (
+              {actualBrSelic.parameter && (
                 <div className={`text-xs mt-1 ${
-                  brSelic.parameter.includes('NEGATIV') 
+                  actualBrSelic.parameter.includes('NEGATIV') 
                     ? 'text-[#ef4444]' 
-                    : brSelic.parameter.includes('POSITIV') 
+                    : actualBrSelic.parameter.includes('POSITIV') 
                       ? 'text-[#22c55e]' 
                       : 'text-gray-600'
                 }`}>
-                  {brSelic.parameter}
+                  {actualBrSelic.parameter}
                 </div>
               )}
             </div>
@@ -221,43 +241,42 @@ const EconomicDataWidget: React.FC<EconomicDataWidgetProps> = ({
                 </div>
                 <div className="text-xs text-gray-500 flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {formatTime(brIpca.time)}
+                  {formatTime(actualBrIpca.time)}
                 </div>
               </div>
               
               <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold">{brIpca.value}</span>
+                <span className="text-2xl font-bold">{actualBrIpca.value}</span>
                 <span className={`text-sm font-medium px-2 py-1 rounded-full ${
-                  isNegative(brIpca.change)
+                  isNegative(actualBrIpca.change)
                     ? 'bg-green-100 text-green-600' // For IPCA, negative change is good
-                    : brIpca.change === '0%' 
+                    : actualBrIpca.change === '0%' 
                       ? 'bg-gray-100 text-gray-600' 
                       : 'bg-red-100 text-red-600'
                 }`}>
-                  {isNegative(brIpca.change) ? (
+                  {isNegative(actualBrIpca.change) ? (
                     <TrendingDown className="h-3 w-3 inline mr-1" />
                   ) : (
                     <TrendingUp className="h-3 w-3 inline mr-1" />
                   )}
-                  {brIpca.change}
+                  {actualBrIpca.change}
                 </span>
               </div>
               
               <Progress 
-                value={calculateProgress(brIpca.value)} 
+                value={calculateProgress(actualBrIpca.value)} 
                 className="h-2 bg-gray-100" 
-                indicatorClassName={isNegative(brIpca.change) ? "bg-[#22c55e]" : "bg-[#ef4444]"}
               />
               
-              {brIpca.parameter && (
+              {actualBrIpca.parameter && (
                 <div className={`text-xs mt-1 ${
-                  brIpca.parameter.includes('NEGATIV') 
+                  actualBrIpca.parameter.includes('NEGATIV') 
                     ? 'text-[#ef4444]' 
-                    : brIpca.parameter.includes('POSITIV') 
+                    : actualBrIpca.parameter.includes('POSITIV') 
                       ? 'text-[#22c55e]' 
                       : 'text-gray-600'
                 }`}>
-                  {brIpca.parameter}
+                  {actualBrIpca.parameter}
                 </div>
               )}
             </div>
