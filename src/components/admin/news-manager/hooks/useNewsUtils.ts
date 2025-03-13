@@ -10,7 +10,7 @@ interface UseNewsUtilsProps {
   isEditing: boolean;
   selectedNewsId: string | null;
   newsList?: NewsItem[];
-  setFormData: (data: NewsItem) => void;
+  setFormData: React.Dispatch<React.SetStateAction<NewsItem>>;
   resetForm: () => void;
   createNewsMutation: UseMutationResult<any, Error, NewsItem>;
   updateNewsMutation: UseMutationResult<any, Error, { id: string; data: NewsItem }>;
