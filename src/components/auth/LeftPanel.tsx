@@ -12,7 +12,7 @@ const LeftPanel = () => {
       </nav>
       
       <div className="flex-grow flex flex-col justify-center">
-        <h2 className="text-2xl font-semibold mb-6">
+        <h2 className="text-2xl font-semibold mb-6 text-white">
           Para acessar a plataforma do Farol do Mercado
         </h2>
         <p className="text-white">
