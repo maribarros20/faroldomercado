@@ -9,10 +9,10 @@ import { toast } from "@/components/ui/use-toast";
 
 const QuizCreatePage: React.FC = () => {
   const navigate = useNavigate();
-  const { data: profile, isLoading } = useUserProfile();
+  const { userRole, isLoading } = useUserProfile();
 
   React.useEffect(() => {
-    if (!isLoading && profile?.role !== 'admin') {
+    if (!isLoading && userRole !== 'admin') {
       toast({
         title: "Acesso negado",
         description: "Você não tem permissão para criar quizzes.",
@@ -20,7 +20,7 @@ const QuizCreatePage: React.FC = () => {
       });
       navigate('/quizzes');
     }
-  }, [profile, isLoading, navigate]);
+  }, [userRole, isLoading, navigate]);
 
   if (isLoading) {
     return <div className="text-center py-12">Carregando...</div>;

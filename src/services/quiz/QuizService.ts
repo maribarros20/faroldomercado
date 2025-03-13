@@ -14,7 +14,7 @@ export const createQuiz = async (quiz: Omit<Quiz, 'id' | 'created_at' | 'updated
     throw error;
   }
   
-  return data;
+  return data as Quiz;
 };
 
 export const updateQuiz = async (id: string, updates: Partial<Quiz>): Promise<Quiz> => {
@@ -30,7 +30,7 @@ export const updateQuiz = async (id: string, updates: Partial<Quiz>): Promise<Qu
     throw error;
   }
   
-  return data;
+  return data as Quiz;
 };
 
 export const deleteQuiz = async (id: string): Promise<void> => {
@@ -57,7 +57,7 @@ export const getQuiz = async (id: string): Promise<Quiz> => {
     throw error;
   }
   
-  return data;
+  return data as Quiz;
 };
 
 export const getQuizzes = async (): Promise<Quiz[]> => {
@@ -71,7 +71,7 @@ export const getQuizzes = async (): Promise<Quiz[]> => {
     throw error;
   }
   
-  return data || [];
+  return (data || []) as Quiz[];
 };
 
 export const addQuizQuestion = async (question: Omit<QuizQuestion, 'id' | 'created_at' | 'updated_at'>): Promise<QuizQuestion> => {
@@ -86,7 +86,7 @@ export const addQuizQuestion = async (question: Omit<QuizQuestion, 'id' | 'creat
     throw error;
   }
   
-  return data;
+  return data as QuizQuestion;
 };
 
 export const getQuizQuestions = async (quizId: string): Promise<QuizQuestion[]> => {
@@ -101,7 +101,7 @@ export const getQuizQuestions = async (quizId: string): Promise<QuizQuestion[]> 
     throw error;
   }
   
-  return data || [];
+  return (data || []) as QuizQuestion[];
 };
 
 export const submitQuizAttempt = async (submission: QuizSubmission): Promise<QuizAttempt> => {
@@ -145,8 +145,15 @@ export const submitQuizAttempt = async (submission: QuizSubmission): Promise<Qui
   const completed = new Date();
   const totalTimeSeconds = Math.round((completed.getTime() - started.getTime()) / 1000);
   
+  // Get the current user's ID
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new Error("User not authenticated");
+  }
+  
   // Submit the attempt
   const attempt = {
+    user_id: session.user.id,
     quiz_id: submission.quiz_id,
     score,
     passed,
@@ -168,7 +175,7 @@ export const submitQuizAttempt = async (submission: QuizSubmission): Promise<Qui
     throw error;
   }
   
-  return data;
+  return data as unknown as QuizAttempt;
 };
 
 export const getUserQuizAttempts = async (userId?: string): Promise<QuizAttempt[]> => {
@@ -191,5 +198,5 @@ export const getUserQuizAttempts = async (userId?: string): Promise<QuizAttempt[
     throw error;
   }
   
-  return data || [];
+  return (data || []) as unknown as QuizAttempt[];
 };

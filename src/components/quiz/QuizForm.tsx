@@ -66,7 +66,7 @@ const QuizForm: React.FC<QuizFormProps> = ({ existingQuiz }) => {
   });
 
   const createQuizMutation = useMutation({
-    mutationFn: createQuiz,
+    mutationFn: (quizData: Omit<Quiz, 'id' | 'created_at' | 'updated_at'>) => createQuiz(quizData),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
       toast({
@@ -122,7 +122,12 @@ const QuizForm: React.FC<QuizFormProps> = ({ existingQuiz }) => {
         await updateQuizMutation.mutateAsync(values);
       } else {
         await createQuizMutation.mutateAsync({
-          ...values,
+          title: values.title,
+          description: values.description || null,
+          category: values.category,
+          difficulty: values.difficulty,
+          passing_score: values.passing_score,
+          is_published: values.is_published,
           created_by: data.session.user.id,
         });
       }

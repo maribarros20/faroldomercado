@@ -9,7 +9,7 @@ import { useUserProfile } from "@/hooks/use-user-profile";
 
 const QuizzesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { data: profile, isLoading } = useUserProfile();
+  const { userRole, isLoading } = useUserProfile();
 
   React.useEffect(() => {
     const logActivity = async () => {
@@ -26,7 +26,7 @@ const QuizzesPage: React.FC = () => {
     logActivity();
   }, []);
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = userRole === 'admin';
 
   return (
     <div className="min-h-screen bg-gray-50">

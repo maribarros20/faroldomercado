@@ -37,7 +37,7 @@ const Sidebar = () => {
       
       <Content className="flex-1 py-4 overflow-y-auto flex flex-col relative">
         <Section className="space-y-1">
-          <Navigation expanded={expanded} userRole={userRole} />
+          <Navigation />
         </Section>
 
         <div className="mt-auto pb-36">

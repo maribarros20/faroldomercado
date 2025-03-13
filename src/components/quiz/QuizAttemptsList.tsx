@@ -1,97 +1,67 @@
-
 import React from "react";
-import { useUserQuizAttempts } from "@/hooks/use-quizzes";
-import { QuizAttempt } from "@/types/quiz";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Award, Clock, BarChart } from "lucide-react";
+import { QuizAttempt } from "@/types/quiz";
+import { Clock } from "lucide-react";
 
 interface QuizAttemptsListProps {
-  userId?: string;
-  limit?: number;
+  attempts: QuizAttempt[];
 }
 
-const QuizAttemptsList: React.FC<QuizAttemptsListProps> = ({ userId, limit }) => {
-  const { data: attempts, isLoading } = useUserQuizAttempts(userId);
-  
-  const displayAttempts = limit && attempts ? attempts.slice(0, limit) : attempts;
+const QuizAttemptsList: React.FC<QuizAttemptsListProps> = ({ attempts }) => {
 
-  if (isLoading) {
-    return <div>Carregando...</div>;
+  if (!attempts || attempts.length === 0) {
+    return <div className="text-center py-4">Nenhuma tentativa encontrada.</div>;
   }
-
-  if (!displayAttempts || displayAttempts.length === 0) {
-    return (
-      <div className="text-center py-6">
-        <Award className="w-10 h-10 mx-auto text-gray-300 mb-2" />
-        <h3 className="font-medium">Nenhum quiz completado ainda</h3>
-        <p className="text-sm text-muted-foreground">
-          Complete quizzes para ganhar experiência e testar seus conhecimentos.
-        </p>
-      </div>
-    );
-  }
-
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return "N/A";
-    
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    
-    if (minutes === 0) {
-      return `${remainingSeconds}s`;
-    }
-    
-    return `${minutes}m ${remainingSeconds}s`;
-  };
 
   return (
-    <div className="space-y-4">
-      {displayAttempts.map((attempt) => (
-        <Card key={attempt.id} className="overflow-hidden">
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-lg">{attempt.quiz_id}</CardTitle>
-              <Badge variant={attempt.passed ? "success" : "destructive"}>
-                {attempt.passed ? "Aprovado" : "Reprovado"}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <BarChart className="w-4 h-4" />
-                  <span>Pontuação</span>
-                </div>
-                <span className="font-medium">{attempt.score}%</span>
-              </div>
-              
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Award className="w-4 h-4" />
-                  <span>XP Ganho</span>
-                </div>
-                <span className="font-medium">+{attempt.experience_points} XP</span>
-              </div>
-              
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Clock className="w-4 h-4" />
-                  <span>Tempo</span>
-                </div>
-                <span className="font-medium">{formatDuration(attempt.total_time_seconds)}</span>
-              </div>
-            </div>
-            
-            <div className="mt-2 text-xs text-gray-500">
-              Completado em {format(new Date(attempt.completed_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="w-full overflow-x-auto">
+      <Table>
+        <TableCaption>Suas últimas tentativas de quiz.</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[100px]">Quiz</TableHead>
+            <TableHead>Score</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Tempo Total</TableHead>
+            <TableHead>Data de Conclusão</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {attempts.map((attempt) => {
+            const variantClass = attempt.passed ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200";
+            const badgeVariant = attempt.passed ? "default" : "destructive";
+            const badgeClass = attempt.passed ? "bg-green-100 text-green-800 hover:bg-green-100" : "";
+
+            return (
+              <TableRow key={attempt.id}>
+                <TableCell className="font-medium">Quiz ID: {attempt.quiz_id}</TableCell>
+                <TableCell>{attempt.score}%</TableCell>
+                <TableCell>
+                  <Badge variant={badgeVariant} className={badgeClass}>
+                    {attempt.passed ? "Aprovado" : "Reprovado"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {attempt.total_time_seconds ? `${Math.floor(attempt.total_time_seconds / 60)}m ${attempt.total_time_seconds % 60}s` : "N/A"}
+                </TableCell>
+                <TableCell className="flex items-center space-x-2">
+                  <Clock className="w-4 h-4 opacity-70" />
+                  <span>{new Date(attempt.completed_at).toLocaleDateString()}</span>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     </div>
   );
 };
