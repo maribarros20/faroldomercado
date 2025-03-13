@@ -24,7 +24,10 @@ function Navigation() {
   const { expanded } = useSidebar();
   
   const NavItem = ({ icon, href, label }: { icon: React.ReactNode; href: string; label: string }) => {
-    const isActive = location.pathname.startsWith(href);
+    // Fix for quizzes path - we need to check if the path matches the beginning part
+    const isActive = href === '/quizzes' 
+      ? location.pathname.startsWith('/quizzes')
+      : location.pathname.startsWith(href);
     
     return (
       <NavLink
