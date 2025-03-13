@@ -310,9 +310,6 @@ const processTableData = (tableData: any[][], vixChartData: string[]): MarketDat
     const additionalInfo = row[6] || ""; // Column G: Additional info/Parameter
     const hasChart = row[7] ? row[7].toLowerCase().includes("sim") : false; // Column H: Chart indicator
     
-    // Flag for change direction
-    const isNegative = change.includes("-");
-    
     // Skip the first 8 rows as they were processed specially above
     if (index < 8) return;
     
@@ -348,7 +345,8 @@ const processTableData = (tableData: any[][], vixChartData: string[]): MarketDat
           name: assetName,
           time: time,
           value: value,
-          change: change
+          change: change,
+          parameter: additionalInfo
         };
       }
     }
@@ -362,7 +360,7 @@ const processTableData = (tableData: any[][], vixChartData: string[]): MarketDat
           time: time,
           value: value,
           change: change,
-          parameter: valueParam,
+          parameter: additionalInfo,
           chart: hasChart ? [] : undefined // Empty array if has chart
         };
       }
@@ -377,7 +375,7 @@ const processTableData = (tableData: any[][], vixChartData: string[]): MarketDat
           time: time,
           value: value,
           change: change,
-          parameter: valueParam
+          parameter: additionalInfo
         };
       }
     }
@@ -391,13 +389,13 @@ const processTableData = (tableData: any[][], vixChartData: string[]): MarketDat
           time: time,
           value: value,
           change: change,
-          parameter: valueParam
+          parameter: additionalInfo
         };
       }
     }
     
-    // Process Economic Data Brazil
-    else if (isEconomicDataBrazil(assetName)) {
+    // Process Economic Data Brazil - DI Rates
+    else if (isEconomicDataBrazil(assetName) || assetName.includes("DI1F")) {
       const dataKey = getEconomicDataBrazilKey(assetName);
       if (dataKey) {
         result.economicDataBrazil[dataKey] = {
@@ -405,7 +403,7 @@ const processTableData = (tableData: any[][], vixChartData: string[]): MarketDat
           time: time,
           value: value,
           change: change,
-          parameter: valueParam
+          parameter: additionalInfo
         };
       }
     }
@@ -492,13 +490,19 @@ const getEconomicDataUSKey = (name: string): string => {
 };
 
 const isEconomicDataBrazil = (name: string): boolean => {
-  const brTerms = ['Selic', 'IPCA', 'Brasil', 'Brasileira'];
+  const brTerms = ['Selic', 'IPCA', 'Brasil', 'Brasileira', 'DI1F', 'Curta', 'Longa'];
   return brTerms.some(term => name.includes(term));
 };
 
 const getEconomicDataBrazilKey = (name: string): string => {
   if (name.includes('Selic')) return 'BR_SELIC';
   if (name.includes('IPCA')) return 'BR_IPCA';
+  if (name.includes('DI1F')) {
+    const match = name.match(/DI1F(\d+)/);
+    if (match && match[1]) {
+      return `DI1F${match[1]}`;
+    }
+  }
   return name.replace(/\s+/g, '_').toUpperCase();
 };
 
@@ -1020,4 +1024,3 @@ const getMockAdditionalData = (): any => {
     vixChartData: ["-3.37%", "-3.37%", "-3.37%", "-3.37%", "-3.37%", "-3.37%"]
   };
 };
-
