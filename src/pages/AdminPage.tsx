@@ -11,7 +11,7 @@ import AdminVideos from "@/components/admin/AdminVideos";
 import AdminPlans from "@/components/admin/AdminPlans";
 import AdminAuditLogs from "@/components/admin/AdminAuditLogs";
 import { useToast } from "@/hooks/use-toast";
-import AdminNewsManager from "@/components/admin/AdminNewsManager";
+import AdminNewsManager from "@/components/admin/news-manager";
 import AdminFinanceIframes from "@/components/admin/AdminFinanceIframes";
 import { Shield, AlertCircle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
