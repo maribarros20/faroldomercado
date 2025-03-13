@@ -15,7 +15,7 @@ const LeftPanel = () => {
         <h2 className="text-2xl font-semibold mb-6">
           Para acessar a plataforma do Farol do Mercado
         </h2>
-        <p className="text-gray-800">
+        <p className="text-white">
           você deve realizar o cadastro dos seus dados e do mentor. Após o registro, 
           acompanhe em seu e-mail as etapas para usar todas as funcionalidades e 
           iniciar uma gestão inteligente em saúde corporativa.
