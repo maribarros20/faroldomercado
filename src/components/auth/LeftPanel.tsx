@@ -6,7 +6,7 @@ const LeftPanel = () => {
       </div>
       
       <nav className="flex gap-8 mb-16">
-        <a href="/" className="text-white-800 hover:text-blue font-medium">Site</a>
+        <a href="/" className="text-white hover:text-gray-100 font-medium\n">Site</a>
         <a href="/" className="text-gray-800 hover:text-black font-medium">Blog</a>
         <a href="/" className="text-gray-800 hover:text-black font-medium">Falar com Luma</a>
       </nav>
