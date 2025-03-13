@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Clock } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface SafetyAssetsPanelProps {
@@ -48,10 +48,10 @@ const SafetyAssetsPanel: React.FC<SafetyAssetsPanelProps> = ({ assets }) => {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="font-semibold">Ativo</TableHead>
+              <TableHead className="font-semibold">Nome do ativo</TableHead>
+              <TableHead className="text-right font-semibold">Horário</TableHead>
               <TableHead className="text-right font-semibold">Valor</TableHead>
               <TableHead className="text-right font-semibold">Variação</TableHead>
-              <TableHead className="text-right font-semibold">Hora</TableHead>
               <TableHead className="text-right font-semibold">Parâmetro</TableHead>
             </TableRow>
           </TableHeader>
@@ -61,6 +61,12 @@ const SafetyAssetsPanel: React.FC<SafetyAssetsPanelProps> = ({ assets }) => {
               return (
                 <TableRow key={idx} className="hover:bg-gray-50">
                   <TableCell className="font-medium">{displayName}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end text-gray-500 text-sm">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {formatTime(asset.time)}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">{asset.value}</TableCell>
                   <TableCell 
                     className={`text-right font-medium ${
@@ -73,7 +79,6 @@ const SafetyAssetsPanel: React.FC<SafetyAssetsPanelProps> = ({ assets }) => {
                   >
                     {asset.change}
                   </TableCell>
-                  <TableCell className="text-right text-gray-500 text-sm">{formatTime(asset.time)}</TableCell>
                   <TableCell 
                     className={`text-right text-sm ${
                       asset.parameter?.includes('NEGATIV') 

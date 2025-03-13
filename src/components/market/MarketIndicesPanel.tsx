@@ -113,10 +113,10 @@ const MarketIndicesPanel: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50">
-                <TableHead className="font-semibold">Índice</TableHead>
+                <TableHead className="font-semibold">Nome do ativo</TableHead>
+                <TableHead className="text-right font-semibold">Horário</TableHead>
                 <TableHead className="text-right font-semibold">Valor</TableHead>
                 <TableHead className="text-right font-semibold">Variação</TableHead>
-                <TableHead className="text-right font-semibold">Hora</TableHead>
                 <TableHead className="text-right font-semibold">Parâmetro</TableHead>
               </TableRow>
             </TableHeader>
@@ -125,6 +125,12 @@ const MarketIndicesPanel: React.FC = () => {
                 displayIndices.map((index, idx) => (
                   <TableRow key={idx} className="hover:bg-gray-50">
                     <TableCell className="font-medium">{getDisplayName(index.name)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end text-gray-500 text-sm">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {formatTime(index.time_data)}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">{index.value}</TableCell>
                     <TableCell 
                       className={`text-right font-medium ${
@@ -137,7 +143,6 @@ const MarketIndicesPanel: React.FC = () => {
                     >
                       {index.change_value}
                     </TableCell>
-                    <TableCell className="text-right text-gray-500 text-sm">{formatTime(index.time_data)}</TableCell>
                     <TableCell 
                       className={`text-right text-sm ${
                         index.parameter?.includes('NEGATIV') 

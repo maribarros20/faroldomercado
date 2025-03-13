@@ -49,6 +49,10 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
     return change.includes('-');
   };
 
+  const formatTime = (time: string) => {
+    return time || "Sem horário";
+  };
+
   return (
     <Card className="bg-white shadow-lg">
       <CardHeader className="pb-2 border-b">
@@ -61,10 +65,10 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="font-semibold">Commodity</TableHead>
+              <TableHead className="font-semibold">Nome do ativo</TableHead>
+              <TableHead className="text-right font-semibold">Horário</TableHead>
               <TableHead className="text-right font-semibold">Valor</TableHead>
               <TableHead className="text-right font-semibold">Variação</TableHead>
-              <TableHead className="text-right font-semibold">Hora</TableHead>
               <TableHead className="text-right font-semibold">Parâmetro</TableHead>
             </TableRow>
           </TableHeader>
@@ -79,6 +83,12 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
                     <div className="font-medium">{name}</div>
                     <div className="text-xs text-gray-500">{description}</div>
                   </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end text-gray-500 text-sm">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {formatTime(commodity.time)}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right font-medium">{commodity.value}</TableCell>
                   <TableCell className={`text-right font-medium ${
                     isChangeNegative
@@ -88,14 +98,6 @@ const CommoditiesPanel: React.FC<CommoditiesPanelProps> = ({ commodities }) => {
                         : 'text-[#22c55e]'
                   }`}>
                     {commodity.change}
-                  </TableCell>
-                  <TableCell className="text-right text-sm text-gray-500">
-                    {commodity.time && (
-                      <div className="flex items-center justify-end">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>{commodity.time}</span>
-                      </div>
-                    )}
                   </TableCell>
                   <TableCell className={`text-right text-sm ${
                     commodity.parameter?.includes('NEGATIV') 

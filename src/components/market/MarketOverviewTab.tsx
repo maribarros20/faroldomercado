@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -20,6 +21,7 @@ import ADRPanel from "@/components/market/ADRPanel";
 import CommoditiesPanel from "@/components/market/CommoditiesPanel";
 import SafetyAssetsPanel from "@/components/market/SafetyAssetsPanel";
 import EconomicDataPanel from "@/components/market/EconomicDataPanel";
+import EconomicDataWidget from "@/components/market/EconomicDataWidget";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ResponsiveContainer, Line, LineChart } from "recharts";
@@ -123,6 +125,34 @@ const MarketOverviewTab: React.FC = () => {
   if (!marketData) {
     return null;
   }
+
+  // Prepare data for Economic Widget
+  const economicData = {
+    usRate: marketData.economicDataUS.US_RATE || {
+      name: "Taxa de Juros EUA",
+      time: "",
+      value: "0%",
+      change: "0%"
+    },
+    usCpi: marketData.economicDataUS.US_CPI || {
+      name: "Inflação EUA (CPI)",
+      time: "",
+      value: "0%",
+      change: "0%"
+    },
+    brSelic: marketData.economicDataBrazil.BR_SELIC || {
+      name: "Taxa Selic",
+      time: "",
+      value: "0%",
+      change: "0%"
+    },
+    brIpca: marketData.economicDataBrazil.BR_IPCA || {
+      name: "Inflação (IPCA)",
+      time: "",
+      value: "0%",
+      change: "0%"
+    }
+  };
 
   return (
     <div className="space-y-6 pb-6 bg-gray-100 rounded-lg p-6">
@@ -307,6 +337,14 @@ const MarketOverviewTab: React.FC = () => {
 
       {/* Market Alerts */}
       <MarketAlertPanel alerts={marketData.alerts} />
+
+      {/* Economic Data Widget - New Component */}
+      <EconomicDataWidget 
+        usRate={economicData.usRate}
+        usCpi={economicData.usCpi}
+        brSelic={economicData.brSelic}
+        brIpca={economicData.brIpca}
+      />
 
       {/* Brazilian Market Indices - Row of Cards - Moved below VIX */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -556,30 +594,29 @@ const MarketOverviewTab: React.FC = () => {
         )}
       </div>
 
-      {/* Economic Data Panel with DI Rates and US Interest Rates */}
+      {/* DI Futures Panel */}
       <EconomicDataPanel 
-        usTreasuryRates={marketData.safetyAssets} 
         brDiRates={marketData.economicDataBrazil} 
       />
 
-      {/* Two column layout for Market Indices and Safety Assets */}
+      {/* Two column layout for Indices and Safety Assets */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Market Indices */}
+        {/* Market Indices Panel */}
         <Card className="shadow-lg bg-white">
           <CardHeader className="pb-2 border-b">
             <CardTitle className="text-xl text-[#0066FF] flex items-center">
               <BarChart4 className="h-6 w-6 mr-2" />
-              Índices de Mercado
+              Índices Futuros
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50">
-                  <TableHead className="font-semibold">Índice</TableHead>
+                  <TableHead className="font-semibold">Nome do ativo</TableHead>
+                  <TableHead className="text-right font-semibold">Horário</TableHead>
                   <TableHead className="text-right font-semibold">Valor</TableHead>
                   <TableHead className="text-right font-semibold">Variação</TableHead>
-                  <TableHead className="text-right font-semibold">Hora</TableHead>
                   <TableHead className="text-right font-semibold">Parâmetro</TableHead>
                 </TableRow>
               </TableHeader>
@@ -592,6 +629,12 @@ const MarketOverviewTab: React.FC = () => {
                     return (
                       <TableRow key={key} className="hover:bg-gray-50">
                         <TableCell className="font-medium">{displayName}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end text-gray-500 text-sm">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {formatTime(index.time)}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-right">{index.value}</TableCell>
                         <TableCell 
                           className={`text-right font-medium ${
@@ -604,14 +647,15 @@ const MarketOverviewTab: React.FC = () => {
                         >
                           {index.change}
                         </TableCell>
-                        <TableCell className="text-right text-gray-500 text-sm">{formatTime(index.time)}</TableCell>
-                        <TableCell className={`text-right text-sm ${
-                          index.parameter?.includes('NEGATIV') 
-                            ? 'text-[#ef4444]' 
-                            : index.parameter?.includes('POSITIV') 
-                              ? 'text-[#22c55e]' 
-                              : 'text-gray-600'
-                        }`}>
+                        <TableCell 
+                          className={`text-right text-sm ${
+                            index.parameter?.includes('NEGATIV') 
+                              ? 'text-[#ef4444]' 
+                              : index.parameter?.includes('POSITIV') 
+                                ? 'text-[#22c55e]' 
+                                : 'text-gray-600'
+                          }`}
+                        >
                           {index.parameter || ""}
                         </TableCell>
                       </TableRow>
