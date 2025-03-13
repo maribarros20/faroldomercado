@@ -26,6 +26,7 @@ const SafetyAssetsPanel: React.FC<SafetyAssetsPanelProps> = ({ assets }) => {
     return change.includes('-');
   };
 
+  // Ensure Treasury assets are included and displayed first
   const assetOrder = ['GOLD', 'DOLLAR', 'TREA_2Y', 'TREA_5Y', 'TREA_10Y', 'TREA_30Y'];
   const sortedAssets = assetOrder
     .filter(key => assets[key])
