@@ -1,127 +1,82 @@
 
 import React from "react";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, ExternalLink } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { NewsItem, cleanTextContent, getValidImageUrl } from "@/services/NewsService";
+import { ExternalLink } from "lucide-react";
+import type { NewsItem } from "@/services/NewsService";
 
 interface NewsCardProps {
   newsItem: NewsItem;
 }
 
-export const NewsCard = ({ newsItem }: NewsCardProps) => {
+export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
+    
     try {
-      return format(new Date(dateString), "dd 'de' MMMM, yyyy", { locale: ptBR });
+      return new Date(dateString).toLocaleDateString('pt-BR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
     } catch (e) {
-      console.error("Erro ao formatar data:", e);
       return "";
     }
   };
 
-  // Garantir que a URL da imagem seja válida
-  const imageUrl = getValidImageUrl(newsItem.image_url);
-
-  // Se a fonte for "manual", mudar para "Farol Investe"
-  const displaySource = newsItem.source === "manual" ? "Farol Investe" : newsItem.source;
-
-  // Função para validar URL externo
-  const getValidSourceUrl = (url?: string): string => {
-    if (!url) return '#';
-    
-    // Verificar se a URL é válida
-    try {
-      new URL(url);
-      return url;
-    } catch (e) {
-      // Tratar silenciosamente urls inválidas sem logar erro
-      return '#';
-    }
-  };
-
-  // Para resumos de mercado, verificar se há link de "Ler matéria completa" no conteúdo
-  const extractReadMoreLink = (): string => {
-    if (newsItem.category === 'Resumo de Mercado' && newsItem.content) {
-      const match = newsItem.content.match(/\[Ler matéria completa\]\(([^)]+)\)/);
-      if (match && match[1]) {
-        try {
-          // Validar a URL extraída
-          new URL(match[1]);
-          return match[1];
-        } catch (e) {
-          // Se URL for inválida, apontar para uma rota interna
-          return '/market-news';
-        }
-      }
-    }
-    return newsItem.source_url || '#';
-  };
-
-  const sourceUrl = extractReadMoreLink();
-  
-  // Verifica se o link é válido e não vazio
-  const hasValidLink = (sourceUrl !== '#') && sourceUrl.startsWith('http');
-
   return (
     <Card className="overflow-hidden h-full flex flex-col">
-      <div className="h-48 overflow-hidden">
-        <img
-          src={imageUrl}
-          alt={newsItem.title}
-          className="w-full h-full object-cover transition-transform hover:scale-105"
-          onError={(e) => {
-            // Substituir por imagem padrão em caso de erro
-            e.currentTarget.src = "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop";
-          }}
-        />
-      </div>
-      <CardContent className="p-4 flex-grow flex flex-col">
-        <div className="mb-2 flex gap-2 flex-wrap">
-          {newsItem.category && (
-            <Badge variant="secondary">{cleanTextContent(newsItem.category)}</Badge>
-          )}
-          {displaySource && (
-            <Badge variant="outline">{cleanTextContent(displaySource)}</Badge>
+      {newsItem.image_url && (
+        <div className="relative h-48 bg-muted">
+          <img
+            src={newsItem.image_url}
+            alt={newsItem.title}
+            className="object-cover w-full h-full"
+            onError={(e) => {
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop';
+            }}
+          />
+          {newsItem.source && (
+            <Badge 
+              variant="secondary" 
+              className="absolute top-2 right-2 opacity-90"
+            >
+              {newsItem.source}
+            </Badge>
           )}
         </div>
-        <h3 className="text-lg font-semibold mb-2">{cleanTextContent(newsItem.title)}</h3>
-        {newsItem.subtitle && (
-          <p className="text-muted-foreground text-sm mb-2">{cleanTextContent(newsItem.subtitle)}</p>
+      )}
+      <CardContent className="p-4 flex-1 flex flex-col">
+        {newsItem.category && (
+          <Badge variant="outline" className="mb-2 self-start">
+            {newsItem.category}
+          </Badge>
         )}
-        <p className="line-clamp-3 text-sm mb-4">
-          {cleanTextContent(newsItem.content)}
+        <h3 className="text-lg font-semibold mb-2">{newsItem.title}</h3>
+        {newsItem.subtitle && (
+          <p className="text-sm text-muted-foreground mb-3">{newsItem.subtitle}</p>
+        )}
+        <p className="text-sm line-clamp-3 mb-4 flex-1">
+          {newsItem.content}
         </p>
-        <div className="mt-auto flex flex-col gap-1 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Calendar size={12} />
-            <span>
-              {formatDate(newsItem.publication_date || newsItem.created_at)}
-            </span>
+        <div className="mt-auto">
+          <div className="flex justify-between items-center text-xs text-muted-foreground">
+            <span>{newsItem.author || "Farol Investe"}</span>
+            <span>{formatDate(newsItem.publication_date || newsItem.created_at)}</span>
           </div>
-          {newsItem.author && (
-            <div className="flex items-center gap-1">
-              <User size={12} />
-              <span>{cleanTextContent(newsItem.author)}</span>
+          {newsItem.source_url && (
+            <div className="mt-3">
+              <a
+                href={newsItem.source_url}
+                className="text-xs inline-flex items-center gap-1 text-primary hover:underline"
+              >
+                <ExternalLink size={12} />
+                Ler matéria completa
+              </a>
             </div>
           )}
         </div>
       </CardContent>
-      {hasValidLink && (
-        <CardFooter className="p-4 pt-0">
-          <a
-            href={sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs flex items-center gap-1 text-primary hover:underline"
-          >
-            <ExternalLink size={12} />
-            {newsItem.category === 'Resumo de Mercado' ? 'Ler resumo completo' : 'Ler notícia completa'}
-          </a>
-        </CardFooter>
-      )}
     </Card>
   );
 };

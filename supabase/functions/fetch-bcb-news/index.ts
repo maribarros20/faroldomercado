@@ -29,37 +29,67 @@ async function fetchRSS(url: string, category: string): Promise<BCBNews[]> {
     
     const xmlText = await response.text();
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
     
-    if (!xmlDoc) {
-      console.error(`Erro ao parsear XML do RSS ${category}`);
-      return [];
-    }
-    
-    const items = xmlDoc.querySelectorAll('item');
-    const news: BCBNews[] = [];
-    
-    items.forEach((item) => {
-      const title = item.querySelector('title')?.textContent || '';
-      const link = item.querySelector('link')?.textContent || '';
-      const pubDate = item.querySelector('pubDate')?.textContent || '';
-      const description = item.querySelector('description')?.textContent || '';
+    try {
+      const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
       
-      if (title && link) {
-        news.push({
-          title: title,
-          content: description || title,
-          publication_date: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
-          category: category,
-          image_url: 'https://www.bcb.gov.br/content/home/img/Logo-BC-transparente.png',
-          source: 'Banco Central',
-          source_url: link,
-        });
+      if (!xmlDoc) {
+        console.error(`Erro ao parsear XML do RSS ${category}`);
+        return [];
       }
-    });
-    
-    console.log(`Obtidas ${news.length} notícias de ${category}`);
-    return news;
+      
+      const items = xmlDoc.querySelectorAll('item');
+      const news: BCBNews[] = [];
+      
+      items.forEach((item) => {
+        const title = item.querySelector('title')?.textContent || '';
+        const link = item.querySelector('link')?.textContent || '';
+        const pubDate = item.querySelector('pubDate')?.textContent || '';
+        const description = item.querySelector('description')?.textContent || '';
+        
+        if (title && link) {
+          news.push({
+            title: title,
+            content: description || title,
+            publication_date: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
+            category: category,
+            image_url: 'https://www.bcb.gov.br/content/home/img/Logo-BC-transparente.png',
+            source: 'Banco Central',
+            source_url: link,
+          });
+        }
+      });
+      
+      console.log(`Obtidas ${news.length} notícias de ${category}`);
+      return news;
+    } catch (parseError) {
+      console.error(`Erro ao processar XML do RSS ${category}:`, parseError);
+      
+      // Fallback: try parsing as JSON as some BCB feeds might return JSON
+      try {
+        const jsonData = JSON.parse(xmlText);
+        
+        if (Array.isArray(jsonData)) {
+          const news: BCBNews[] = jsonData.map(item => ({
+            title: item.title || '',
+            content: item.description || item.content || '',
+            publication_date: item.pubDate || item.date || new Date().toISOString(),
+            category: category,
+            image_url: 'https://www.bcb.gov.br/content/home/img/Logo-BC-transparente.png',
+            source: 'Banco Central',
+            source_url: item.link || '',
+          }));
+          
+          console.log(`Obtidas ${news.length} notícias de ${category} via JSON fallback`);
+          return news;
+        }
+        
+        return [];
+      } catch (jsonError) {
+        console.error('Falha no fallback JSON:', jsonError);
+        return [];
+      }
+    }
   } catch (error) {
     console.error(`Erro ao buscar RSS ${category}:`, error);
     return [];
@@ -106,10 +136,12 @@ Deno.serve(async (req) => {
       allNews = categoryFeed;
     } else {
       // Buscar todas as categorias
-      for (const [category, url] of Object.entries(rssFeeds)) {
-        const categoryNews = await fetchRSS(url, category);
-        allNews = [...allNews, ...categoryNews];
-      }
+      const fetchPromises = Object.entries(rssFeeds).map(([category, url]) => 
+        fetchRSS(url, category)
+      );
+      
+      const results = await Promise.all(fetchPromises);
+      allNews = results.flat();
     }
     
     // Ordenar por data (mais recentes primeiro)
@@ -120,7 +152,15 @@ Deno.serve(async (req) => {
     });
     
     // Verificar se as notícias devem ser persistidas no banco de dados
-    const body = req.method === 'POST' ? await req.json() : {};
+    let body = {};
+    if (req.method === 'POST') {
+      try {
+        body = await req.json();
+      } catch (e) {
+        // Erro ao parsear o corpo
+      }
+    }
+    
     if (body.persist) {
       const supabase = createClient(supabaseUrl, supabaseKey);
       

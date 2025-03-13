@@ -163,8 +163,6 @@ const MarketNews = () => {
             <a 
               key={`link-${i}-${match.index}`}
               href={match[2]} 
-              target="_blank" 
-              rel="noopener noreferrer"
               className="text-blue-500 hover:underline"
             >
               {match[1]}
@@ -390,6 +388,26 @@ const MarketNews = () => {
                     <div className="prose max-w-none">
                       {formatMarkdownContent(item.content)}
                     </div>
+                    {item.source_url && (
+                      <div className="mt-4">
+                        <a
+                          href={item.source_url}
+                          className="text-primary hover:underline inline-flex items-center gap-1"
+                        >
+                          Ler matéria completa
+                        </a>
+                      </div>
+                    )}
+                    {item.author && (
+                      <div className="mt-4 text-sm text-muted-foreground">
+                        <p>Autor: {item.author}</p>
+                      </div>
+                    )}
+                    {(item.publication_date || item.created_at) && (
+                      <div className="text-sm text-muted-foreground">
+                        <p>Data: {new Date(item.publication_date || item.created_at || "").toLocaleDateString('pt-BR')}</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -454,8 +472,6 @@ const MarketNews = () => {
                           {item.source_url && (
                             <a
                               href={item.source_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
                               className="text-xs flex items-center gap-1 text-primary hover:underline"
                             >
                               <ExternalLink size={12} />
@@ -484,8 +500,6 @@ const MarketNews = () => {
                             {item.source_url && (
                               <a
                                 href={item.source_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
                                 className="text-xs flex items-center gap-1 text-primary hover:underline"
                               >
                                 <ExternalLink size={12} />
