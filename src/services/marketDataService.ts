@@ -1,43 +1,12 @@
-
 const SHEET_ID = "1fPLwFZmfhfjc2muHkr58WySldsj_AmsM_TXhykMPj8I"; 
 const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
 const SHEET_NAME = "V.10";
 const GRAPH_SHEET = "spik";
 const VIX_SHEET = "VIX";
 
-// Properly formatted ranges for batch requests with core data
-const RANGES = [
-  "'V.10'!F6:AC18",   // Main data with times
-  "'V.10'!F12:AC14",  // VIX data
-  "'V.10'!F16:AC18"   // Alerts data
-];
-
-// Ranges for additional market data
-const ADDITIONAL_RANGES = {
-  indicesFuturos: "'V.10'!F16:O28",
-  ativosSeguranca: "'V.10'!T16:AC28",
-  ibov: "'V.10'!T30:V33",
-  vale: "'V.10'!W30:AA33",
-  petrobras: "'V.10'!AB30:AC33",
-  bitFut: "'V.10'!K30:M33",
-  ewz: "'V.10'!F30:H33",
-  dadosEUA: "'V.10'!T35:W40",
-  dadosBrasil: "'V.10'!AA35:AC40"
-};
-
-// Chart data mappings
-const GRAPH_MAPPING = {
-  "VIX Tendência Gráfico": { sheet: VIX_SHEET, column: "C2:C400" },
-  "IBOV Gráfico": { sheet: GRAPH_SHEET, column: "F4:F70" },
-  "Vale - VALE3 Gráfico": { sheet: GRAPH_SHEET, column: "J4:J70" },
-  "Petrobras - PETR4 Gráfico": { sheet: GRAPH_SHEET, column: "B4:B70" },
-  "EWZ Gráfico": { sheet: GRAPH_SHEET, column: "O4:O70" }
-};
-
-// Format GRAPH_MAPPING to array for batch request
-const GRAPH_RANGES = Object.entries(GRAPH_MAPPING).map(([key, { sheet, column }]) => {
-  return `'${sheet}'!${column}`;
-});
+// New approach: fetch tabular data from A2 onwards
+const DATA_RANGE = "'V.10'!A2:H100";  // Fetching all rows from A2 to H100
+const VIX_CHART_RANGE = "'VIX'!C2:C400";  // Keep VIX chart data range
 
 export interface MarketDataResponse {
   adrsCurrent: {
@@ -145,8 +114,12 @@ export interface MarketDataResponse {
 
 export const fetchMarketData = async (): Promise<MarketDataResponse> => {
   try {
-    // Format ranges properly for the API
-    const encodedRanges = RANGES.map(range => `ranges=${encodeURIComponent(range)}`).join('&');
+    // Format ranges properly for the API - using the new tabular approach
+    const encodedRanges = [
+      `ranges=${encodeURIComponent(DATA_RANGE)}`,
+      `ranges=${encodeURIComponent(VIX_CHART_RANGE)}`
+    ].join('&');
+    
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${encodedRanges}&key=${API_KEY}`;
     
     console.log("Fetching market data from:", url);
@@ -166,483 +139,354 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
 
     console.log("Raw Google Sheets data:", data);
     
-    // Extract data from response - using proper indices according to cell references
-    const mainData = data.valueRanges[0].values || [];
-    const alertsData = data.valueRanges[2]?.values || [];
+    // Extract data from response
+    const tableData = data.valueRanges[0].values || [];
+    const vixChartData = data.valueRanges[1]?.values?.map(row => row[0]) || [];
     
-    // Extract times from mainData (F6:AC6 row)
-    const timesData = mainData[1] || [];
-    
-    // VIX data is in mainData rows 3-4
-    const vixData = [
-      mainData[2] || [], // times
-      mainData[3] || [], // values
-      mainData[4] || []  // changes
-    ];
-    
-    // Fetch additional market data
-    const additionalData = await fetchAdditionalMarketData();
-    
-    // Define isNegative and isPositive indicators based on values
-    const adrsCurrentValue = mainData[4] && mainData[4][0] ? 
-      parseFloat(mainData[4][0].replace('%', '').replace(',', '.')) : 0;
-    const adrsClosingValue = mainData[4] && mainData[4][7] ? 
-      parseFloat(mainData[4][7].replace('%', '').replace(',', '.')) : 0;
-    const adrsAfterValue = mainData[4] && mainData[4][14] ? 
-      parseFloat(mainData[4][14].replace('%', '').replace(',', '.')) : 0;
-    const commoditiesValue = mainData[4] && mainData[4][21] ? 
-      parseFloat(mainData[4][21].replace('%', '').replace(',', '.')) : 0;
-    
-    // Build structured response according to correct cell references
-    return {
-      adrsCurrent: {
-        value: mainData[4] ? (mainData[4][0] || "0") : "0%",
-        parameter: mainData[4] ? (mainData[4][2] || "") : "",
-        time: mainData[2] ? (mainData[2][0] || "") : "",
-        isNegative: adrsCurrentValue < 0
-      },
-      adrsClosing: {
-        value: mainData[4] ? (mainData[4][7] || "0") : "0%",
-        parameter: mainData[4] ? (mainData[4][7] || "") : "",
-        time: timesData[7] || "",
-        isPositive: adrsClosingValue > 0
-      },
-      adrsAfterMarket: {
-        value: "0",
-        parameter: "",
-        time: timesData[14] || "",
-        isPositive: adrsAfterValue > 0
-      },
-      commodities: {
-        value: mainData[12] ? (mainData[12][0] || "0%") : "0%",
-        parameter: "",
-        time: mainData[11] ? (mainData[11][16] || "") : "",
-        isNegative: commoditiesValue < 0
-      },
-      vix: {
-        // Current VIX - F8:K8 for time, F9:G9 for value, F10:G10 for change, H9 for value parameter, H10 for change parameter
-        currentValue: vixData[1] ? (vixData[1][0] || "0") : "0",
-        currentChange: vixData[2] ? (vixData[2][0] || "0%") : "0%",
-        currentTime: vixData[0] ? (vixData[0][0] || "") : "",
-        currentValueParameter: vixData[1] ? (vixData[1][2] || "") : "",
-        currentChangeParameter: vixData[2] ? (vixData[2][2] || "") : "",
-        
-        // Closing VIX - M8:N8 for time, N9 for value, N10 for change
-        closingValue: vixData[1] ? vixData[1][8] || "0" : "0",
-        closingChange: vixData[1] ? vixData[1][7] || "0%" : "0%",
-        closingTime: vixData[0] ? vixData[0][7] || "" : "",
-        
-        // Opening VIX - O8:P8 for time, P9 for value, O9 for change, O10:P10 for change parameter
-        openingValue: vixData[1] ? vixData[1][10] || "0" : "0",
-        openingChange: vixData[1] ? vixData[1][9] || "0%" : "0%",
-        openingTime: vixData[0] ? vixData[0][9] || "" : "",
-        openingChangeParameter: vixData[2] ? (vixData[2][9] || "") : "",
-        
-        // VIX Tendency - W7 for time, T10:AC10 for parameter
-        tendencyTime: timesData[17] || "",
-        tendencyParameter: vixData[2] ? (vixData[2][14] || "") : "",
-        
-        // Chart data from VIX tab
-        chartData: additionalData.vixChartData || []
-      },
-      alerts: {
-        volatility: alertsData[0] ? alertsData[0].filter(Boolean).join(" ") : "",
-        footprint: alertsData[2] ? alertsData[2].slice(0, 10).filter(Boolean).join(" ") : "",
-        indexation: alertsData[2] ? alertsData[2].slice(14).filter(Boolean).join(" ") : ""
-      },
-      adrs: additionalData.adrs || {}, 
-      commoditiesList: additionalData.commoditiesList || {},
-      marketIndices: additionalData.marketIndices || {},
-      safetyAssets: additionalData.safetyAssets || {},
-      economicDataUS: additionalData.economicDataUS || {},
-      economicDataBrazil: additionalData.economicDataBrazil || {}
-    };
+    // Process the tabular data
+    return processTableData(tableData, vixChartData);
   } catch (error) {
     console.error("Error fetching data from Google Sheets:", error);
     return getMockMarketData();
   }
 };
 
-// New function to fetch additional market data
-const fetchAdditionalMarketData = async () => {
-  try {
-    // Prepare batch requests for all additional ranges
-    const allRanges = [
-      ...Object.entries(ADDITIONAL_RANGES).map(([key, range]) => `ranges=${encodeURIComponent(range)}`),
-      ...GRAPH_RANGES.map(range => `ranges=${encodeURIComponent(range)}`)
-    ];
+// Process the new tabular format data
+const processTableData = (tableData: any[][], vixChartData: string[]): MarketDataResponse => {
+  // Initialize response structure
+  const result: MarketDataResponse = {
+    adrsCurrent: {
+      value: "0%",
+      parameter: "",
+      time: "",
+      isNegative: false
+    },
+    adrsClosing: {
+      value: "0%",
+      parameter: "",
+      time: "",
+      isPositive: false
+    },
+    adrsAfterMarket: {
+      value: "0%",
+      parameter: "",
+      time: "",
+      isPositive: false
+    },
+    commodities: {
+      value: "0%",
+      parameter: "",
+      time: "",
+      isNegative: false
+    },
+    vix: {
+      currentValue: "0",
+      currentChange: "0%",
+      currentTime: "",
+      currentValueParameter: "",
+      currentChangeParameter: "",
+      closingValue: "0",
+      closingChange: "0%",
+      closingTime: "",
+      openingValue: "0",
+      openingChange: "0%",
+      openingTime: "",
+      openingChangeParameter: "",
+      tendencyTime: "",
+      tendencyParameter: "",
+      chartData: vixChartData || []
+    },
+    alerts: {
+      volatility: "",
+      footprint: "",
+      indexation: ""
+    },
+    adrs: {},
+    commoditiesList: {},
+    marketIndices: {},
+    safetyAssets: {},
+    economicDataUS: {},
+    economicDataBrazil: {}
+  };
+  
+  // Temporary structures to collect alert data
+  const alertMessages = {
+    volatility: [] as string[],
+    footprint: [] as string[],
+    indexation: [] as string[]
+  };
+  
+  // Process each row in the table
+  tableData.forEach(row => {
+    if (!row || row.length < 2 || !row[0]) return; // Skip rows without name
     
-    const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${allRanges.join('&')}&key=${API_KEY}`;
+    const assetName = row[0]; // Column A: Name
+    const time = row[1] || ""; // Column B: Time
+    const value = row[2] || "0"; // Column C: Value
+    const change = row[3] || "0%"; // Column D: Change %
+    const valueParam = row[4] || ""; // Column E: Value Parameter
+    const changeParam = row[5] || ""; // Column F: Change Parameter
+    const additionalInfo = row[6] || ""; // Column G: Additional info
+    const hasChart = row[7] ? row[7].toLowerCase().includes("sim") : false; // Column H: Chart indicator
     
-    console.log("Fetching additional market data from:", batchUrl);
-    const response = await fetch(batchUrl);
+    // Flag for change direction
+    const isNegative = change.includes("-");
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("API Error (Additional Data):", errorData);
-      throw new Error(`API error: ${response.status} - ${errorData?.error?.message || 'Unknown error'}`);
-    }
-    
-    const data = await response.json();
-    
-    if (!data.valueRanges || data.valueRanges.length === 0) {
-      throw new Error("No additional data found");
-    }
-    
-    console.log("Raw additional data:", data);
-    
-    const rangeData = {
-      indicesFuturos: data.valueRanges[0]?.values || [],
-      ativosSeguranca: data.valueRanges[1]?.values || [],
-      ibov: data.valueRanges[2]?.values || [],
-      vale: data.valueRanges[3]?.values || [],
-      petrobras: data.valueRanges[4]?.values || [],
-      bitFut: data.valueRanges[5]?.values || [],
-      ewz: data.valueRanges[6]?.values || [],
-      dadosEUA: data.valueRanges[7]?.values || [],
-      dadosBrasil: data.valueRanges[8]?.values || [],
-      vixTrend: data.valueRanges[9]?.values || [],
-      ibovChart: data.valueRanges[10]?.values || [],
-      valeChart: data.valueRanges[11]?.values || [],
-      petrobrasChart: data.valueRanges[12]?.values || [],
-      ewzChart: data.valueRanges[13]?.values || []
-    };
-    
-    // Extract chart data
-    const vixChartData = rangeData.vixTrend.map(row => row?.[0] || "0").filter(Boolean);
-    const ibovChartData = rangeData.ibovChart.map(row => row?.[0] || "0").filter(Boolean);
-    const valeChartData = rangeData.valeChart.map(row => row?.[0] || "0").filter(Boolean);
-    const petrobrasChartData = rangeData.petrobrasChart.map(row => row?.[0] || "0").filter(Boolean);
-    const ewzChartData = rangeData.ewzChart.map(row => row?.[0] || "0").filter(Boolean);
-
-    // Build ADR data
-    const adrs: any = {
-      "VALE": {
-        name: "VALE",
-        time: rangeData.vale[1]?.[0] || "Dados atuais",
-        value: rangeData.vale[2]?.[3] || "0",
-        change: rangeData.vale[2]?.[0] || "0%",
-        prevChange: "0%",
-        afterChange: "0%"
-      },
-      "PBR": {
-        name: "PBR",
-        time: rangeData.petrobras[1]?.[0] || "Dados atuais",
-        value: rangeData.petrobras[2]?.[1] || "0",
-        change: rangeData.petrobras[2]?.[0] || "0%",
-        prevChange: "0%",
-        afterChange: "0%"
-      },
-      "PBRA": {
-        name: "PBRA",
-        time: "Dados atuais",
-        value: "0",
-        change: "0%",
-        prevChange: "0%",
-        afterChange: "0%"
-      },
-      "ITUB": {
-        name: "ITUB",
-        time: "Dados atuais",
-        value: "0",
-        change: "0%",
-        prevChange: "0%",
-        afterChange: "0%"
-      },
-      "BBD": {
-        name: "BBD",
-        time: "Dados atuais",
-        value: "0",
-        change: "0%",
-        prevChange: "0%",
-        afterChange: "0%"
-      },
-      "BBDO": {
-        name: "BBDO",
-        time: "Dados atuais",
-        value: "0",
-        change: "0%",
-        prevChange: "0%",
-        afterChange: "0%"
-      },
-      "BSBR": {
-        name: "BSBR",
-        time: "Dados atuais",
-        value: "0",
-        change: "0%",
-        prevChange: "0%",
-        afterChange: "0%"
-      }
-    };
-    
-    // Build commodities data
-    const commoditiesList: any = {
-      "BRENT": {
-        name: "Petróleo Brent",
-        time: "Dados atuais",
-        value: "0",
-        change: "0%"
-      },
-      "WTI": {
-        name: "Petróleo WTI",
-        time: "Dados atuais",
-        value: "0",
-        change: "0%"
-      },
-      "IRON_SING": {
-        name: "Minério de Ferro Singapura",
-        time: "Dados atuais",
-        value: "0",
-        change: "0%"
-      },
-      "IRON_DALIAN": {
-        name: "Minério de Ferro Dalian",
-        time: "Dados atuais",
-        value: "0",
-        change: "0%"
-      }
-    };
-    
-    // Process market indices (futures)
-    const marketIndices: any = {};
-    
-    // Process futures indices data
-    if (rangeData.indicesFuturos.length > 0) {
-      // S&P 500
-      if (rangeData.indicesFuturos.length > 2) {
-        marketIndices["SP500"] = {
-          name: "S&P 500",
-          time: rangeData.indicesFuturos[1]?.[2] || "",
-          value: rangeData.indicesFuturos[2]?.[2] || "0",
-          change: rangeData.indicesFuturos[2]?.[0] || "0%",
-          parameter: rangeData.indicesFuturos[1]?.[3] || ""
-        };
-      }
-      
-      // Dow Jones
-      if (rangeData.indicesFuturos.length > 4) {
-        marketIndices["DOW"] = {
-          name: "Dow Jones",
-          time: rangeData.indicesFuturos[3]?.[2] || "",
-          value: rangeData.indicesFuturos[4]?.[2] || "0",
-          change: rangeData.indicesFuturos[4]?.[0] || "0%"
-        };
-      }
-      
-      // Nasdaq
-      if (rangeData.indicesFuturos.length > 6) {
-        marketIndices["NASDAQ"] = {
-          name: "Nasdaq 100",
-          time: rangeData.indicesFuturos[5]?.[2] || "",
-          value: rangeData.indicesFuturos[6]?.[2] || "0",
-          change: rangeData.indicesFuturos[6]?.[0] || "0%"
-        };
-      }
-      
-      // Euro Stoxx
-      if (rangeData.indicesFuturos.length > 8) {
-        marketIndices["EURO_STOXX"] = {
-          name: "Euro Stoxx 50",
-          time: rangeData.indicesFuturos[7]?.[2] || "",
-          value: rangeData.indicesFuturos[8]?.[2] || "0",
-          change: rangeData.indicesFuturos[8]?.[0] || "0%"
-        };
-      }
-      
-      // FTSE100
-      if (rangeData.indicesFuturos.length > 10) {
-        marketIndices["FTSE100"] = {
-          name: "FTSE 100",
-          time: rangeData.indicesFuturos[9]?.[2] || "",
-          value: rangeData.indicesFuturos[10]?.[2] || "0",
-          change: rangeData.indicesFuturos[10]?.[0] || "0%"
-        };
-      }
-      
-      // China A50
-      if (rangeData.indicesFuturos.length > 12) {
-        marketIndices["CHINA_A50"] = {
-          name: "China A50",
-          time: rangeData.indicesFuturos[11]?.[2] || "",
-          value: rangeData.indicesFuturos[12]?.[2] || "0",
-          change: rangeData.indicesFuturos[12]?.[0] || "0%"
-        };
-      }
-    }
-    
-    // Process safety assets
-    const safetyAssets: any = {};
-    
-    if (rangeData.ativosSeguranca.length > 0) {
-      // Gold
-      if (rangeData.ativosSeguranca.length > 2) {
-        safetyAssets["GOLD"] = {
-          name: "Ouro",
-          time: rangeData.ativosSeguranca[1]?.[2] || "",
-          value: rangeData.ativosSeguranca[2]?.[2] || "0",
-          change: rangeData.ativosSeguranca[2]?.[0] || "0%",
-          parameter: rangeData.ativosSeguranca[1]?.[3] || ""
-        };
-      }
-      
-      // Dollar
-      if (rangeData.ativosSeguranca.length > 4) {
-        safetyAssets["DOLLAR"] = {
-          name: "Dólar",
-          time: rangeData.ativosSeguranca[3]?.[2] || "",
-          value: rangeData.ativosSeguranca[4]?.[2] || "0",
-          change: rangeData.ativosSeguranca[4]?.[0] || "0%",
-          parameter: rangeData.ativosSeguranca[3]?.[3] || ""
-        };
-      }
-      
-      // Treasury 2Y
-      if (rangeData.ativosSeguranca.length > 6) {
-        safetyAssets["TREA_2Y"] = {
-          name: "Treasury 2Y",
-          time: rangeData.ativosSeguranca[5]?.[2] || "",
-          value: rangeData.ativosSeguranca[6]?.[2] || "0",
-          change: rangeData.ativosSeguranca[6]?.[0] || "0%"
-        };
-      }
-      
-      // Treasury 5Y
-      if (rangeData.ativosSeguranca.length > 8) {
-        safetyAssets["TREA_5Y"] = {
-          name: "Treasury 5Y",
-          time: rangeData.ativosSeguranca[7]?.[2] || "",
-          value: rangeData.ativosSeguranca[8]?.[2] || "0",
-          change: rangeData.ativosSeguranca[8]?.[0] || "0%"
-        };
-      }
-      
-      // Treasury 10Y
-      if (rangeData.ativosSeguranca.length > 10) {
-        safetyAssets["TREA_10Y"] = {
-          name: "Treasury 10Y",
-          time: rangeData.ativosSeguranca[9]?.[2] || "",
-          value: rangeData.ativosSeguranca[10]?.[2] || "0",
-          change: rangeData.ativosSeguranca[10]?.[0] || "0%",
-          parameter: rangeData.ativosSeguranca[9]?.[3] || ""
-        };
-      }
-      
-      // Treasury 30Y
-      if (rangeData.ativosSeguranca.length > 12) {
-        safetyAssets["TREA_30Y"] = {
-          name: "Treasury 30Y",
-          time: rangeData.ativosSeguranca[11]?.[2] || "",
-          value: rangeData.ativosSeguranca[12]?.[2] || "0",
-          change: rangeData.ativosSeguranca[12]?.[0] || "0%"
-        };
-      }
-    }
-    
-    // Process IBOV, VALE, PETR4, etc. data
-    const ibov = {
-      name: "IBOV",
-      time: rangeData.ibov[1]?.[0] || "",
-      value: rangeData.ibov[2]?.[2] || "0",
-      change: rangeData.ibov[2]?.[0] || "0%",
-      chart: ibovChartData
-    };
-    
-    const vale = {
-      name: "VALE3",
-      time: rangeData.vale[1]?.[0] || "",
-      value: rangeData.vale[2]?.[3] || "0",
-      change: rangeData.vale[2]?.[0] || "0%",
-      chart: valeChartData
-    };
-    
-    const petrobras = {
-      name: "PETR4",
-      time: rangeData.petrobras[1]?.[0] || "",
-      value: rangeData.petrobras[2]?.[1] || "0",
-      change: rangeData.petrobras[2]?.[0] || "0%",
-      chart: petrobrasChartData
-    };
-    
-    const bitfut = {
-      name: "BIT FUT",
-      time: rangeData.bitFut[1]?.[0] || "",
-      value: rangeData.bitFut[2]?.[2] || "0",
-      change: rangeData.bitFut[2]?.[0] || "0%"
-    };
-    
-    const ewz = {
-      name: "EWZ",
-      time: rangeData.ewz[1]?.[0] || "",
-      value: rangeData.ewz[2]?.[2] || "0",
-      change: rangeData.ewz[2]?.[0] || "0%",
-      chart: ewzChartData
-    };
-    
-    // Add to market indices
-    marketIndices["IBOV"] = ibov;
-    marketIndices["VALE3"] = vale;
-    marketIndices["PETR4"] = petrobras;
-    marketIndices["BIT_FUT"] = bitfut;
-    marketIndices["EWZ"] = ewz;
-    
-    // Process US economic data
-    const economicDataUS: any = {};
-    
-    if (rangeData.dadosEUA.length > 0) {
-      economicDataUS["US_RATE"] = {
-        name: "Taxa de Juros EUA",
-        time: rangeData.dadosEUA[2]?.[1] || "",
-        value: rangeData.dadosEUA[2]?.[0] || "0",
-        change: "0%",
-        parameter: ""
+    // Process data based on asset name
+    if (assetName.includes("ADRs Atual")) {
+      result.adrsCurrent = {
+        value: change,
+        parameter: valueParam,
+        time: time,
+        isNegative: isNegative
       };
-      
-      economicDataUS["US_CPI"] = {
-        name: "Inflação EUA (CPI)",
-        time: rangeData.dadosEUA[4]?.[1] || "",
-        value: rangeData.dadosEUA[4]?.[0] || "0",
-        change: "0%",
-        parameter: rangeData.dadosEUA[5]?.[0] || ""
+    } else if (assetName.includes("ADRs Fechamento")) {
+      result.adrsClosing = {
+        value: change,
+        parameter: valueParam,
+        time: time,
+        isPositive: !isNegative
       };
+    } else if (assetName.includes("ADRs After Market")) {
+      result.adrsAfterMarket = {
+        value: change,
+        parameter: valueParam,
+        time: time,
+        isPositive: !isNegative
+      };
+    } else if (assetName.includes("Commodities")) {
+      result.commodities = {
+        value: change,
+        parameter: valueParam,
+        time: time,
+        isNegative: isNegative
+      };
+    } else if (assetName.includes("VIX Atual")) {
+      result.vix.currentValue = value;
+      result.vix.currentChange = change;
+      result.vix.currentTime = time;
+      result.vix.currentValueParameter = valueParam;
+      result.vix.currentChangeParameter = changeParam;
+    } else if (assetName.includes("VIX Fechamento")) {
+      result.vix.closingValue = value;
+      result.vix.closingChange = change;
+      result.vix.closingTime = time;
+    } else if (assetName.includes("VIX Abertura")) {
+      result.vix.openingValue = value;
+      result.vix.openingChange = change;
+      result.vix.openingTime = time;
+      result.vix.openingChangeParameter = changeParam;
+    } else if (assetName.includes("VIX Tendência")) {
+      result.vix.tendencyTime = time;
+      result.vix.tendencyParameter = additionalInfo;
+    } else if (assetName.includes("Alerta Volatilidade")) {
+      alertMessages.volatility.push(additionalInfo);
+    } else if (assetName.includes("Alerta Footprint")) {
+      alertMessages.footprint.push(additionalInfo);
+    } else if (assetName.includes("Alerta Indexação")) {
+      alertMessages.indexation.push(additionalInfo);
     }
     
-    // Process Brazil economic data
-    const economicDataBrazil: any = {};
-    
-    if (rangeData.dadosBrasil.length > 0) {
-      economicDataBrazil["BR_SELIC"] = {
-        name: "Taxa Selic",
-        time: rangeData.dadosBrasil[2]?.[1] || "",
-        value: rangeData.dadosBrasil[2]?.[0] || "0",
-        change: "0%",
-        parameter: ""
-      };
-      
-      economicDataBrazil["BR_IPCA"] = {
-        name: "Inflação (IPCA)",
-        time: rangeData.dadosBrasil[4]?.[1] || "",
-        value: rangeData.dadosBrasil[4]?.[0] || "0",
-        change: "0%",
-        parameter: rangeData.dadosBrasil[5]?.[0] || ""
-      };
+    // Process ADRs
+    else if (assetName.includes("ADR")) {
+      const adrName = extractADRName(assetName);
+      if (adrName) {
+        result.adrs[adrName] = {
+          name: adrName,
+          time: time,
+          value: value,
+          change: change,
+          prevChange: "0%", // Default values
+          afterChange: "0%"  // Default values
+        };
+      }
     }
     
-    return {
-      marketIndices,
-      safetyAssets,
-      economicDataUS,
-      economicDataBrazil,
-      adrs,
-      commoditiesList,
-      vixChartData
-    };
-  } catch (error) {
-    console.error("Error fetching additional market data:", error);
-    return getMockAdditionalData();
-  }
+    // Process Commodities
+    else if (isCommodity(assetName)) {
+      const commodityKey = getCommodityKey(assetName);
+      if (commodityKey) {
+        result.commoditiesList[commodityKey] = {
+          name: assetName,
+          time: time,
+          value: value,
+          change: change
+        };
+      }
+    }
+    
+    // Process Market Indices
+    else if (isMarketIndex(assetName)) {
+      const indexKey = getMarketIndexKey(assetName);
+      if (indexKey) {
+        result.marketIndices[indexKey] = {
+          name: assetName,
+          time: time,
+          value: value,
+          change: change,
+          parameter: valueParam,
+          chart: hasChart ? [] : undefined // Empty array if has chart
+        };
+      }
+    }
+    
+    // Process Safety Assets
+    else if (isSafetyAsset(assetName)) {
+      const assetKey = getSafetyAssetKey(assetName);
+      if (assetKey) {
+        result.safetyAssets[assetKey] = {
+          name: assetName,
+          time: time,
+          value: value,
+          change: change,
+          parameter: valueParam
+        };
+      }
+    }
+    
+    // Process Economic Data US
+    else if (isEconomicDataUS(assetName)) {
+      const dataKey = getEconomicDataUSKey(assetName);
+      if (dataKey) {
+        result.economicDataUS[dataKey] = {
+          name: assetName,
+          time: time,
+          value: value,
+          change: change,
+          parameter: valueParam
+        };
+      }
+    }
+    
+    // Process Economic Data Brazil
+    else if (isEconomicDataBrazil(assetName)) {
+      const dataKey = getEconomicDataBrazilKey(assetName);
+      if (dataKey) {
+        result.economicDataBrazil[dataKey] = {
+          name: assetName,
+          time: time,
+          value: value,
+          change: change,
+          parameter: valueParam
+        };
+      }
+    }
+  });
+  
+  // Combine all alert messages
+  result.alerts = {
+    volatility: alertMessages.volatility.join(" "),
+    footprint: alertMessages.footprint.join(" "),
+    indexation: alertMessages.indexation.join(" ")
+  };
+  
+  // Ensure we have the market indices we need
+  ensureMarketIndices(result);
+  
+  // Return the processed data
+  return result;
 };
 
-// Mock data for testing or when API fails
+// Helper functions to extract and categorize data
+const extractADRName = (fullName: string): string => {
+  // Extract tickers like VALE, PBR, etc.
+  const adrMatches = fullName.match(/\b(VALE|PBR|PBRA|ITUB|BBD|BBDO|BSBR)\b/);
+  return adrMatches ? adrMatches[0] : "";
+};
+
+const isCommodity = (name: string): boolean => {
+  const commodityTerms = ['Petróleo', 'Brent', 'WTI', 'Minério', 'Ferro', 'Commodity'];
+  return commodityTerms.some(term => name.includes(term));
+};
+
+const getCommodityKey = (name: string): string => {
+  if (name.includes('Brent')) return 'BRENT';
+  if (name.includes('WTI')) return 'WTI';
+  if (name.includes('Minério') && name.includes('Singapura')) return 'IRON_SING';
+  if (name.includes('Minério') && name.includes('Dalian')) return 'IRON_DALIAN';
+  return name.replace(/\s+/g, '_').toUpperCase();
+};
+
+const isMarketIndex = (name: string): boolean => {
+  const indexTerms = ['S&P 500', 'Dow Jones', 'Nasdaq', 'Euro Stoxx', 'FTSE', 'China', 'IBOV', 'EWZ', 'Índice', 'VALE3', 'PETR4', 'BIT'];
+  return indexTerms.some(term => name.includes(term));
+};
+
+const getMarketIndexKey = (name: string): string => {
+  if (name.includes('S&P 500')) return 'SP500';
+  if (name.includes('Dow Jones')) return 'DOW';
+  if (name.includes('Nasdaq')) return 'NASDAQ';
+  if (name.includes('Euro Stoxx')) return 'EURO_STOXX';
+  if (name.includes('FTSE')) return 'FTSE100';
+  if (name.includes('China')) return 'CHINA_A50';
+  if (name.includes('IBOV')) return 'IBOV';
+  if (name.includes('VALE3')) return 'VALE3';
+  if (name.includes('PETR4')) return 'PETR4';
+  if (name.includes('EWZ')) return 'EWZ';
+  if (name.includes('BIT')) return 'BIT_FUT';
+  return name.replace(/\s+/g, '_').toUpperCase();
+};
+
+const isSafetyAsset = (name: string): boolean => {
+  const assetTerms = ['Ouro', 'Dólar', 'Treasury', 'Ativo de Segurança'];
+  return assetTerms.some(term => name.includes(term));
+};
+
+const getSafetyAssetKey = (name: string): string => {
+  if (name.includes('Ouro')) return 'GOLD';
+  if (name.includes('Dólar')) return 'DOLLAR';
+  if (name.includes('Treasury 2Y')) return 'TREA_2Y';
+  if (name.includes('Treasury 5Y')) return 'TREA_5Y';
+  if (name.includes('Treasury 10Y')) return 'TREA_10Y';
+  if (name.includes('Treasury 30Y')) return 'TREA_30Y';
+  return name.replace(/\s+/g, '_').toUpperCase();
+};
+
+const isEconomicDataUS = (name: string): boolean => {
+  const usTerms = ['Taxa de Juros EUA', 'Inflação EUA', 'CPI', 'Estados Unidos'];
+  return usTerms.some(term => name.includes(term));
+};
+
+const getEconomicDataUSKey = (name: string): string => {
+  if (name.includes('Taxa de Juros EUA')) return 'US_RATE';
+  if (name.includes('Inflação EUA') || name.includes('CPI')) return 'US_CPI';
+  return name.replace(/\s+/g, '_').toUpperCase();
+};
+
+const isEconomicDataBrazil = (name: string): boolean => {
+  const brTerms = ['Selic', 'IPCA', 'Brasil', 'Brasileira'];
+  return brTerms.some(term => name.includes(term));
+};
+
+const getEconomicDataBrazilKey = (name: string): string => {
+  if (name.includes('Selic')) return 'BR_SELIC';
+  if (name.includes('IPCA')) return 'BR_IPCA';
+  return name.replace(/\s+/g, '_').toUpperCase();
+};
+
+// Ensure required market indices exist
+const ensureMarketIndices = (result: MarketDataResponse) => {
+  const requiredIndices = [
+    { key: 'IBOV', name: 'IBOV' },
+    { key: 'VALE3', name: 'VALE3' },
+    { key: 'PETR4', name: 'PETR4' },
+    { key: 'EWZ', name: 'EWZ' },
+    { key: 'BIT_FUT', name: 'BIT FUT' }
+  ];
+  
+  requiredIndices.forEach(index => {
+    if (!result.marketIndices[index.key]) {
+      result.marketIndices[index.key] = {
+        name: index.name,
+        time: "",
+        value: "0",
+        change: "0%"
+      };
+    }
+  });
+};
+
+// Mock data for testing or when API fails - keeping the existing mock data
 const getMockMarketData = (): MarketDataResponse => {
   // Get the additional mock data
   const additionalMockData = getMockAdditionalData();
