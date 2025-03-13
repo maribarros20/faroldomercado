@@ -32,8 +32,8 @@ function Navigation() {
         className={cn(
           "group flex items-center rounded-md px-3 py-2 text-sm font-medium",
           isActive 
-            ? "bg-blue-50 text-blue-600" 
-            : "text-gray-700 hover:bg-blue-50 hover:text-blue-600",
+            ? "bg-[#e6f0ff] text-[#0066FF]" 
+            : "text-gray-700 hover:bg-[#e6f0ff] hover:text-[#0066FF]",
           expanded ? "justify-start" : "justify-center"
         )}
       >
@@ -79,7 +79,7 @@ function Navigation() {
       {expanded ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start px-3 py-2 mt-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+            <Button variant="ghost" className="w-full justify-start px-3 py-2 mt-2 text-sm font-medium text-gray-700 hover:bg-[#e6f0ff] hover:text-[#0066FF]">
               <Avatar className="w-5 h-5 mr-2">
                 <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "Profile"} />
                 <AvatarFallback>{user?.displayName?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
@@ -112,7 +112,7 @@ function Navigation() {
           to="/profile"
           className={cn(
             "flex justify-center items-center rounded-md px-3 py-2 text-sm font-medium",
-            location.pathname === "/profile" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+            location.pathname === "/profile" ? "bg-[#e6f0ff] text-[#0066FF]" : "text-gray-700 hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           )}
         >
           <Avatar className="w-5 h-5">
