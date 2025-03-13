@@ -40,14 +40,14 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             <div className="flex justify-between items-center p-4 border-b h-16 py-[41px] bg-white">
               {/* Left side of header can be empty or have a title/breadcrumb */}
               <div></div>
-              {/* Right side of header with user profile and quick actions */}
+              {/* Right side of header with quick actions before user profile */}
               <div className="flex items-center space-x-4">
+                <QuickActions />
                 <UserProfileHeader 
                   userName={userName} 
                   userRole={userRole} 
                   avatarUrl={avatarUrl} 
                 />
-                <QuickActions />
               </div>
             </div>
             <div className="px-4 flex-1 pb-32 w-full">

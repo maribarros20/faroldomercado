@@ -88,14 +88,14 @@ export const ExpandableTabs: React.FC<ExpandableTabsProps> = ({
             >
               <Icon
                 className={cn(
-                  "w-5 h-5",
+                  "w-6 h-6", // Increased icon size from w-5 h-5
                   isActive ? "text-white" : ""
                 )}
               />
               {isExpanded && (
                 <span
                   className={cn(
-                    "ml-2 transition-opacity duration-200",
+                    "ml-2 transition-opacity duration-200 text-base font-medium", // Increased font size and added font-medium
                     isActive ? "text-white" : ""
                   )}
                 >
