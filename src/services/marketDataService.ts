@@ -151,7 +151,7 @@ export const fetchMarketData = async (): Promise<MarketDataResponse> => {
   }
 };
 
-// Process the new tabular format data
+// Process the new tabular format data with focus on rows 2-9 for summary cards
 const processTableData = (tableData: any[][], vixChartData: string[]): MarketDataResponse => {
   // Initialize response structure
   const result: MarketDataResponse = {
@@ -216,70 +216,108 @@ const processTableData = (tableData: any[][], vixChartData: string[]): MarketDat
     indexation: [] as string[]
   };
   
-  // Process each row in the table
-  tableData.forEach(row => {
+  // First, process the first 8 rows specifically for the summary cards
+  // These rows have a special importance for the header cards
+  if (tableData.length >= 8) {
+    // Row 0 (index 0) - ADRs Current
+    if (tableData[0] && tableData[0].length >= 3) {
+      const row = tableData[0];
+      result.adrsCurrent = {
+        value: row[2] || "0%", // Column C - Value/Change
+        parameter: row[6] || "", // Column G - Parameter
+        time: row[1] || "", // Column B - Time
+        isNegative: (row[2] || "").includes("-")
+      };
+    }
+    
+    // Row 1 (index 1) - ADRs Closing
+    if (tableData[1] && tableData[1].length >= 3) {
+      const row = tableData[1];
+      result.adrsClosing = {
+        value: row[2] || "0%", // Column C - Value/Change
+        parameter: row[6] || "", // Column G - Parameter
+        time: row[1] || "", // Column B - Time
+        isPositive: !(row[2] || "").includes("-")
+      };
+    }
+    
+    // Row 2 (index 2) - ADRs After Market
+    if (tableData[2] && tableData[2].length >= 3) {
+      const row = tableData[2];
+      result.adrsAfterMarket = {
+        value: row[2] || "0%", // Column C - Value/Change
+        parameter: row[6] || "", // Column G - Parameter
+        time: row[1] || "", // Column B - Time
+        isPositive: !(row[2] || "").includes("-")
+      };
+    }
+    
+    // Row 3 (index 3) - Commodities Summary
+    if (tableData[3] && tableData[3].length >= 3) {
+      const row = tableData[3];
+      result.commodities = {
+        value: row[2] || "0%", // Column C - Value/Change
+        parameter: row[6] || "", // Column G - Parameter
+        time: row[1] || "", // Column B - Time
+        isNegative: (row[2] || "").includes("-")
+      };
+    }
+    
+    // Row 4 (index 4) - VIX Current
+    if (tableData[4] && tableData[4].length >= 6) {
+      const row = tableData[4];
+      result.vix.currentValue = row[3] || "0"; // Column D - Value
+      result.vix.currentChange = row[4] || "0%"; // Column E - Change
+      result.vix.currentTime = row[1] || ""; // Column B - Time
+      result.vix.currentValueParameter = row[5] || ""; // Column F - Value Parameter
+      result.vix.currentChangeParameter = row[6] || ""; // Column G - Change Parameter
+    }
+    
+    // Row 5 (index 5) - VIX Closing
+    if (tableData[5] && tableData[5].length >= 5) {
+      const row = tableData[5];
+      result.vix.closingValue = row[3] || "0"; // Column D - Value
+      result.vix.closingChange = row[4] || "0%"; // Column E - Change
+      result.vix.closingTime = row[1] || ""; // Column B - Time
+    }
+    
+    // Row 6 (index 6) - VIX Opening
+    if (tableData[6] && tableData[6].length >= 6) {
+      const row = tableData[6];
+      result.vix.openingValue = row[3] || "0"; // Column D - Value
+      result.vix.openingChange = row[4] || "0%"; // Column E - Change
+      result.vix.openingTime = row[1] || ""; // Column B - Time
+      result.vix.openingChangeParameter = row[6] || ""; // Column G - Parameter
+    }
+    
+    // Row 7 (index 7) - VIX Tendency
+    if (tableData[7] && tableData[7].length >= 7) {
+      const row = tableData[7];
+      result.vix.tendencyTime = row[1] || ""; // Column B - Time
+      result.vix.tendencyParameter = row[6] || ""; // Column G - Parameter
+    }
+  }
+  
+  // Now process all rows in the table for the detailed data
+  tableData.forEach((row, index) => {
     if (!row || row.length < 2 || !row[0]) return; // Skip rows without name
     
     const assetName = row[0]; // Column A: Name
     const time = row[1] || ""; // Column B: Time
-    const value = row[2] || "0"; // Column C: Value
-    const change = row[3] || "0%"; // Column D: Change %
-    const valueParam = row[4] || ""; // Column E: Value Parameter
-    const changeParam = row[5] || ""; // Column F: Change Parameter
-    const additionalInfo = row[6] || ""; // Column G: Additional info
+    const value = row[3] || "0"; // Column D: Value (or Column C for % values)
+    const change = row[4] || "0%"; // Column E: Change %
+    const valueParam = row[5] || ""; // Column F: Value Parameter
+    const additionalInfo = row[6] || ""; // Column G: Additional info/Parameter
     const hasChart = row[7] ? row[7].toLowerCase().includes("sim") : false; // Column H: Chart indicator
     
     // Flag for change direction
     const isNegative = change.includes("-");
     
-    // Process data based on asset name
-    if (assetName.includes("ADRs Atual")) {
-      result.adrsCurrent = {
-        value: change,
-        parameter: valueParam,
-        time: time,
-        isNegative: isNegative
-      };
-    } else if (assetName.includes("ADRs Fechamento")) {
-      result.adrsClosing = {
-        value: change,
-        parameter: valueParam,
-        time: time,
-        isPositive: !isNegative
-      };
-    } else if (assetName.includes("ADRs After Market")) {
-      result.adrsAfterMarket = {
-        value: change,
-        parameter: valueParam,
-        time: time,
-        isPositive: !isNegative
-      };
-    } else if (assetName.includes("Commodities")) {
-      result.commodities = {
-        value: change,
-        parameter: valueParam,
-        time: time,
-        isNegative: isNegative
-      };
-    } else if (assetName.includes("VIX Atual")) {
-      result.vix.currentValue = value;
-      result.vix.currentChange = change;
-      result.vix.currentTime = time;
-      result.vix.currentValueParameter = valueParam;
-      result.vix.currentChangeParameter = changeParam;
-    } else if (assetName.includes("VIX Fechamento")) {
-      result.vix.closingValue = value;
-      result.vix.closingChange = change;
-      result.vix.closingTime = time;
-    } else if (assetName.includes("VIX Abertura")) {
-      result.vix.openingValue = value;
-      result.vix.openingChange = change;
-      result.vix.openingTime = time;
-      result.vix.openingChangeParameter = changeParam;
-    } else if (assetName.includes("VIX Tendência")) {
-      result.vix.tendencyTime = time;
-      result.vix.tendencyParameter = additionalInfo;
-    } else if (assetName.includes("Alerta Volatilidade")) {
+    // Skip the first 8 rows as they were processed specially above
+    if (index < 8) return;
+    
+    // Process data for alerts
+    if (assetName.includes("Alerta Volatilidade")) {
       alertMessages.volatility.push(additionalInfo);
     } else if (assetName.includes("Alerta Footprint")) {
       alertMessages.footprint.push(additionalInfo);
@@ -288,7 +326,7 @@ const processTableData = (tableData: any[][], vixChartData: string[]): MarketDat
     }
     
     // Process ADRs
-    else if (assetName.includes("ADR")) {
+    else if (assetName.includes("ADR") && assetName.includes("dados atuais")) {
       const adrName = extractADRName(assetName);
       if (adrName) {
         result.adrs[adrName] = {
@@ -982,3 +1020,4 @@ const getMockAdditionalData = (): any => {
     vixChartData: ["-3.37%", "-3.37%", "-3.37%", "-3.37%", "-3.37%", "-3.37%"]
   };
 };
+
