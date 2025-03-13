@@ -6,7 +6,6 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ActivityChart from "@/components/progress/ActivityChart";
@@ -14,6 +13,7 @@ import AchievementsList from "@/components/progress/AchievementsList";
 import LearningStats from "@/components/progress/LearningStats";
 import UserPerformance from "@/components/progress/UserPerformance";
 import { toast } from "@/components/ui/use-toast";
+import { calculateUserLevel } from "@/hooks/use-user-performance";
 
 const ProgressPage = () => {
   const navigate = useNavigate();
@@ -125,15 +125,21 @@ const ProgressPage = () => {
   
   const isLoading = statsLoading || achievementsLoading || activitiesLoading;
 
-  // For the actual implementation, we'd calculate these values from the user's activity data
-  // Here, we're using dummy values for demonstration
-  const progressData = {
-    level: userStats?.achievements_count ? Math.floor(userStats.achievements_count / 3) + 1 : 1,
-    xp: userStats?.materials_read ? userStats.materials_read * 10 + userStats.videos_watched * 20 + userStats.quizzes_completed * 50 : 0,
-    nextLevelXp: 1000,
-    streak: userStats?.active_days || 0,
-    completionRate: 65 // Percentage
+  // Cálculo XP para o usuário atual baseado nas atividades
+  const calculateUserXP = () => {
+    if (!userStats) return 0;
+    
+    const materialsXP = (userStats.materials_read || 0) * 10;
+    const videosXP = (userStats.videos_watched || 0) * 15;
+    const quizzesXP = (userStats.quizzes_completed || 0) * 20;
+    const achievementsXP = (userStats.achievements_count || 0) * 50;
+    
+    return materialsXP + videosXP + quizzesXP + achievementsXP;
   };
+  
+  // Calcular informações de nível para exibição
+  const xp = calculateUserXP();
+  const userLevelInfo = calculateUserLevel(xp);
 
   // Handle potential error state
   if (!isLoading && !userStats) {
@@ -178,15 +184,22 @@ const ProgressPage = () => {
                 <CardContent className="p-6">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="space-y-2">
-                      <h2 className="text-xl font-semibold">Nível {progressData.level}</h2>
+                      <h2 className="text-xl font-semibold">Nível {userLevelInfo.level}</h2>
                       <div className="flex items-center gap-2">
-                        <Progress value={(progressData.xp / progressData.nextLevelXp) * 100} className="h-2 w-full max-w-md" />
+                        <div className="w-full max-w-md">
+                          <div className="bg-gray-200 h-2 rounded-full">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full" 
+                              style={{ width: `${userLevelInfo.progress}%` }}
+                            />
+                          </div>
+                        </div>
                         <span className="text-sm text-gray-500 whitespace-nowrap">
-                          {progressData.xp}/{progressData.nextLevelXp} XP
+                          {xp}/{userLevelInfo.nextLevelXp} XP
                         </span>
                       </div>
                       <p className="text-sm text-gray-500">
-                        Você precisa de mais {progressData.nextLevelXp - progressData.xp} XP para o próximo nível
+                        Você precisa de mais {userLevelInfo.nextLevelXp - xp} XP para o próximo nível
                       </p>
                     </div>
                     
@@ -197,7 +210,7 @@ const ProgressPage = () => {
                           <path d="M19 17.5c0 1.6-3.1 2.9-7 2.9s-7-1.3-7-2.9" />
                           <path d="M14 5.5a2.5 2.5 0 0 0-4 0" />
                         </svg>
-                        <span>{progressData.streak} dias de sequência</span>
+                        <span>{userStats?.active_days || 0} dias de sequência</span>
                       </Badge>
                       
                       <Badge variant="outline" className="px-3 py-1 flex items-center gap-1">
@@ -207,7 +220,7 @@ const ProgressPage = () => {
                           <path d="M11 21v-8" />
                           <path d="M11.998 21.25c1.074 0 2.298-1.025 2.298-2.25 0-1.276-.858-2.25-2.298-2.25-1.073 0-2.298 1.05-2.298 2.25 0 1.275.858 2.25 2.298 2.25Z" />
                         </svg>
-                        <span>{progressData.completionRate}% de conclusão</span>
+                        <span>{userStats?.total_watch_time_seconds ? Math.round(userStats.total_watch_time_seconds / 60) : 0} minutos de estudo</span>
                       </Badge>
                     </div>
                   </div>

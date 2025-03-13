@@ -1,11 +1,12 @@
 
 import React from "react";
-import { useCurrentUserPerformance } from "@/hooks/use-user-performance";
+import { useCurrentUserPerformance, calculateUserLevel } from "@/hooks/use-user-performance";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
-import { BookOpen, Video, CheckCircle, Award, Brain } from "lucide-react";
+import { BookOpen, Video, CheckCircle, Award, Brain, Clock, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 interface UserPerformanceProps {
   userId?: string;
@@ -67,6 +68,10 @@ const UserPerformance: React.FC<UserPerformanceProps> = ({ userId }) => {
     return "#6b7280"; // gray
   };
   
+  // Calculamos o progresso do nível atual
+  const xp = performance.experience_points || 0;
+  const levelInfo = calculateUserLevel(xp);
+  
   return (
     <Card>
       <CardHeader>
@@ -85,6 +90,29 @@ const UserPerformance: React.FC<UserPerformanceProps> = ({ userId }) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Novo bloco de nível de usuário */}
+        <div className="mb-6 p-4 bg-slate-50 rounded-lg">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-full bg-blue-100">
+                <Trophy className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium">Nível {levelInfo.level}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {xp} de {levelInfo.nextLevelXp} XP para o próximo nível
+                </p>
+              </div>
+            </div>
+            <div className="w-full max-w-md">
+              <Progress value={levelInfo.progress} className="h-2" />
+              <p className="text-xs text-right mt-1 text-muted-foreground">
+                Faltam {levelInfo.nextLevelXp - xp} XP para o nível {levelInfo.level + 1}
+              </p>
+            </div>
+          </div>
+        </div>
+        
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex-shrink-0 flex justify-center">
             <div className="w-36 h-36">
@@ -127,8 +155,9 @@ const UserPerformance: React.FC<UserPerformanceProps> = ({ userId }) => {
             </div>
             
             <div className="bg-gray-50 rounded-lg p-3 flex flex-col items-center justify-center">
-              <div className="font-semibold text-xl">{performance.active_days}</div>
-              <div className="text-xs text-gray-500 text-center">Dias Ativos</div>
+              <Clock className="h-6 w-6 text-red-500 mb-2" />
+              <div className="font-semibold text-xl">{performance.study_time_minutes || 0}</div>
+              <div className="text-xs text-gray-500 text-center">Minutos de Estudo</div>
             </div>
             
             <div className="bg-gray-50 rounded-lg p-3 flex flex-col items-center justify-center">
@@ -155,6 +184,11 @@ const UserPerformance: React.FC<UserPerformanceProps> = ({ userId }) => {
             {performance.quizzes_completed < 2 && (
               <p className="text-sm text-muted-foreground">
                 <span className="font-medium">Quizzes:</span> Faça mais quizzes para testar seus conhecimentos e fixar o aprendizado.
+              </p>
+            )}
+            {performance.study_time_minutes && performance.study_time_minutes < 60 && (
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium">Tempo de estudo:</span> Seu tempo de estudo está baixo. Tente dedicar pelo menos 1 hora por semana para obter melhores resultados.
               </p>
             )}
             {!performance.materials_completed && !performance.videos_watched && !performance.quizzes_completed && (

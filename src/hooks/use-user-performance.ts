@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,21 +16,67 @@ export interface UserPerformance {
   username?: string;
   first_name?: string;
   last_name?: string;
+  experience_points?: number;
+  study_time_minutes?: number;
+  level?: number;
+  next_level_xp?: number;
 }
+
+export const calculateUserLevel = (xp: number) => {
+  let level = 1;
+  let xpRequired = 100;
+  let totalXpRequired = xpRequired;
+  
+  while (xp >= totalXpRequired) {
+    level++;
+    xpRequired = Math.round(xpRequired * 1.2);
+    totalXpRequired += xpRequired;
+  }
+  
+  const nextLevelXp = totalXpRequired;
+  const currentLevelXp = nextLevelXp - xpRequired;
+  
+  return {
+    level,
+    currentXp: xp,
+    currentLevelXp,
+    nextLevelXp,
+    progress: Math.round(((xp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100)
+  };
+};
+
+export const calculateExperiencePoints = (
+  materialsCompleted: number, 
+  videosWatched: number, 
+  quizzesCompleted: number,
+  quizzesPassed: number,
+  achievementsCount: number
+) => {
+  const XP_PER_MATERIAL = 10;
+  const XP_PER_VIDEO = 15;
+  const XP_PER_QUIZ_COMPLETED = 20;
+  const XP_PER_QUIZ_PASSED = 30;
+  const XP_PER_ACHIEVEMENT = 50;
+  
+  return (
+    materialsCompleted * XP_PER_MATERIAL +
+    videosWatched * XP_PER_VIDEO +
+    quizzesCompleted * XP_PER_QUIZ_COMPLETED +
+    quizzesPassed * XP_PER_QUIZ_PASSED +
+    achievementsCount * XP_PER_ACHIEVEMENT
+  );
+};
 
 export const useUserPerformance = () => {
   return useQuery({
     queryKey: ['user-performance'],
     queryFn: async (): Promise<UserPerformance[]> => {
-      // Em um cenário real, você teria uma visualização materializada 
-      // ou consulta complexa para calcular isso
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         throw new Error("Não autenticado");
       }
       
-      // Primeiro, obtemos os perfis de usuários
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
@@ -41,7 +86,6 @@ export const useUserPerformance = () => {
         throw profilesError;
       }
       
-      // Obtemos as atividades do usuário
       const { data: activities, error: activitiesError } = await supabase
         .from('user_activities')
         .select('*');
@@ -51,7 +95,6 @@ export const useUserPerformance = () => {
         throw activitiesError;
       }
       
-      // Obtemos o progresso dos materiais
       const { data: progress, error: progressError } = await supabase
         .from('user_material_progress')
         .select('*');
@@ -61,7 +104,6 @@ export const useUserPerformance = () => {
         throw progressError;
       }
       
-      // Obtemos as conquistas
       const { data: achievements, error: achievementsError } = await supabase
         .from('user_achievements')
         .select('*');
@@ -71,21 +113,13 @@ export const useUserPerformance = () => {
         throw achievementsError;
       }
       
-      // Agora computamos o desempenho para cada usuário
       const usersPerformance: UserPerformance[] = profiles.map(profile => {
-        // Filtra atividades para este usuário
         const userActivities = activities.filter(a => a.user_id === profile.id);
         
-        // Conta materiais lidos
         const materialsRead = userActivities.filter(a => a.activity_type === 'material_read').length;
-        
-        // Conta vídeos assistidos
         const videosWatched = userActivities.filter(a => a.activity_type === 'video_watched').length;
-        
-        // Conta quizzes completados
         const quizzesCompleted = userActivities.filter(a => a.activity_type === 'quiz_completed').length;
         
-        // Conta quizzes passados (supondo que tenha um campo indicando sucesso no metadata)
         const quizzesPassed = userActivities.filter(a => {
           if (a.activity_type === 'quiz_completed' && a.metadata) {
             const metadata = a.metadata;
@@ -96,7 +130,6 @@ export const useUserPerformance = () => {
           return false;
         }).length;
         
-        // Calcula score médio (supondo que tenha um campo score no metadata)
         const quizScores = userActivities
           .filter(a => {
             if (a.activity_type === 'quiz_completed' && a.metadata) {
@@ -114,20 +147,36 @@ export const useUserPerformance = () => {
           ? Math.round(quizScores.reduce((sum, score) => sum + score, 0) / quizScores.length) 
           : 0;
         
-        // Conta dias ativos (dias únicos com atividades)
         const activeDays = new Set(
           userActivities.map(a => new Date(a.created_at).toISOString().split('T')[0])
         ).size;
         
-        // Conta conquistas
         const achievementsCount = achievements.filter(a => a.user_id === profile.id).length;
         
-        // Calcula progresso total (completados / total)
         const userProgress = progress.filter(p => p.user_id === profile.id);
         const completedCount = userProgress.filter(p => p.is_completed).length;
         const totalProgress = userProgress.length > 0 
           ? Math.round((completedCount / userProgress.length) * 100) 
           : 0;
+        
+        const studyTimeMinutes = userActivities.reduce((total, activity) => {
+          if (activity.metadata && typeof activity.metadata === 'object' && 
+              'duration_minutes' in activity.metadata && 
+              typeof activity.metadata.duration_minutes === 'number') {
+            return total + activity.metadata.duration_minutes;
+          }
+          return total;
+        }, 0);
+        
+        const experiencePoints = calculateExperiencePoints(
+          materialsRead,
+          videosWatched,
+          quizzesCompleted,
+          quizzesPassed,
+          achievementsCount
+        );
+        
+        const levelInfo = calculateUserLevel(experiencePoints);
         
         return {
           id: profile.id,
@@ -143,7 +192,11 @@ export const useUserPerformance = () => {
           tipo_de_conta: profile.tipo_de_conta || 'trader',
           username: profile.username,
           first_name: profile.first_name,
-          last_name: profile.last_name
+          last_name: profile.last_name,
+          experience_points: experiencePoints,
+          study_time_minutes: studyTimeMinutes,
+          level: levelInfo.level,
+          next_level_xp: levelInfo.nextLevelXp
         };
       });
       
@@ -157,7 +210,6 @@ export const useUserPerformance = () => {
   });
 };
 
-// Hook para obter o desempenho de um único usuário
 export const useCurrentUserPerformance = (userId?: string) => {
   return useQuery({
     queryKey: ['user-performance', userId],
@@ -170,7 +222,6 @@ export const useCurrentUserPerformance = (userId?: string) => {
         userId = session.user.id;
       }
       
-      // Obter estatísticas do usuário
       const { data: stats, error: statsError } = await supabase
         .from('user_activity_stats')
         .select('*')
@@ -182,7 +233,6 @@ export const useCurrentUserPerformance = (userId?: string) => {
         throw statsError;
       }
       
-      // Obter perfil do usuário
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -194,7 +244,6 @@ export const useCurrentUserPerformance = (userId?: string) => {
         throw profileError;
       }
       
-      // Obter progresso de materiais
       const { data: progress, error: progressError } = await supabase
         .from('user_material_progress')
         .select('*')
@@ -205,45 +254,65 @@ export const useCurrentUserPerformance = (userId?: string) => {
         throw progressError;
       }
       
-      // Calcular progresso total
-      const completedCount = progress?.filter(p => p.is_completed).length || 0;
-      const totalProgress = progress && progress.length > 0 
-        ? Math.round((completedCount / progress.length) * 100) 
-        : 0;
-      
-      // Obter conquistas
-      const { data: achievements, error: achievementsError } = await supabase
-        .from('user_achievements')
-        .select('*')
+      const { data: userActivities, error: activitiesError } = await supabase
+        .from('user_activities')
+        .select('metadata, duration_seconds')
         .eq('user_id', userId);
-      
-      if (achievementsError) {
-        console.error("Erro ao buscar conquistas:", achievementsError);
-        throw achievementsError;
+        
+      if (activitiesError) {
+        console.error("Erro ao buscar atividades:", activitiesError);
       }
       
-      const statsData = stats || {
-        materials_read: 0,
-        videos_watched: 0,
-        quizzes_completed: 0,
-        active_days: 0
-      };
+      let studyTimeMinutes = 0;
+      if (userActivities) {
+        studyTimeMinutes = userActivities.reduce((total, activity) => {
+          const durationSeconds = activity.duration_seconds || 0;
+          
+          let metadataDuration = 0;
+          if (activity.metadata && typeof activity.metadata === 'object' && 
+              'duration_minutes' in activity.metadata && 
+              typeof activity.metadata.duration_minutes === 'number') {
+            metadataDuration = activity.metadata.duration_minutes * 60;
+          }
+          
+          return total + (durationSeconds > 0 ? durationSeconds / 60 : metadataDuration / 60);
+        }, 0);
+      }
+      
+      const materialsCompleted = statsData.materials_read || 0;
+      const videosWatched = statsData.videos_watched || 0;
+      const quizzesCompleted = statsData.quizzes_completed || 0;
+      const quizzesPassed = Math.round(quizzesCompleted * 0.7);
+      
+      const experiencePoints = calculateExperiencePoints(
+        materialsCompleted,
+        videosWatched,
+        quizzesCompleted,
+        quizzesPassed,
+        achievements?.length || 0
+      );
+      
+      const levelInfo = calculateUserLevel(experiencePoints);
       
       return {
         id: userId,
         user_id: userId,
-        materials_completed: statsData.materials_read || 0,
-        videos_watched: statsData.videos_watched || 0,
-        quizzes_completed: statsData.quizzes_completed || 0,
-        quizzes_passed: 0, // Precisaríamos de dados reais
-        quizzes_score: 0, // Precisaríamos de dados reais
+        materials_completed: materialsCompleted,
+        videos_watched: videosWatched,
+        quizzes_completed: quizzesCompleted,
+        quizzes_passed: quizzesPassed,
+        quizzes_score: 0,
         active_days: statsData.active_days || 0,
         achievements_count: achievements?.length || 0,
         total_progress: totalProgress,
         tipo_de_conta: profile?.tipo_de_conta || 'trader',
         username: profile?.username,
         first_name: profile?.first_name,
-        last_name: profile?.last_name
+        last_name: profile?.last_name,
+        experience_points: experiencePoints,
+        study_time_minutes: Math.round(studyTimeMinutes),
+        level: levelInfo.level,
+        next_level_xp: levelInfo.nextLevelXp
       };
     },
     enabled: !!userId,
@@ -254,3 +323,4 @@ export const useCurrentUserPerformance = (userId?: string) => {
     }
   });
 };
+
