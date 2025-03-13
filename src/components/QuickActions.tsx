@@ -3,9 +3,7 @@ import React from "react";
 import { 
   Settings, 
   ShieldAlert, 
-  Bell, 
-  UserCog,
-  BellRing,
+  Bell
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "@/hooks/use-notifications";
