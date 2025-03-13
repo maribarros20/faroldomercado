@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -8,10 +7,7 @@ import {
   AlertTriangle, 
   Clock, 
   BarChart4, 
-  DollarSign, 
-  Activity, 
-  Landmark,
-  ShieldCheck
+  Landmark
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchMarketData, MarketDataResponse } from "@/services/marketDataService";
@@ -22,6 +18,8 @@ import CommoditiesPanel from "@/components/market/CommoditiesPanel";
 import SafetyAssetsPanel from "@/components/market/SafetyAssetsPanel";
 import EconomicDataPanel from "@/components/market/EconomicDataPanel";
 import EconomicDataWidget from "@/components/market/EconomicDataWidget";
+import MarketAlertWidget from "@/components/market/MarketAlertWidget";
+import FxCardsWidget from "@/components/market/FxCardsWidget";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ResponsiveContainer, Line, LineChart } from "recharts";
@@ -128,28 +126,65 @@ const MarketOverviewTab: React.FC = () => {
 
   // Prepare data for Economic Widget
   const economicData = {
-    usRate: marketData.economicDataUS.US_RATE || {
-      name: "Taxa de Juros EUA",
+    usData: {
+      interestRate: marketData.economicDataUS.US_RATE || {
+        name: "Taxa de Juros EUA",
+        time: "",
+        value: "0%",
+        change: "0%"
+      },
+      inflation: marketData.economicDataUS.US_CPI || {
+        name: "Inflação EUA (CPI)",
+        time: "",
+        value: "0%",
+        change: "0%",
+        monthlyValue: "0%"
+      }
+    },
+    brData: {
+      interestRate: marketData.economicDataBrazil.BR_SELIC || {
+        name: "Taxa Selic",
+        time: "",
+        value: "0%",
+        change: "0%"
+      },
+      inflation: marketData.economicDataBrazil.BR_IPCA || {
+        name: "Inflação (IPCA)",
+        time: "",
+        value: "0%",
+        change: "0%",
+        monthlyValue: "0%"
+      }
+    }
+  };
+
+  // Process market alerts (lines 71-72)
+  const marketAlerts = [];
+  if (marketData.economicDataBrazil && marketData.economicDataBrazil.MARKET_ALERT_1) {
+    marketAlerts.push(marketData.economicDataBrazil.MARKET_ALERT_1);
+  }
+  if (marketData.economicDataBrazil && marketData.economicDataBrazil.MARKET_ALERT_2) {
+    marketAlerts.push(marketData.economicDataBrazil.MARKET_ALERT_2);
+  }
+
+  // Extract currency pairs for FX Cards Widget
+  const currencyPairs = {
+    DXY: marketData.safetyAssets.DXY || {
+      name: "DXY (Dollar Index)",
       time: "",
-      value: "0%",
+      value: "0",
       change: "0%"
     },
-    usCpi: marketData.economicDataUS.US_CPI || {
-      name: "Inflação EUA (CPI)",
+    USD_BRL: marketData.safetyAssets.USD_BRL || {
+      name: "USD/BRL",
       time: "",
-      value: "0%",
+      value: "0",
       change: "0%"
     },
-    brSelic: marketData.economicDataBrazil.BR_SELIC || {
-      name: "Taxa Selic",
+    EUR_USD: marketData.safetyAssets.EUR_USD || {
+      name: "EUR/USD",
       time: "",
-      value: "0%",
-      change: "0%"
-    },
-    brIpca: marketData.economicDataBrazil.BR_IPCA || {
-      name: "Inflação (IPCA)",
-      time: "",
-      value: "0%",
+      value: "0",
       change: "0%"
     }
   };
@@ -332,18 +367,22 @@ const MarketOverviewTab: React.FC = () => {
         </Card>
       </div>
 
+      {/* FX Currency Pairs Cards */}
+      <FxCardsWidget currencyPairs={currencyPairs} />
+
       {/* VIX Panel */}
       <VixPanel />
+
+      {/* Market Alert Widget - Show below VIX */}
+      <MarketAlertWidget alerts={marketAlerts} />
 
       {/* Market Alerts */}
       <MarketAlertPanel alerts={marketData.alerts} />
 
       {/* Economic Data Widget - New Component */}
       <EconomicDataWidget 
-        usRate={economicData.usRate}
-        usCpi={economicData.usCpi}
-        brSelic={economicData.brSelic}
-        brIpca={economicData.brIpca}
+        usData={economicData.usData}
+        brData={economicData.brData}
       />
 
       {/* Brazilian Market Indices - Row of Cards - Moved below VIX */}
@@ -594,7 +633,7 @@ const MarketOverviewTab: React.FC = () => {
         )}
       </div>
 
-      {/* DI Futures Panel */}
+      {/* DI Futures Panel - Excluding SELIC and IPCA */}
       <EconomicDataPanel 
         brDiRates={marketData.economicDataBrazil} 
       />
@@ -683,3 +722,4 @@ const MarketOverviewTab: React.FC = () => {
 };
 
 export default MarketOverviewTab;
+
