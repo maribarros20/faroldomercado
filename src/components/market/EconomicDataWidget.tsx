@@ -15,10 +15,8 @@ interface EconomicIndicator {
 interface EconomicDataWidgetProps {
   usRate: EconomicIndicator;
   usCpi: EconomicIndicator;
-  usCpiMonth: EconomicIndicator;
   brSelic: EconomicIndicator;
   brIpca: EconomicIndicator;
-  brIpcaMonth: EconomicIndicator;
   brDiRates?: {
     [key: string]: EconomicIndicator;
   };
@@ -27,10 +25,8 @@ interface EconomicDataWidgetProps {
 const EconomicDataWidget: React.FC<EconomicDataWidgetProps> = ({
   usRate,
   usCpi,
-  usCpiMonth,
   brSelic,
   brIpca,
-  brIpcaMonth,
   brDiRates = {}
 }) => {
   const formatTime = (time: string) => {
@@ -133,12 +129,12 @@ const EconomicDataWidget: React.FC<EconomicDataWidgetProps> = ({
               )}
             </div>
             
-            {/* US CPI Annual */}
+            {/* US CPI */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <div className="flex items-center">
                   <Activity className="h-4 w-4 mr-1 text-[#0066FF]" />
-                  <span className="font-medium">Inflação Anual (CPI)</span>
+                  <span className="font-medium">Inflação (CPI)</span>
                 </div>
                 <div className="text-xs text-gray-500 flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
@@ -178,55 +174,6 @@ const EconomicDataWidget: React.FC<EconomicDataWidgetProps> = ({
                       : 'text-gray-600'
                 }`}>
                   {usCpi.parameter}
-                </div>
-              )}
-            </div>
-            
-            {/* US CPI Monthly */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <Activity className="h-4 w-4 mr-1 text-[#0066FF]" />
-                  <span className="font-medium">Inflação Mensal (CPI)</span>
-                </div>
-                <div className="text-xs text-gray-500 flex items-center">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {formatTime(usCpiMonth.time)}
-                </div>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold">{usCpiMonth.value}</span>
-                <span className={`text-sm font-medium px-2 py-1 rounded-full ${
-                  isNegative(usCpiMonth.change)
-                    ? 'bg-green-100 text-green-600' 
-                    : usCpiMonth.change === '0%' 
-                      ? 'bg-gray-100 text-gray-600' 
-                      : 'bg-red-100 text-red-600'
-                }`}>
-                  {isNegative(usCpiMonth.change) ? (
-                    <TrendingDown className="h-3 w-3 inline mr-1" />
-                  ) : (
-                    <TrendingUp className="h-3 w-3 inline mr-1" />
-                  )}
-                  {usCpiMonth.change}
-                </span>
-              </div>
-              
-              <Progress 
-                value={calculateProgress(usCpiMonth.value)} 
-                className="h-2 bg-gray-100" 
-              />
-              
-              {usCpiMonth.parameter && (
-                <div className={`text-xs mt-1 ${
-                  usCpiMonth.parameter.includes('NEGATIV') 
-                    ? 'text-[#ef4444]' 
-                    : usCpiMonth.parameter.includes('POSITIV') 
-                      ? 'text-[#22c55e]' 
-                      : 'text-gray-600'
-                }`}>
-                  {usCpiMonth.parameter}
                 </div>
               )}
             </div>
@@ -285,12 +232,12 @@ const EconomicDataWidget: React.FC<EconomicDataWidgetProps> = ({
               )}
             </div>
             
-            {/* BR IPCA Annual */}
+            {/* BR IPCA */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <div className="flex items-center">
                   <Activity className="h-4 w-4 mr-1 text-[#0066FF]" />
-                  <span className="font-medium">Inflação Anual (IPCA)</span>
+                  <span className="font-medium">Inflação (IPCA)</span>
                 </div>
                 <div className="text-xs text-gray-500 flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
@@ -330,55 +277,6 @@ const EconomicDataWidget: React.FC<EconomicDataWidgetProps> = ({
                       : 'text-gray-600'
                 }`}>
                   {actualBrIpca.parameter}
-                </div>
-              )}
-            </div>
-            
-            {/* BR IPCA Monthly */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <Activity className="h-4 w-4 mr-1 text-[#0066FF]" />
-                  <span className="font-medium">Inflação Mensal (IPCA)</span>
-                </div>
-                <div className="text-xs text-gray-500 flex items-center">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {formatTime(brIpcaMonth.time)}
-                </div>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold">{brIpcaMonth.value}</span>
-                <span className={`text-sm font-medium px-2 py-1 rounded-full ${
-                  isNegative(brIpcaMonth.change)
-                    ? 'bg-green-100 text-green-600' 
-                    : brIpcaMonth.change === '0%' 
-                      ? 'bg-gray-100 text-gray-600' 
-                      : 'bg-red-100 text-red-600'
-                }`}>
-                  {isNegative(brIpcaMonth.change) ? (
-                    <TrendingDown className="h-3 w-3 inline mr-1" />
-                  ) : (
-                    <TrendingUp className="h-3 w-3 inline mr-1" />
-                  )}
-                  {brIpcaMonth.change}
-                </span>
-              </div>
-              
-              <Progress 
-                value={calculateProgress(brIpcaMonth.value)} 
-                className="h-2 bg-gray-100" 
-              />
-              
-              {brIpcaMonth.parameter && (
-                <div className={`text-xs mt-1 ${
-                  brIpcaMonth.parameter.includes('NEGATIV') 
-                    ? 'text-[#ef4444]' 
-                    : brIpcaMonth.parameter.includes('POSITIV') 
-                      ? 'text-[#22c55e]' 
-                      : 'text-gray-600'
-                }`}>
-                  {brIpcaMonth.parameter}
                 </div>
               )}
             </div>
