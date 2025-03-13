@@ -31,6 +31,19 @@ export const NewsList: React.FC<NewsListProps> = ({
     }
   };
 
+  // Safely handle edit and delete actions
+  const handleEdit = (id: string | undefined) => {
+    if (id) {
+      onEdit(id);
+    }
+  };
+
+  const handleDelete = (id: string | undefined) => {
+    if (id) {
+      onDelete(id);
+    }
+  };
+
   return (
     <Card className="h-full">
       <CardHeader>
@@ -82,7 +95,7 @@ export const NewsList: React.FC<NewsListProps> = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => news.id && onEdit(news.id)}
+                      onClick={() => handleEdit(news.id)}
                       title="Editar"
                       className="hover:bg-[#e6f0ff] hover:text-[#0066FF]"
                     >
@@ -91,7 +104,7 @@ export const NewsList: React.FC<NewsListProps> = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => news.id && onDelete(news.id)}
+                      onClick={() => handleDelete(news.id)}
                       title="Excluir"
                       className="text-destructive hover:text-destructive hover:bg-[#e6f0ff]"
                     >
