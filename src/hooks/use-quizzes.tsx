@@ -70,7 +70,6 @@ export const useUpdateQuizQuestion = () => {
     mutationFn: ({ id, updates }: { id: string, updates: Partial<QuizQuestion> }) => 
       updateQuizQuestion(id, updates),
     onSuccess: (_, variables) => {
-      // Get the quiz_id from the updates or from the updated question
       const quizId = variables.updates.quiz_id;
       if (quizId) {
         queryClient.invalidateQueries({ queryKey: ['quiz-questions', quizId] });
@@ -126,7 +125,6 @@ export const useSubmitQuiz = () => {
   return useMutation({
     mutationFn: (submission: QuizSubmission) => submitQuizAttempt(submission),
     onSuccess: (result) => {
-      // Track specific achievement conditions
       const achievementMessages = [];
       
       if (result.score === 100) {
@@ -141,7 +139,6 @@ export const useSubmitQuiz = () => {
         achievementMessages.push(`✅ Quiz aprovado! Você ganhou ${result.experience_points} pontos de experiência.`);
       }
       
-      // Show toast with appropriate message
       if (achievementMessages.length > 0) {
         toast({
           title: "Quiz completado com sucesso!",
