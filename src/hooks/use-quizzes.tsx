@@ -1,4 +1,4 @@
-
+import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   getQuizzes, 
@@ -12,7 +12,7 @@ import {
   getQuizStatistics
 } from "@/services/quiz/QuizService";
 import { Quiz, QuizQuestion, QuizSubmission, QuizAttempt, QuizStatistics } from "@/types/quiz";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 export const useQuizzes = () => {
   return useQuery({
