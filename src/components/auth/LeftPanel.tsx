@@ -1,9 +1,6 @@
-
 import React from "react";
-
 const LeftPanel = () => {
-  return (
-    <div className="w-full md:w-2/5 lg:w-1/3 bg-blue-400 p-8 flex flex-col">
+  return <div className="w-full md:w-2/5 lg:w-1/3 p-8 flex flex-col bg-[#0066ff]">
       <div className="mb-6">
         <h2 className="text-xl font-bold">Farol do Mercado</h2>
       </div>
@@ -24,8 +21,6 @@ const LeftPanel = () => {
           iniciar uma gestão inteligente em saúde corporativa.
         </p>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default LeftPanel;
