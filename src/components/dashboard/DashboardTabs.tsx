@@ -32,9 +32,7 @@ const DashboardTabs = () => {
   return <Tabs defaultValue="dashboard" value={activeTab} onValueChange={handleTabChange}>
       <TabsList className="mb-6 w-full md:w-auto flex flex-wrap bg-white shadow-sm">
         <TabsTrigger value="dashboard" className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]">Acompanhar</TabsTrigger>
-        <TabsTrigger value="market-overview" className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]">
-          Panorama
-        </TabsTrigger>
+        <TabsTrigger value="market-overview" className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]">Monitorar</TabsTrigger>
         <TabsTrigger value="market-news" className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]">
           Notícias
         </TabsTrigger>
