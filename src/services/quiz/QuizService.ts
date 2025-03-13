@@ -132,11 +132,9 @@ export const getQuizQuestions = async (quizId: string): Promise<QuizQuestion[]> 
 };
 
 export const submitQuizAttempt = async (submission: QuizSubmission): Promise<QuizAttempt> => {
-  // First, get the quiz details and questions
   const quiz = await getQuiz(submission.quiz_id);
   const questions = await getQuizQuestions(submission.quiz_id);
   
-  // Calculate score
   let correctAnswers = 0;
   let totalPoints = 0;
   
@@ -155,30 +153,24 @@ export const submitQuizAttempt = async (submission: QuizSubmission): Promise<Qui
     }
   }
   
-  // Calculate score percentage
   const score = totalPoints > 0 ? Math.round((correctAnswers / totalPoints) * 100) : 0;
   
-  // Determine if passed based on passing_score
   const passed = score >= quiz.passing_score;
   
-  // Calculate experience points
   const difficultyMultiplier = quiz.difficulty === 'beginner' ? 1 : 
                               quiz.difficulty === 'intermediate' ? 1.5 : 2;
   
   const experiencePoints = Math.round(score * difficultyMultiplier);
   
-  // Calculate total time
   const started = new Date(submission.started_at);
   const completed = new Date();
   const totalTimeSeconds = Math.round((completed.getTime() - started.getTime()) / 1000);
   
-  // Get the current user's ID
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
     throw new Error("User not authenticated");
   }
   
-  // Submit the attempt
   const attempt = {
     user_id: session.user.id,
     quiz_id: submission.quiz_id,
@@ -202,7 +194,6 @@ export const submitQuizAttempt = async (submission: QuizSubmission): Promise<Qui
     throw error;
   }
   
-  // Check for achievements
   await checkAndRecordAchievements(data as QuizAttempt, quiz);
   
   return data as unknown as QuizAttempt;
@@ -210,7 +201,6 @@ export const submitQuizAttempt = async (submission: QuizSubmission): Promise<Qui
 
 const checkAndRecordAchievements = async (attempt: QuizAttempt, quiz: Quiz) => {
   try {
-    // Get existing attempts to check for first-time achievements
     const { data: existingAttempts } = await supabase
       .from('user_quiz_attempts')
       .select('id, score, passed')
@@ -220,57 +210,38 @@ const checkAndRecordAchievements = async (attempt: QuizAttempt, quiz: Quiz) => {
     
     const isFirstAttempt = !existingAttempts || existingAttempts.length === 0;
     
-    // Check for perfect score
     if (attempt.score === 100) {
       await supabase.from('user_achievements').insert({
         user_id: attempt.user_id,
         achievement_type: 'quiz_perfect_score',
-        achievement_name: 'Perfeição',
-        achievement_description: 'Obteve 100% de acerto em um quiz',
+        description: 'Obteve 100% de acerto em um quiz',
         points: 50,
-        metadata: {
-          quiz_id: attempt.quiz_id,
-          quiz_title: quiz.title,
-          score: attempt.score
-        }
+        badge_icon: 'award'
       });
     }
     
-    // Check for quick completion
     if (attempt.total_time_seconds && attempt.total_time_seconds < 120 && attempt.passed) {
       await supabase.from('user_achievements').insert({
         user_id: attempt.user_id,
         achievement_type: 'quiz_quick_completion',
-        achievement_name: 'Velocidade',
-        achievement_description: 'Completou um quiz em menos de 2 minutos com aprovação',
+        description: 'Completou um quiz em menos de 2 minutos com aprovação',
         points: 30,
-        metadata: {
-          quiz_id: attempt.quiz_id,
-          quiz_title: quiz.title,
-          time_seconds: attempt.total_time_seconds
-        }
+        badge_icon: 'zap'
       });
     }
     
-    // Check for first attempt pass
     if (isFirstAttempt && attempt.passed) {
       await supabase.from('user_achievements').insert({
         user_id: attempt.user_id,
         achievement_type: 'quiz_first_attempt_pass',
-        achievement_name: 'De Primeira',
-        achievement_description: 'Passou em um quiz na primeira tentativa',
+        description: 'Passou em um quiz na primeira tentativa',
         points: 40,
-        metadata: {
-          quiz_id: attempt.quiz_id,
-          quiz_title: quiz.title,
-          difficulty: quiz.difficulty
-        }
+        badge_icon: 'trophy'
       });
     }
     
   } catch (error) {
     console.error("Error recording achievements:", error);
-    // Don't throw, so the quiz submission still succeeds
   }
 };
 
@@ -310,10 +281,9 @@ export const getQuizStatistics = async (quizId?: string): Promise<QuizStatistics
     
     const attempts = data || [];
     
-    // Calculate overall statistics
     const stats: QuizStatistics = {
       total_attempts: attempts.length,
-      completion_rate: 100, // All attempts in the table are completed
+      completion_rate: 100,
       average_score: attempts.length > 0 
         ? Math.round(attempts.reduce((sum, a) => sum + a.score, 0) / attempts.length) 
         : 0,
@@ -327,14 +297,13 @@ export const getQuizStatistics = async (quizId?: string): Promise<QuizStatistics
       achievements: {
         perfect_scores: attempts.filter(a => a.score === 100).length,
         quick_completions: attempts.filter(a => a.total_time_seconds && a.total_time_seconds < 120).length,
-        first_attempt_passes: 0 // Requires more complex calculation
+        first_attempt_passes: 0
       }
     };
     
     return stats;
   }
   
-  // Specific quiz statistics
   const { data, error } = await supabase
     .from('user_quiz_attempts')
     .select('*')
@@ -347,7 +316,6 @@ export const getQuizStatistics = async (quizId?: string): Promise<QuizStatistics
   
   const attempts = data || [];
   
-  // Get questions for this quiz
   const { data: questions, error: questionsError } = await supabase
     .from('quiz_questions')
     .select('id')
@@ -358,7 +326,6 @@ export const getQuizStatistics = async (quizId?: string): Promise<QuizStatistics
     throw questionsError;
   }
   
-  // Calculate question success rates
   const questionSuccessRates = (questions || []).map(question => {
     const relatedAttempts = attempts.filter(a => 
       a.answers && Object.keys(a.answers).includes(question.id)
@@ -367,8 +334,6 @@ export const getQuizStatistics = async (quizId?: string): Promise<QuizStatistics
     let successCount = 0;
     relatedAttempts.forEach(attempt => {
       const correctAnswer = attempt.answers[question.id];
-      // We would need to match this against the correct_answer for the question
-      // This is a simplified version
       if (correctAnswer) {
         successCount++;
       }
@@ -382,10 +347,9 @@ export const getQuizStatistics = async (quizId?: string): Promise<QuizStatistics
     };
   });
   
-  // Calculate overall statistics
   const stats: QuizStatistics = {
     total_attempts: attempts.length,
-    completion_rate: 100, // All attempts in the table are completed
+    completion_rate: 100,
     average_score: attempts.length > 0 
       ? Math.round(attempts.reduce((sum, a) => sum + a.score, 0) / attempts.length) 
       : 0,
@@ -399,7 +363,7 @@ export const getQuizStatistics = async (quizId?: string): Promise<QuizStatistics
     achievements: {
       perfect_scores: attempts.filter(a => a.score === 100).length,
       quick_completions: attempts.filter(a => a.total_time_seconds && a.total_time_seconds < 120).length,
-      first_attempt_passes: 0 // Would require more complex calculation
+      first_attempt_passes: 0
     }
   };
   
