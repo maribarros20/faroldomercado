@@ -17,7 +17,9 @@ import {
   Check, 
   RotateCcw, 
   AlertCircle,
-  HelpCircle
+  HelpCircle,
+  Brain,
+  Zap
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -26,6 +28,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { motion } from "framer-motion";
 
 const Quiz: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
@@ -169,6 +172,24 @@ const Quiz: React.FC = () => {
   const question = questions[currentQuestion];
   const progress = ((currentQuestion + 1) / questions.length) * 100;
   
+  const getDifficultyColor = () => {
+    switch (quiz.difficulty) {
+      case 'beginner': return 'bg-green-500';
+      case 'intermediate': return 'bg-yellow-500';
+      case 'advanced': return 'bg-red-500';
+      default: return 'bg-blue-500';
+    }
+  };
+  
+  const getDifficultyLabel = () => {
+    switch (quiz.difficulty) {
+      case 'beginner': return 'Iniciante';
+      case 'intermediate': return 'Intermediário';
+      case 'advanced': return 'Avançado';
+      default: return quiz.difficulty;
+    }
+  };
+  
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
@@ -179,139 +200,242 @@ const Quiz: React.FC = () => {
         
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-gray-500" />
-          <span className="text-sm text-gray-600">{formatTime(elapsedTime)}</span>
+          <span className="text-sm font-medium bg-gray-100 px-2 py-1 rounded-md text-gray-700">{formatTime(elapsedTime)}</span>
         </div>
       </div>
       
-      <Card className="shadow-md">
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-xl">{quiz.title}</CardTitle>
-              <CardDescription>{quiz.description}</CardDescription>
-            </div>
-            <Badge variant="outline">
-              Pergunta {currentQuestion + 1} de {questions.length}
-            </Badge>
-          </div>
-          <Progress value={progress} className="h-2" />
-        </CardHeader>
-        
-        <CardContent className="pb-6">
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium">{question.question}</h3>
-              
-              {question.explanation && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="p-1"
-                        onClick={handleToggleHint}
-                      >
-                        <HelpCircle className="h-4 w-4 text-blue-600" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Mostrar dica</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </div>
-            
-            {showHint && question.explanation && (
-              <div className="bg-blue-50 border border-blue-200 p-3 rounded-md mb-4">
-                <div className="flex items-start">
-                  <AlertCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-medium text-blue-800 mb-1">Dica</h4>
-                    <p className="text-sm text-blue-700">{question.explanation}</p>
-                  </div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card className="shadow-md border-t-4 border-t-blue-600">
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge 
+                    className={`${getDifficultyColor()} hover:${getDifficultyColor()}`}
+                    variant="default"
+                  >
+                    {getDifficultyLabel()}
+                  </Badge>
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    {quiz.category}
+                  </Badge>
+                </div>
+                <CardTitle className="text-xl">{quiz.title}</CardTitle>
+                <CardDescription>{quiz.description}</CardDescription>
+              </div>
+              <div className="flex flex-col items-end">
+                <Badge variant="outline" className="mb-2 font-semibold bg-blue-50 text-blue-700 border-blue-200">
+                  Pergunta {currentQuestion + 1} de {questions.length}
+                </Badge>
+                <div className="flex items-center text-sm text-gray-500">
+                  <Zap className="h-4 w-4 mr-1 text-amber-500" />
+                  Pontuação mínima: {quiz.passing_score}%
                 </div>
               </div>
-            )}
-            
-            {question.question_type === 'multiple_choice' && question.options && (
-              <RadioGroup
-                value={getCurrentAnswer(question.id)}
-                onValueChange={(value) => handleAnswerChange(question.id, value)}
-                className="space-y-3"
-              >
-                {question.options.map((option, index) => (
-                  <div key={index} className="flex items-center space-x-2 bg-white border border-gray-200 rounded-md p-3 hover:bg-gray-50 transition-colors">
-                    <RadioGroupItem value={option} id={`option-${index}`} />
-                    <Label htmlFor={`option-${index}`} className="cursor-pointer flex-1">{option}</Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            )}
-            
-            {question.question_type === 'true_false' && (
-              <RadioGroup
-                value={getCurrentAnswer(question.id)}
-                onValueChange={(value) => handleAnswerChange(question.id, value)}
-                className="space-y-3"
-              >
-                <div className="flex items-center space-x-2 bg-white border border-gray-200 rounded-md p-3 hover:bg-gray-50 transition-colors">
-                  <RadioGroupItem value="Verdadeiro" id="true" />
-                  <Label htmlFor="true" className="cursor-pointer flex-1">Verdadeiro</Label>
-                </div>
-                <div className="flex items-center space-x-2 bg-white border border-gray-200 rounded-md p-3 hover:bg-gray-50 transition-colors">
-                  <RadioGroupItem value="Falso" id="false" />
-                  <Label htmlFor="false" className="cursor-pointer flex-1">Falso</Label>
-                </div>
-              </RadioGroup>
-            )}
-          </div>
-        </CardContent>
-        
-        <CardFooter className="flex justify-between">
-          <div>
-            <Button 
-              variant="outline" 
-              onClick={handlePrevious}
-              disabled={currentQuestion === 0}
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Anterior
-            </Button>
-          </div>
+            </div>
+            <Progress value={progress} className="h-2 mt-2 bg-gray-100" />
+          </CardHeader>
           
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleReset}
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reiniciar
-            </Button>
+          <CardContent className="pb-6">
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium">{question.question}</h3>
+                
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-blue-50 border-blue-200">
+                    <Brain className="h-3.5 w-3.5 mr-1 text-blue-600" />
+                    <span className="text-blue-700">{question.points} pontos</span>
+                  </Badge>
+                  
+                  {question.explanation && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="p-1 hover:bg-blue-50"
+                            onClick={handleToggleHint}
+                          >
+                            <HelpCircle className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Mostrar dica</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+              </div>
+              
+              {showHint && question.explanation && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-blue-50 border border-blue-200 p-3 rounded-md mb-4"
+                >
+                  <div className="flex items-start">
+                    <AlertCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-medium text-blue-800 mb-1">Dica</h4>
+                      <p className="text-sm text-blue-700">{question.explanation}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              
+              {question.question_type === 'multiple_choice' && question.options && (
+                <RadioGroup
+                  value={getCurrentAnswer(question.id)}
+                  onValueChange={(value) => handleAnswerChange(question.id, value)}
+                  className="space-y-3 mt-6"
+                >
+                  {question.options.map((option, index) => (
+                    <motion.div 
+                      key={index} 
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: index * 0.05 }}
+                      className={`flex items-center space-x-2 bg-white border 
+                        ${getCurrentAnswer(question.id) === option 
+                          ? 'border-blue-400 bg-blue-50' 
+                          : 'border-gray-200 hover:border-gray-300'} 
+                        rounded-md p-3 transition-colors`}
+                    >
+                      <RadioGroupItem value={option} id={`option-${index}`} />
+                      <Label htmlFor={`option-${index}`} className="cursor-pointer flex-1">{option}</Label>
+                    </motion.div>
+                  ))}
+                </RadioGroup>
+              )}
+              
+              {question.question_type === 'true_false' && (
+                <RadioGroup
+                  value={getCurrentAnswer(question.id)}
+                  onValueChange={(value) => handleAnswerChange(question.id, value)}
+                  className="space-y-3 mt-6"
+                >
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className={`flex items-center space-x-2 bg-white border
+                      ${getCurrentAnswer(question.id) === "Verdadeiro" 
+                        ? 'border-blue-400 bg-blue-50' 
+                        : 'border-gray-200 hover:border-gray-300'} 
+                      rounded-md p-3 transition-colors`}
+                  >
+                    <RadioGroupItem value="Verdadeiro" id="true" />
+                    <Label htmlFor="true" className="cursor-pointer flex-1">Verdadeiro</Label>
+                  </motion.div>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: 0.05 }}
+                    className={`flex items-center space-x-2 bg-white border
+                      ${getCurrentAnswer(question.id) === "Falso" 
+                        ? 'border-blue-400 bg-blue-50' 
+                        : 'border-gray-200 hover:border-gray-300'} 
+                      rounded-md p-3 transition-colors`}
+                  >
+                    <RadioGroupItem value="Falso" id="false" />
+                    <Label htmlFor="false" className="cursor-pointer flex-1">Falso</Label>
+                  </motion.div>
+                </RadioGroup>
+              )}
+            </div>
+          </CardContent>
+          
+          <CardFooter className="flex justify-between">
+            <div>
+              <Button 
+                variant="outline" 
+                onClick={handlePrevious}
+                disabled={currentQuestion === 0}
+                className="hover:bg-gray-50"
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Anterior
+              </Button>
+            </div>
             
-            {currentQuestion === questions.length - 1 ? (
+            <div className="flex gap-2">
               <Button 
-                onClick={handleSubmit}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={!getCurrentAnswer(question.id)}
+                variant="outline" 
+                onClick={handleReset}
+                className="hover:bg-gray-50"
               >
-                <Check className="h-4 w-4 mr-2" />
-                Enviar Respostas
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reiniciar
               </Button>
-            ) : (
-              <Button 
-                onClick={handleNext}
-                disabled={!getCurrentAnswer(question.id)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                Próxima
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Button>
-            )}
-          </div>
-        </CardFooter>
-      </Card>
+              
+              {currentQuestion === questions.length - 1 ? (
+                <Button 
+                  onClick={handleSubmit}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={!getCurrentAnswer(question.id)}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Enviar Respostas
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleNext}
+                  disabled={!getCurrentAnswer(question.id)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Próxima
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              )}
+            </div>
+          </CardFooter>
+        </Card>
+      </motion.div>
+      
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+      >
+        <Card className="shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  <div className={`h-3 w-3 rounded-full ${answers.length === questions.length ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+                  <span className="text-sm text-gray-600">
+                    {answers.length} de {questions.length} respondidas
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                {Array.from({ length: questions.length }).map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentQuestion(index)}
+                    className={`h-7 w-7 rounded-full text-xs flex items-center justify-center
+                      ${currentQuestion === index 
+                        ? 'bg-blue-600 text-white' 
+                        : answers.some(a => a.question_id === questions[index].id)
+                          ? 'bg-green-100 text-green-700 border border-green-300' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 };

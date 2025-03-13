@@ -49,3 +49,40 @@ export interface QuizSubmission {
   answers: QuizAnswer[];
   started_at: string;
 }
+
+export interface QuizStatistics {
+  total_attempts: number;
+  completion_rate: number;
+  average_score: number;
+  average_time_seconds: number;
+  pass_rate: number;
+  question_success_rates: {
+    question_id: string;
+    success_rate: number;
+  }[];
+  achievements: {
+    perfect_scores: number;
+    quick_completions: number;
+    first_attempt_passes: number;
+  };
+}
+
+export interface QuizAchievement {
+  id: string;
+  user_id: string;
+  quiz_id: string;
+  achievement_type: 'perfect_score' | 'quick_completion' | 'first_attempt_pass' | 'streak';
+  achievement_data: any;
+  created_at: string;
+}
+
+export interface QuizPerformanceMetrics {
+  totalCompleted: number;
+  averageScore: number;
+  passRate: number;
+  totalExperienceGained: number;
+  averageTimeSeconds: number;
+  improvementRate: number;
+  streakCount: number;
+  achievements: QuizAchievement[];
+}
