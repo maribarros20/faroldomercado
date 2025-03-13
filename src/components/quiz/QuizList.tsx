@@ -1,7 +1,6 @@
 
 import React from "react";
 import { useQuizzes, useUserQuizAttempts } from "@/hooks/use-quizzes";
-import { Quiz } from "@/types/quiz";
 import QuizCard from "./QuizCard";
 import { Input } from "@/components/ui/input";
 import { 
@@ -80,7 +79,7 @@ const QuizList: React.FC = () => {
               <SelectValue placeholder="Todas as categorias" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas as categorias</SelectItem>
+              <SelectItem value="all">Todas as categorias</SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
@@ -99,7 +98,7 @@ const QuizList: React.FC = () => {
               <SelectValue placeholder="Todas as dificuldades" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas as dificuldades</SelectItem>
+              <SelectItem value="all">Todas as dificuldades</SelectItem>
               <SelectItem value="beginner">Iniciante</SelectItem>
               <SelectItem value="intermediate">Intermediário</SelectItem>
               <SelectItem value="advanced">Avançado</SelectItem>

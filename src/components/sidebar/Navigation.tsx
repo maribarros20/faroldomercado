@@ -4,6 +4,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/use-toast";
+import { useSidebar } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,26 +21,30 @@ function Navigation() {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
+  const { expanded } = useSidebar();
   
   const NavItem = ({ icon, href, label }: { icon: React.ReactNode; href: string; label: string }) => {
-    const isActive = location.pathname === href;
+    const isActive = location.pathname.startsWith(href);
     
     return (
       <NavLink
         to={href}
         className={cn(
-          "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
-          isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+          "group flex items-center rounded-md px-3 py-2 text-sm font-medium",
+          isActive 
+            ? "bg-blue-50 text-blue-600" 
+            : "text-gray-700 hover:bg-blue-50 hover:text-blue-600",
+          expanded ? "justify-start" : "justify-center"
         )}
       >
         {icon}
-        <span className="ml-2">{label}</span>
+        {expanded && <span className="ml-2">{label}</span>}
       </NavLink>
     );
   };
   
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 px-2">
       <NavItem
         icon={<Gauge className="w-5 h-5" />}
         href="/dashboard"
@@ -70,37 +75,52 @@ function Navigation() {
         href="/progress"
         label="Meu Progresso"
       />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="gap-2 w-full justify-start px-3 py-2 rounded-md hover:bg-accent hover:text-accent-foreground text-sm font-medium text-muted-foreground">
-            <Avatar className="w-5 h-5">
-              <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "Profile"} />
-              <AvatarFallback>{user?.displayName?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
-            </Avatar>
-            <span>{user?.displayName}</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end" forceMount>
-          <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => signOut(() => {
-            toast({
-              title: "Desconectado",
-              description: "Você foi desconectado com sucesso.",
-            })
-          })}>
-            Desconectar
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <NavLink to="/settings" className="w-full h-full block">
-              <div className="flex items-center">
-                <Settings className="w-4 h-4 mr-2" />
-                <span>Configurações</span>
-              </div>
-            </NavLink>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      
+      {expanded ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="w-full justify-start px-3 py-2 mt-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+              <Avatar className="w-5 h-5 mr-2">
+                <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "Profile"} />
+                <AvatarFallback>{user?.displayName?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+              </Avatar>
+              <span>{user?.displayName || "Perfil"}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <NavLink to="/profile" className="cursor-pointer">Perfil</NavLink>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <NavLink to="/profile-settings" className="cursor-pointer">Configurações</NavLink>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => signOut(() => {
+              toast({
+                title: "Desconectado",
+                description: "Você foi desconectado com sucesso.",
+              })
+            })}>
+              Desconectar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <NavLink
+          to="/profile"
+          className={cn(
+            "flex justify-center items-center rounded-md px-3 py-2 text-sm font-medium",
+            location.pathname === "/profile" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+          )}
+        >
+          <Avatar className="w-5 h-5">
+            <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "Profile"} />
+            <AvatarFallback>{user?.displayName?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+          </Avatar>
+        </NavLink>
+      )}
     </div>
   );
 }

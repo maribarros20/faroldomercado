@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
@@ -17,6 +18,7 @@ import AdminPage from "@/pages/AdminPage";
 import QuizzesPage from "./pages/QuizzesPage";
 import QuizDetailPage from "./pages/QuizDetailPage";
 import QuizCreatePage from "./pages/QuizCreatePage";
+import QuizEditPage from "./pages/QuizEditPage";
 import { supabase } from "@/integrations/supabase/client";
 import VideoDetail from "@/components/videos/VideoDetail";
 import { useToast } from "@/hooks/use-toast";
@@ -117,6 +119,7 @@ function App() {
           <Route path="/quizzes" element={<QuizzesPage />} />
           <Route path="/quizzes/:quizId" element={<QuizDetailPage />} />
           <Route path="/quizzes/create" element={<QuizCreatePage />} />
+          <Route path="/quizzes/:quizId/edit" element={<QuizEditPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppLayout>
