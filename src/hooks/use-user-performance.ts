@@ -86,16 +86,29 @@ export const useUserPerformance = () => {
         const quizzesCompleted = userActivities.filter(a => a.activity_type === 'quiz_completed').length;
         
         // Conta quizzes passados (supondo que tenha um campo indicando sucesso no metadata)
-        const quizzesPassed = userActivities.filter(a => 
-          a.activity_type === 'quiz_completed' && 
-          a.metadata && 
-          a.metadata.passed === true
-        ).length;
+        const quizzesPassed = userActivities.filter(a => {
+          if (a.activity_type === 'quiz_completed' && a.metadata) {
+            const metadata = a.metadata;
+            if (typeof metadata === 'object' && metadata !== null && 'passed' in metadata) {
+              return metadata.passed === true;
+            }
+          }
+          return false;
+        }).length;
         
         // Calcula score médio (supondo que tenha um campo score no metadata)
         const quizScores = userActivities
-          .filter(a => a.activity_type === 'quiz_completed' && a.metadata && a.metadata.score !== undefined)
-          .map(a => a.metadata.score as number);
+          .filter(a => {
+            if (a.activity_type === 'quiz_completed' && a.metadata) {
+              const metadata = a.metadata;
+              return typeof metadata === 'object' && metadata !== null && 'score' in metadata;
+            }
+            return false;
+          })
+          .map(a => {
+            const metadata = a.metadata as Record<string, any>;
+            return typeof metadata.score === 'number' ? metadata.score : 0;
+          });
         
         const quizzesScore = quizScores.length > 0 
           ? Math.round(quizScores.reduce((sum, score) => sum + score, 0) / quizScores.length) 
