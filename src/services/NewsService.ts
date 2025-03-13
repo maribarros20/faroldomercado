@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface NewsItem {
@@ -37,8 +36,11 @@ export const FINANCIAL_NEWS_SOURCES = [
   "Bloomberg Línea",
   "CNN Money",
   "Thomson Reuters",
+  "Reuters",
+  "Forbes",
   "Alpha Vantage",
-  "Farol Investe" // Alterado de "manual" para "Farol Investe"
+  "Farol Investe",
+  "Twitter"
 ];
 
 // Função para limpar texto de tags CDATA e HTML
@@ -89,9 +91,14 @@ export const getDefaultNewsImage = (source?: string): string => {
       case 'Bloomberg Línea':
         return 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
       case 'Thomson Reuters':
+      case 'Reuters':
         return 'https://s3.ap-southeast-1.amazonaws.com/thomson-media-resources/images/logos/tr-new.svg';
+      case 'Forbes':
+        return 'https://cdn.worldvectorlogo.com/logos/forbes-1.svg';
       case 'Farol Investe':
         return '/lovable-uploads/08c37f81-bb96-41bd-9b6e-2ade4bae59df.png';
+      case 'Twitter':
+        return 'https://upload.wikimedia.org/wikipedia/commons/5/53/X_logo_2023.svg';
     }
   }
   
@@ -126,7 +133,7 @@ export const fetchManualNews = async (): Promise<NewsItem[]> => {
       author: cleanTextContent(item.author),
       category: cleanTextContent(item.category),
       image_url: getValidImageUrl(item.image_url),
-      source: 'Farol Investe' // Alterado de "manual" para "Farol Investe"
+      source: 'Farol Investe'
     })) : [];
   } catch (error) {
     console.error("Erro ao buscar notícias manuais:", error);
@@ -313,7 +320,7 @@ export const getNewsById = async (id: string): Promise<NewsItem | null> => {
     
     return {
       ...data,
-      source: 'manual'
+      source: 'Farol Investe'
     };
   } catch (error) {
     console.error("Erro ao buscar notícia:", error);

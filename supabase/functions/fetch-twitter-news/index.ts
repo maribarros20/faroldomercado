@@ -11,7 +11,7 @@ const TWITTER_ACCOUNTS = [
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-const twitterBearerToken = Deno.env.get('TWITTER_BEARER_TOKEN') || '';
+const twitterBearerToken = Deno.env.get('TWITTER_BEARER_TOKEN') || '1900002471734349824maridofarol';
 
 interface NewsItem {
   id?: string;
@@ -92,7 +92,7 @@ async function fetchTwitterPosts(): Promise<NewsItem[]> {
         
         // Agora busca os tweets recentes
         const tweetsResponse = await fetch(
-          `https://api.twitter.com/2/users/${userId}/tweets?max_results=5&expansions=attachments.media_keys&tweet.fields=created_at,text,entities&media.fields=url,preview_image_url`,
+          `https://api.twitter.com/2/users/${userId}/tweets?max_results=10&expansions=attachments.media_keys&tweet.fields=created_at,text,entities,public_metrics&media.fields=url,preview_image_url,width,height`,
           {
             headers: {
               Authorization: `Bearer ${twitterBearerToken}`,
@@ -117,12 +117,24 @@ async function fetchTwitterPosts(): Promise<NewsItem[]> {
           const tweetUrl = `https://twitter.com/${account.username}/status/${tweet.id}`;
           const imageUrl = extractMediaFromTweet(tweetsData) || `https://unavatar.io/twitter/${account.username}`;
           
+          // Determinar categorias com base no conteúdo
+          let category = 'Mercado de Ações';
+          const lowerContent = tweet.text.toLowerCase();
+          
+          if (lowerContent.includes('economia') || lowerContent.includes('pib') || lowerContent.includes('inflação')) {
+            category = 'Economia';
+          } else if (lowerContent.includes('bitcoin') || lowerContent.includes('crypto') || lowerContent.includes('ethereum')) {
+            category = 'Criptomoedas';
+          } else if (lowerContent.includes('petróleo') || lowerContent.includes('ouro') || lowerContent.includes('commodity')) {
+            category = 'Commodities';
+          }
+          
           newsItems.push({
             title: `${account.name} no Twitter`,
             content: tweet.text,
             publication_date: tweet.created_at,
             author: account.name,
-            category: 'Mercado de Ações',
+            category: category,
             image_url: imageUrl,
             source: 'Twitter',
             source_url: tweetUrl,
