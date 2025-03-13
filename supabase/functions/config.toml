@@ -1,0 +1,12 @@
+
+project_id = "opczyuxraleahrnzrxbp"
+
+[functions.fetch-news]
+verify_jwt = false
+
+[functions.fetch-twitter-news]
+verify_jwt = false
+
+[functions.daily-market-summary]
+verify_jwt = false
+schedule = "0 6 * * *"

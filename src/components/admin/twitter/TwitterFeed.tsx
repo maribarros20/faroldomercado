@@ -18,12 +18,11 @@ export const TwitterFeed = ({ tweets }: TwitterFeedProps) => {
   if (!tweets || tweets.length === 0) {
     return (
       <Card className="p-6 text-center">
-        <p className="text-muted-foreground">Nenhuma publicação encontrada dos líderes de mercado.</p>
+        <p className="text-muted-foreground">Nenhuma publicação do Twitter disponível no momento.</p>
+        <p className="text-xs text-muted-foreground mt-2">As publicações aparecerão aqui quando disponíveis da API do Twitter.</p>
       </Card>
     );
   }
-
-  console.log("Tweets recebidos:", tweets.length);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
@@ -88,95 +87,89 @@ export const TwitterFeed = ({ tweets }: TwitterFeedProps) => {
         Últimas atualizações dos líderes
       </h3>
       
-      {tweets.length === 0 ? (
-        <Card className="p-6 text-center">
-          <p className="text-muted-foreground">Carregando tweets...</p>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {tweets.map((tweet, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card className={`hover:shadow-lg transition-all duration-300 overflow-hidden border-l-4 ${getAuthorColor(tweet.author)}`}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-12 w-12 border-2 border-blue-100">
-                      <AvatarImage src={getProfilePicture(tweet.author)} />
-                      <AvatarFallback>{tweet.author?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {tweets.map((tweet, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <Card className={`hover:shadow-lg transition-all duration-300 overflow-hidden border-l-4 ${getAuthorColor(tweet.author)}`}>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <Avatar className="h-12 w-12 border-2 border-blue-100">
+                    <AvatarImage src={getProfilePicture(tweet.author)} />
+                    <AvatarFallback>{tweet.author?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-bold text-base">{tweet.author}</p>
+                        <p className="text-sm text-muted-foreground">{getTwitterUsername(tweet.author)}</p>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(tweet.publication_date)}
+                      </span>
+                    </div>
                     
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-bold text-base">{tweet.author}</p>
-                          <p className="text-sm text-muted-foreground">{getTwitterUsername(tweet.author)}</p>
+                    <div className="mt-3">
+                      <p className="text-base whitespace-pre-line">{tweet.content}</p>
+                      
+                      {tweet.image_url && !tweet.image_url.includes('unavatar.io') && (
+                        <div className="mt-4 rounded-lg overflow-hidden">
+                          <img 
+                            src={tweet.image_url} 
+                            alt="Tweet media" 
+                            className="w-full h-auto rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                            onError={(e) => {
+                              console.error("Erro ao carregar imagem:", tweet.image_url);
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(tweet.publication_date)}
-                        </span>
-                      </div>
-                      
-                      <div className="mt-3">
-                        <p className="text-base whitespace-pre-line">{tweet.content}</p>
-                        
-                        {tweet.image_url && !tweet.image_url.includes('unavatar.io') && (
-                          <div className="mt-4 rounded-lg overflow-hidden">
-                            <img 
-                              src={tweet.image_url} 
-                              alt="Tweet media" 
-                              className="w-full h-auto rounded-lg shadow-sm hover:shadow-md transition-shadow"
-                              onError={(e) => {
-                                console.error("Erro ao carregar imagem:", tweet.image_url);
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                      
-                      <Separator className="my-3" />
-                      
-                      <div className="flex justify-between mt-1 text-muted-foreground">
-                        <button className="text-sm flex items-center gap-1 hover:text-blue-500 transition-colors">
-                          <MessageCircle size={16} />
-                          <span className="hidden sm:inline">Comentar</span>
-                        </button>
-                        <button className="text-sm flex items-center gap-1 hover:text-green-500 transition-colors">
-                          <Repeat size={16} />
-                          <span className="hidden sm:inline">Repostar</span>
-                        </button>
-                        <button className="text-sm flex items-center gap-1 hover:text-red-500 transition-colors">
-                          <Heart size={16} />
-                          <span className="hidden sm:inline">Curtir</span>
-                        </button>
-                        <button className="text-sm flex items-center gap-1 hover:text-blue-500 transition-colors">
-                          <Share2 size={16} />
-                          <span className="hidden sm:inline">Compartilhar</span>
-                        </button>
-                        {tweet.source_url && (
-                          <a
-                            href={tweet.source_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm flex items-center gap-1 hover:text-blue-500 transition-colors"
-                          >
-                            <ExternalLink size={16} />
-                            <span className="hidden sm:inline">Ver no X</span>
-                          </a>
-                        )}
-                      </div>
+                      )}
+                    </div>
+                    
+                    <Separator className="my-3" />
+                    
+                    <div className="flex justify-between mt-1 text-muted-foreground">
+                      <button className="text-sm flex items-center gap-1 hover:text-blue-500 transition-colors">
+                        <MessageCircle size={16} />
+                        <span className="hidden sm:inline">Comentar</span>
+                      </button>
+                      <button className="text-sm flex items-center gap-1 hover:text-green-500 transition-colors">
+                        <Repeat size={16} />
+                        <span className="hidden sm:inline">Repostar</span>
+                      </button>
+                      <button className="text-sm flex items-center gap-1 hover:text-red-500 transition-colors">
+                        <Heart size={16} />
+                        <span className="hidden sm:inline">Curtir</span>
+                      </button>
+                      <button className="text-sm flex items-center gap-1 hover:text-blue-500 transition-colors">
+                        <Share2 size={16} />
+                        <span className="hidden sm:inline">Compartilhar</span>
+                      </button>
+                      {tweet.source_url && (
+                        <a
+                          href={tweet.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm flex items-center gap-1 hover:text-blue-500 transition-colors"
+                        >
+                          <ExternalLink size={16} />
+                          <span className="hidden sm:inline">Ver no X</span>
+                        </a>
+                      )}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 };

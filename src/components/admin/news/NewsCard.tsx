@@ -29,10 +29,21 @@ export const NewsCard = ({ newsItem }: NewsCardProps) => {
   const displaySource = newsItem.source === "manual" ? "Farol Investe" : newsItem.source;
 
   // Verificar se o link é válido
-  const hasValidLink = newsItem.source_url && (
-    newsItem.source_url.startsWith('http://') || 
-    newsItem.source_url.startsWith('https://')
-  );
+  const hasValidLink = newsItem.source_url && newsItem.source_url.startsWith('http');
+  
+  // Função para validar URL externo
+  const getValidSourceUrl = (url?: string): string => {
+    if (!url) return '#';
+    
+    // Verificar se a URL é válida
+    try {
+      new URL(url);
+      return url;
+    } catch (e) {
+      console.error("URL inválida:", url);
+      return '#';
+    }
+  };
 
   return (
     <Card className="overflow-hidden h-full flex flex-col">
@@ -81,7 +92,7 @@ export const NewsCard = ({ newsItem }: NewsCardProps) => {
       {hasValidLink && (
         <CardFooter className="p-4 pt-0">
           <a
-            href={newsItem.source_url}
+            href={getValidSourceUrl(newsItem.source_url)}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs flex items-center gap-1 text-primary hover:underline"
