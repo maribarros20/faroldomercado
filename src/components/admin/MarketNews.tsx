@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Search, RefreshCw, Filter, Newspaper, Twitter
+  Search, RefreshCw, Filter, Newspaper, Twitter, BarChart3
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { NewsCard } from "./news/NewsCard";
@@ -28,7 +28,8 @@ const FINANCE_CATEGORIES = [
   "Criptomoedas",
   "Commodities",
   "Economia",
-  "Negócios"
+  "Negócios",
+  "Resumo de Mercado"
 ];
 
 const MarketNews = () => {
@@ -75,14 +76,20 @@ const MarketNews = () => {
         return dateB - dateA;
       });
     },
-    staleTime: 15 * 60 * 1000, // 15 minutos
-    refetchInterval: 15 * 60 * 1000, // Atualizar a cada 15 minutos
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchInterval: 10 * 60 * 1000, // Atualizar a cada 10 minutos
   });
 
   // Filtrar tweets
   const twitterPosts = React.useMemo(() => {
     if (!news) return [];
     return news.filter(item => item.source === 'Twitter');
+  }, [news]);
+
+  // Filtrar resumos de mercado
+  const marketSummaries = React.useMemo(() => {
+    if (!news) return [];
+    return news.filter(item => item.category === 'Resumo de Mercado');
   }, [news]);
 
   // Extrair fontes únicas das notícias para o filtro
@@ -225,6 +232,10 @@ const MarketNews = () => {
       <Tabs defaultValue="all" onValueChange={setViewMode} value={viewMode}>
         <TabsList className="mb-4">
           <TabsTrigger value="all">Todas as notícias</TabsTrigger>
+          <TabsTrigger value="summary" className="flex items-center gap-1">
+            <BarChart3 size={14} />
+            Resumo do Mercado
+          </TabsTrigger>
           <TabsTrigger value="twitter" className="flex items-center gap-1">
             <Twitter size={14} />
             Twitter
@@ -265,9 +276,68 @@ const MarketNews = () => {
           )}
         </TabsContent>
         
+        <TabsContent value="summary">
+          {isLoading ? (
+            <Card className="animate-pulse">
+              <CardContent className="p-6 space-y-4">
+                <div className="h-8 bg-gray-200 rounded w-1/2" />
+                <div className="h-4 bg-gray-200 rounded w-full" />
+                <div className="h-4 bg-gray-200 rounded w-full" />
+                <div className="h-4 bg-gray-200 rounded w-3/4" />
+              </CardContent>
+            </Card>
+          ) : marketSummaries && marketSummaries.length > 0 ? (
+            <div className="space-y-6">
+              {marketSummaries.map((item, index) => (
+                <Card key={`summary-${index}`}>
+                  <CardContent className="p-6">
+                    <h3 className="text-xl font-bold mb-2">{item.title}</h3>
+                    <p className="text-muted-foreground mb-4">{item.subtitle}</p>
+                    <div className="prose max-w-none">
+                      {item.content.split('\n').map((line, i) => {
+                        // Render headings
+                        if (line.startsWith('# ')) {
+                          return <h1 key={i} className="text-2xl font-bold mt-6 mb-4">{line.substring(2)}</h1>;
+                        }
+                        if (line.startsWith('## ')) {
+                          return <h2 key={i} className="text-xl font-bold mt-5 mb-3">{line.substring(3)}</h2>;
+                        }
+                        if (line.startsWith('### ')) {
+                          return <h3 key={i} className="text-lg font-bold mt-4 mb-2">{line.substring(4)}</h3>;
+                        }
+                        
+                        // Render list items
+                        if (line.startsWith('- ')) {
+                          return <li key={i} className="ml-6 mb-2">{line.substring(2)}</li>;
+                        }
+                        
+                        // Render paragraphs (non-empty lines)
+                        if (line.trim()) {
+                          return <p key={i} className="mb-4">{line}</p>;
+                        }
+                        
+                        // Empty lines become breaks
+                        return <br key={i} />;
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-muted-foreground">
+                  Nenhum resumo de mercado disponível para hoje.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+        
         <TabsContent value="twitter">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 gap-6">
+            <div>
               <TwitterFeed tweets={twitterPosts} />
             </div>
           </div>

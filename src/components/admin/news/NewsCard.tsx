@@ -28,6 +28,12 @@ export const NewsCard = ({ newsItem }: NewsCardProps) => {
   // Se a fonte for "manual", mudar para "Farol Investe"
   const displaySource = newsItem.source === "manual" ? "Farol Investe" : newsItem.source;
 
+  // Verificar se o link é válido
+  const hasValidLink = newsItem.source_url && (
+    newsItem.source_url.startsWith('http://') || 
+    newsItem.source_url.startsWith('https://')
+  );
+
   return (
     <Card className="overflow-hidden h-full flex flex-col">
       <div className="h-48 overflow-hidden">
@@ -72,7 +78,7 @@ export const NewsCard = ({ newsItem }: NewsCardProps) => {
           )}
         </div>
       </CardContent>
-      {newsItem.source_url && (
+      {hasValidLink && (
         <CardFooter className="p-4 pt-0">
           <a
             href={newsItem.source_url}

@@ -26,7 +26,8 @@ export const NEWS_CATEGORIES = [
   "Economia",
   "Negócios",
   "Tecnologia",
-  "Internacional"
+  "Internacional",
+  "Resumo de Mercado"
 ];
 
 // Fontes de notícias financeiras
@@ -36,7 +37,6 @@ export const FINANCIAL_NEWS_SOURCES = [
   "Bloomberg",
   "Bloomberg Línea",
   "CNN Money",
-  "Thomson Reuters",
   "Reuters",
   "Forbes",
   "Alpha Vantage",
@@ -91,9 +91,8 @@ export const getDefaultNewsImage = (source?: string): string => {
       case 'Bloomberg':
       case 'Bloomberg Línea':
         return 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
-      case 'Thomson Reuters':
       case 'Reuters':
-        return 'https://s3.ap-southeast-1.amazonaws.com/thomson-media-resources/images/logos/tr-new.svg';
+        return 'https://www.reuters.com/pf/resources/images/reuters/logo-vertical-default.svg?d=139';
       case 'Forbes':
         return 'https://cdn.worldvectorlogo.com/logos/forbes-1.svg';
       case 'Farol Investe':
@@ -164,12 +163,26 @@ export const fetchExternalNews = async (category?: string): Promise<NewsItem[]> 
       content: cleanTextContent(item.content),
       author: cleanTextContent(item.author),
       category: cleanTextContent(item.category),
-      image_url: getValidImageUrl(item.image_url)
+      image_url: getValidImageUrl(item.image_url),
+      // Corrigir links das fontes
+      source_url: fixSourceUrl(item.source, item.source_url)
     })) : [];
   } catch (error) {
     console.error("Erro ao buscar notícias externas:", error);
     return [];
   }
+};
+
+// Função para corrigir URLs de fontes específicas
+const fixSourceUrl = (source?: string, url?: string): string => {
+  if (!url) return '';
+  
+  // Corrigir links específicos de algumas fontes
+  if (source === 'Reuters' && !url.includes('https://')) {
+    return `https://www.reuters.com${url.startsWith('/') ? '' : '/'}${url}`;
+  }
+  
+  return url;
 };
 
 // Buscar todas as notícias (manuais + APIs + RSS)
@@ -205,15 +218,22 @@ export const fetchAllNews = async (
       ...(socialData || [])
     ];
     
+    // Remover duplicações por título
+    const uniqueNews = Array.from(
+      new Map(allNews.map(item => [item.title, item])).values()
+    );
+    
     // Garantir que todo o conteúdo esteja limpo de tags CDATA e HTML
-    let processedNews = allNews.map((item: NewsItem) => ({
+    let processedNews = uniqueNews.map((item: NewsItem) => ({
       ...item,
       title: cleanTextContent(item.title),
       subtitle: cleanTextContent(item.subtitle),
       content: cleanTextContent(item.content),
       author: cleanTextContent(item.author),
       category: cleanTextContent(item.category),
-      image_url: getValidImageUrl(item.image_url)
+      image_url: getValidImageUrl(item.image_url),
+      // Corrigir links para Reuters
+      source_url: fixSourceUrl(item.source, item.source_url)
     }));
     
     // Filtrar por termo de busca se especificado
