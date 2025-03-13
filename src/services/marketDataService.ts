@@ -1,3 +1,4 @@
+
 const SHEET_ID = "1fPLwFZmfhfjc2muHkr58WySldsj_AmsM_TXhykMPj8I"; 
 const API_KEY = "AIzaSyDaqSSdKtpA5_xWUawCUsgwefmkUDf2y3k"; 
 const SHEET_NAME = "V.10";
@@ -71,6 +72,7 @@ export interface MarketDataResponse {
       time: string;
       value: string;
       change: string;
+      parameter?: string;
     };
   };
   marketIndices: {
