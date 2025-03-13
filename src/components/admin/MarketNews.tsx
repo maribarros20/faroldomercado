@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   fetchAllNews, NEWS_CATEGORIES, FINANCIAL_NEWS_SOURCES, NewsItem 
@@ -11,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Search, RefreshCw, Filter, Newspaper, Twitter, BarChart3, Bank
+  Search, RefreshCw, Filter, Newspaper, Twitter, BarChart3, Building, ExternalLink
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { NewsCard } from "./news/NewsCard";
@@ -20,7 +19,6 @@ import { TwitterFeed } from "./twitter/TwitterFeed";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 
-// Categorias financeiras para filtro
 const FINANCE_CATEGORIES = [
   "all",
   "Mercado de Ações",
@@ -46,7 +44,6 @@ const MarketNews = () => {
   const [viewMode, setViewMode] = useState<string>("all");
   const { toast } = useToast();
 
-  // Buscar notícias usando React Query
   const {
     data: news,
     isLoading,
@@ -57,36 +54,29 @@ const MarketNews = () => {
     queryFn: async () => {
       const allNews = await fetchAllNews(selectedCategory || undefined, searchTerm || undefined);
       
-      // Aplicar filtros
       let filteredNews = [...allNews];
       
-      // Filtrar por fonte se selecionada
       if (selectedSource !== "all") {
         filteredNews = filteredNews.filter(item => item.source === selectedSource);
       }
       
-      // Se o filtro de notícias financeiras estiver ativo, filtrar apenas notícias financeiras
       if (showOnlyFinancialNews) {
         filteredNews = filteredNews.filter(newsItem => 
-          // Verificar se a categoria é relacionada a finanças
           FINANCE_CATEGORIES.includes(newsItem.category || "") || 
-          // Ou se a fonte é uma fonte financeira conhecida
           FINANCIAL_NEWS_SOURCES.includes(newsItem.source || "")
         );
       }
       
-      // Ordenar por data de publicação (mais recentes primeiro)
       return filteredNews.sort((a, b) => {
         const dateA = new Date(a.publication_date || a.created_at || "").getTime();
         const dateB = new Date(b.publication_date || b.created_at || "").getTime();
         return dateB - dateA;
       });
     },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    refetchInterval: 10 * 60 * 1000, // Atualizar a cada 10 minutos
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 10 * 60 * 1000,
   });
 
-  // Buscar notícias do Banco Central
   const {
     data: bcbNews,
     isLoading: isBcbLoading,
@@ -103,23 +93,20 @@ const MarketNews = () => {
       
       return data || [];
     },
-    staleTime: 30 * 60 * 1000, // 30 minutos
-    refetchInterval: 60 * 60 * 1000, // Atualizar a cada 1 hora
+    staleTime: 30 * 60 * 1000,
+    refetchInterval: 60 * 60 * 1000,
   });
 
-  // Filtrar tweets
   const twitterPosts = React.useMemo(() => {
     if (!news) return [];
     return news.filter(item => item.source === 'Twitter');
   }, [news]);
 
-  // Filtrar resumos de mercado
   const marketSummaries = React.useMemo(() => {
     if (!news) return [];
     return news.filter(item => item.category === 'Resumo de Mercado');
   }, [news]);
 
-  // Filtrar notícias do Banco Central por categoria
   const getBcbNewsByCategory = (category?: string) => {
     if (!bcbNews) return [];
     
@@ -130,7 +117,6 @@ const MarketNews = () => {
     return bcbNews;
   };
 
-  // Extrair fontes únicas das notícias para o filtro
   const getUniqueSources = () => {
     if (!news) return [];
     
@@ -157,15 +143,11 @@ const MarketNews = () => {
   };
 
   const formatMarkdownContent = (content: string) => {
-    // Dividir conteúdo em linhas
     const lines = content.split('\n');
     
-    // Array para armazenar o JSX resultante
     const formattedContent: JSX.Element[] = [];
     
-    // Processar cada linha
     lines.forEach((line, i) => {
-      // Processar links markdown
       const processLinks = (text: string) => {
         const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
         const parts = [];
@@ -173,12 +155,10 @@ const MarketNews = () => {
         let match;
         
         while ((match = linkRegex.exec(text)) !== null) {
-          // Adicionar texto antes do link
           if (match.index > lastIndex) {
             parts.push(text.substring(lastIndex, match.index));
           }
           
-          // Adicionar o link
           parts.push(
             <a 
               key={`link-${i}-${match.index}`}
@@ -194,7 +174,6 @@ const MarketNews = () => {
           lastIndex = match.index + match[0].length;
         }
         
-        // Adicionar o restante do texto
         if (lastIndex < text.length) {
           parts.push(text.substring(lastIndex));
         }
@@ -202,7 +181,6 @@ const MarketNews = () => {
         return parts.length > 1 ? <>{parts}</> : text;
       };
       
-      // Renderizar cabeçalhos
       if (line.startsWith('# ')) {
         formattedContent.push(
           <h1 key={i} className="text-2xl font-bold mt-6 mb-4">{processLinks(line.substring(2))}</h1>
@@ -215,21 +193,15 @@ const MarketNews = () => {
         formattedContent.push(
           <h3 key={i} className="text-lg font-bold mt-4 mb-2">{processLinks(line.substring(4))}</h3>
         );
-      }
-      // Renderizar itens de lista
-      else if (line.startsWith('- ')) {
+      } else if (line.startsWith('- ')) {
         formattedContent.push(
           <li key={i} className="ml-6 mb-2">{processLinks(line.substring(2))}</li>
         );
-      }
-      // Renderizar parágrafos (linhas não vazias)
-      else if (line.trim()) {
+      } else if (line.trim()) {
         formattedContent.push(
           <p key={i} className="mb-4">{processLinks(line)}</p>
         );
-      }
-      // Linhas vazias se tornam quebras
-      else {
+      } else {
         formattedContent.push(<br key={i} />);
       }
     });
@@ -329,7 +301,6 @@ const MarketNews = () => {
         </Button>
       </div>
 
-      {/* Estatísticas de fontes */}
       {news && news.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {getUniqueSources().map(source => {
@@ -348,7 +319,6 @@ const MarketNews = () => {
         </div>
       )}
 
-      {/* Abas para visualização de notícias e tweets */}
       <Tabs defaultValue="all" onValueChange={setViewMode} value={viewMode}>
         <TabsList className="mb-4">
           <TabsTrigger value="all">Todas as notícias</TabsTrigger>
@@ -361,7 +331,7 @@ const MarketNews = () => {
             Twitter
           </TabsTrigger>
           <TabsTrigger value="bcb" className="flex items-center gap-1">
-            <Bank size={14} />
+            <Building size={14} />
             Banco Central
           </TabsTrigger>
         </TabsList>
@@ -458,7 +428,6 @@ const MarketNews = () => {
             </div>
           ) : bcbNews && bcbNews.length > 0 ? (
             <div className="space-y-6">
-              {/* Abas secundárias para categorias do BCB */}
               <Tabs defaultValue="all">
                 <TabsList>
                   <TabsTrigger value="all">Todos</TabsTrigger>
