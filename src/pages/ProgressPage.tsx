@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import ActivityChart from "@/components/progress/ActivityChart";
 import AchievementsList from "@/components/progress/AchievementsList";
 import LearningStats from "@/components/progress/LearningStats";
+import UserPerformance from "@/components/progress/UserPerformance";
 import { toast } from "@/components/ui/use-toast";
 
 const ProgressPage = () => {
@@ -212,6 +213,15 @@ const ProgressPage = () => {
                   </div>
                 </CardContent>
               </Card>
+            </motion.div>
+
+            {/* User Performance */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <UserPerformance />
             </motion.div>
 
             {/* Stats and charts */}

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Newspaper, BarChart3 } from "lucide-react";
+import { Newspaper, BarChart3, MessageSquare, BookOpen } from "lucide-react";
 
 interface NewsStatsProps {
   newsCount: number;
@@ -38,7 +38,29 @@ export const NewsStats: React.FC<NewsStatsProps> = ({
         </CardContent>
       </Card>
       
-      {/* Espaço para adicionar mais cards de estatísticas conforme necessário */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Artigos Educacionais</p>
+              <h3 className="text-2xl font-bold">{categoryNewsCount['Educacional'] || 0}</h3>
+            </div>
+            <BookOpen className="h-8 w-8 text-amber-500 opacity-80" />
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Comentários</p>
+              <h3 className="text-2xl font-bold">{categoryNewsCount['Comentários'] || 0}</h3>
+            </div>
+            <MessageSquare className="h-8 w-8 text-purple-500 opacity-80" />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

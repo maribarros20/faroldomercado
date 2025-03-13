@@ -18,6 +18,7 @@ import { Spinner } from "@/components/ui/spinner";
 import AdminCommunity from "@/components/admin/AdminCommunity";
 import AdminMentors from "@/components/admin/AdminMentors";
 import AdminUserManager from "@/components/admin/AdminUserManager";
+import AdminPerformance from "@/components/admin/AdminPerformance";
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("subscribers");
@@ -163,6 +164,10 @@ const AdminPage = () => {
             className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Planos</TabsTrigger>
           <TabsTrigger 
+            value="performance"
+            className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
+          >Desempenho</TabsTrigger>
+          <TabsTrigger 
             value="audit-logs"
             className="data-[state=active]:bg-[#0066FF] data-[state=active]:text-white hover:bg-[#e6f0ff] hover:text-[#0066FF]"
           >Logs de Auditoria</TabsTrigger>
@@ -204,6 +209,10 @@ const AdminPage = () => {
             
             <TabsContent value="plans" className="mt-0">
               <AdminPlans />
+            </TabsContent>
+
+            <TabsContent value="performance" className="mt-0">
+              <AdminPerformance />
             </TabsContent>
 
             <TabsContent value="audit-logs" className="mt-0">
