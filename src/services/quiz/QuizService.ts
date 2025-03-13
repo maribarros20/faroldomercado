@@ -89,6 +89,34 @@ export const addQuizQuestion = async (question: Omit<QuizQuestion, 'id' | 'creat
   return data as QuizQuestion;
 };
 
+export const updateQuizQuestion = async (id: string, updates: Partial<QuizQuestion>): Promise<QuizQuestion> => {
+  const { data, error } = await supabase
+    .from('quiz_questions')
+    .update(updates)
+    .eq('id', id)
+    .select('*')
+    .single();
+  
+  if (error) {
+    console.error("Error updating quiz question:", error);
+    throw error;
+  }
+  
+  return data as QuizQuestion;
+};
+
+export const deleteQuizQuestion = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('quiz_questions')
+    .delete()
+    .eq('id', id);
+  
+  if (error) {
+    console.error("Error deleting quiz question:", error);
+    throw error;
+  }
+};
+
 export const getQuizQuestions = async (quizId: string): Promise<QuizQuestion[]> => {
   const { data, error } = await supabase
     .from('quiz_questions')

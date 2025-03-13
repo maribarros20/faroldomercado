@@ -10,8 +10,22 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { Clock, ChevronLeft, ChevronRight, Check, RotateCcw } from "lucide-react";
+import { 
+  Clock, 
+  ChevronLeft, 
+  ChevronRight, 
+  Check, 
+  RotateCcw, 
+  AlertCircle,
+  HelpCircle
+} from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const Quiz: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
@@ -25,6 +39,7 @@ const Quiz: React.FC = () => {
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
   const [startTime] = useState<string>(new Date().toISOString());
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [showHint, setShowHint] = useState(false);
   
   // Timer for quiz
   useEffect(() => {
@@ -76,6 +91,9 @@ const Quiz: React.FC = () => {
       // Add new answer
       setAnswers([...answers, { question_id: questionId, answer }]);
     }
+    
+    // Reset hint state when answer changes
+    setShowHint(false);
   };
   
   const getCurrentAnswer = (questionId: string): string | undefined => {
@@ -85,12 +103,14 @@ const Quiz: React.FC = () => {
   const handleNext = () => {
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
+      setShowHint(false);
     }
   };
   
   const handlePrevious = () => {
     if (currentQuestion > 0) {
       setCurrentQuestion(currentQuestion - 1);
+      setShowHint(false);
     }
   };
   
@@ -134,6 +154,16 @@ const Quiz: React.FC = () => {
   const handleReset = () => {
     setAnswers([]);
     setCurrentQuestion(0);
+    setShowHint(false);
+    
+    toast({
+      title: "Quiz reiniciado",
+      description: "Todas as respostas foram apagadas.",
+    });
+  };
+  
+  const handleToggleHint = () => {
+    setShowHint(!showHint);
   };
   
   const question = questions[currentQuestion];
@@ -169,7 +199,41 @@ const Quiz: React.FC = () => {
         
         <CardContent className="pb-6">
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-4">{question.question}</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium">{question.question}</h3>
+              
+              {question.explanation && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="p-1"
+                        onClick={handleToggleHint}
+                      >
+                        <HelpCircle className="h-4 w-4 text-blue-600" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Mostrar dica</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+            
+            {showHint && question.explanation && (
+              <div className="bg-blue-50 border border-blue-200 p-3 rounded-md mb-4">
+                <div className="flex items-start">
+                  <AlertCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-800 mb-1">Dica</h4>
+                    <p className="text-sm text-blue-700">{question.explanation}</p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {question.question_type === 'multiple_choice' && question.options && (
               <RadioGroup
@@ -178,9 +242,9 @@ const Quiz: React.FC = () => {
                 className="space-y-3"
               >
                 {question.options.map((option, index) => (
-                  <div key={index} className="flex items-center space-x-2">
+                  <div key={index} className="flex items-center space-x-2 bg-white border border-gray-200 rounded-md p-3 hover:bg-gray-50 transition-colors">
                     <RadioGroupItem value={option} id={`option-${index}`} />
-                    <Label htmlFor={`option-${index}`} className="cursor-pointer">{option}</Label>
+                    <Label htmlFor={`option-${index}`} className="cursor-pointer flex-1">{option}</Label>
                   </div>
                 ))}
               </RadioGroup>
@@ -192,13 +256,13 @@ const Quiz: React.FC = () => {
                 onValueChange={(value) => handleAnswerChange(question.id, value)}
                 className="space-y-3"
               >
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 bg-white border border-gray-200 rounded-md p-3 hover:bg-gray-50 transition-colors">
                   <RadioGroupItem value="Verdadeiro" id="true" />
-                  <Label htmlFor="true" className="cursor-pointer">Verdadeiro</Label>
+                  <Label htmlFor="true" className="cursor-pointer flex-1">Verdadeiro</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 bg-white border border-gray-200 rounded-md p-3 hover:bg-gray-50 transition-colors">
                   <RadioGroupItem value="Falso" id="false" />
-                  <Label htmlFor="false" className="cursor-pointer">Falso</Label>
+                  <Label htmlFor="false" className="cursor-pointer flex-1">Falso</Label>
                 </div>
               </RadioGroup>
             )}
@@ -227,7 +291,11 @@ const Quiz: React.FC = () => {
             </Button>
             
             {currentQuestion === questions.length - 1 ? (
-              <Button onClick={handleSubmit}>
+              <Button 
+                onClick={handleSubmit}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={!getCurrentAnswer(question.id)}
+              >
                 <Check className="h-4 w-4 mr-2" />
                 Enviar Respostas
               </Button>
@@ -235,6 +303,7 @@ const Quiz: React.FC = () => {
               <Button 
                 onClick={handleNext}
                 disabled={!getCurrentAnswer(question.id)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 Próxima
                 <ChevronRight className="h-4 w-4 ml-2" />

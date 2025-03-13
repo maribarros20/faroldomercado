@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, PlusCircle } from "lucide-react";
+import { ArrowLeft, PlusCircle, Edit, Trash2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import QuizForm from "@/components/quiz/QuizForm";
 import { useQuiz, useQuizQuestions } from "@/hooks/use-quizzes";
@@ -9,7 +9,8 @@ import { useUserProfile } from "@/hooks/use-user-profile";
 import { toast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { addQuizQuestion } from "@/services/quiz/QuizService";
+import { addQuizQuestion, updateQuizQuestion, deleteQuizQuestion } from "@/services/quiz/QuizService";
+import { QuizQuestion } from "@/types/quiz";
 import { 
   Table, 
   TableBody, 
@@ -18,14 +19,28 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import QuestionForm from "@/components/quiz/QuestionForm";
 
 const QuizEditPage: React.FC = () => {
   const navigate = useNavigate();
   const { quizId } = useParams<{ quizId: string }>();
   const { data: quiz, isLoading: quizLoading, error } = useQuiz(quizId);
-  const { data: questions, isLoading: questionsLoading } = useQuizQuestions(quizId);
+  const { data: questions, isLoading: questionsLoading, refetch: refetchQuestions } = useQuizQuestions(quizId);
   const { userRole, isLoading: profileLoading } = useUserProfile();
+  
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
+  const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profileLoading && userRole !== 'admin') {
@@ -49,29 +64,26 @@ const QuizEditPage: React.FC = () => {
     }
   }, [error, navigate]);
 
-  const handleAddQuestion = async () => {
+  const handleAddQuestion = async (questionData: Omit<QuizQuestion, 'id' | 'created_at' | 'updated_at'>) => {
     if (!quizId) return;
     
     try {
-      const newQuestion = {
-        quiz_id: quizId,
-        question: "Nova pergunta",
-        question_type: "multiple_choice" as "multiple_choice" | "true_false",
-        options: ["Opção 1", "Opção 2", "Opção 3", "Opção 4"],
-        correct_answer: "Opção 1",
-        explanation: "Explicação da resposta correta",
-        points: 1,
-        question_order: questions?.length || 0
-      };
+      // Set question order to be the last one
+      questionData.question_order = questions?.length || 0;
       
-      await addQuizQuestion(newQuestion);
+      await addQuizQuestion({
+        ...questionData,
+        quiz_id: quizId,
+        question_type: questionData.question_type as "multiple_choice" | "true_false"
+      });
+      
       toast({
         title: "Pergunta adicionada",
         description: "Uma nova pergunta foi adicionada ao quiz."
       });
       
-      // Refresh questions data
-      window.location.reload();
+      setIsAddingQuestion(false);
+      refetchQuestions();
     } catch (error) {
       console.error("Error adding question:", error);
       toast({
@@ -80,6 +92,60 @@ const QuizEditPage: React.FC = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditQuestion = async (questionData: Omit<QuizQuestion, 'id' | 'created_at' | 'updated_at'>) => {
+    if (!editingQuestion?.id) return;
+    
+    try {
+      await updateQuizQuestion(editingQuestion.id, {
+        ...questionData,
+        question_type: questionData.question_type as "multiple_choice" | "true_false"
+      });
+      
+      toast({
+        title: "Pergunta atualizada",
+        description: "A pergunta foi atualizada com sucesso."
+      });
+      
+      setEditingQuestion(null);
+      refetchQuestions();
+    } catch (error) {
+      console.error("Error updating question:", error);
+      toast({
+        title: "Erro ao atualizar pergunta",
+        description: "Não foi possível atualizar a pergunta.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteQuestion = async () => {
+    if (!questionToDelete) return;
+    
+    try {
+      await deleteQuizQuestion(questionToDelete);
+      
+      toast({
+        title: "Pergunta excluída",
+        description: "A pergunta foi excluída com sucesso."
+      });
+      
+      setQuestionToDelete(null);
+      refetchQuestions();
+    } catch (error) {
+      console.error("Error deleting question:", error);
+      toast({
+        title: "Erro ao excluir pergunta",
+        description: "Não foi possível excluir a pergunta.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const cancelQuestionEditing = () => {
+    setIsAddingQuestion(false);
+    setEditingQuestion(null);
   };
 
   if (profileLoading || quizLoading) {
@@ -117,71 +183,132 @@ const QuizEditPage: React.FC = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Perguntas</CardTitle>
-              <Button 
-                onClick={handleAddQuestion}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Adicionar Pergunta
-              </Button>
+              {!isAddingQuestion && !editingQuestion && (
+                <Button 
+                  onClick={() => setIsAddingQuestion(true)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Adicionar Pergunta
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
-              {questionsLoading ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
+              {isAddingQuestion && (
+                <div className="mb-8">
+                  <QuestionForm 
+                    quizId={quizId!} 
+                    onSave={handleAddQuestion}
+                    onCancel={cancelQuestionEditing}
+                  />
                 </div>
-              ) : questions && questions.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">#</TableHead>
-                      <TableHead>Pergunta</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead className="w-24 text-right">Pontos</TableHead>
-                      <TableHead className="w-24 text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {questions.map((question, idx) => (
-                      <TableRow key={question.id}>
-                        <TableCell>{idx + 1}</TableCell>
-                        <TableCell>{question.question}</TableCell>
-                        <TableCell>
-                          {question.question_type === 'multiple_choice' 
-                            ? 'Múltipla escolha' 
-                            : 'Verdadeiro/Falso'}
-                        </TableCell>
-                        <TableCell className="text-right">{question.points}</TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => navigate(`/quizzes/${quizId}/questions/${question.id}/edit`)}
-                          >
-                            Editar
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-500 mb-4">Nenhuma pergunta cadastrada</p>
-                  <Button 
-                    onClick={handleAddQuestion}
-                    variant="outline"
-                  >
-                    Adicionar primeira pergunta
-                  </Button>
+              )}
+              
+              {editingQuestion && (
+                <div className="mb-8">
+                  <QuestionForm 
+                    quizId={quizId!} 
+                    question={editingQuestion}
+                    onSave={handleEditQuestion}
+                    onCancel={cancelQuestionEditing}
+                  />
                 </div>
+              )}
+              
+              {!isAddingQuestion && !editingQuestion && (
+                <>
+                  {questionsLoading ? (
+                    <div className="space-y-2">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-12 w-full" />
+                      ))}
+                    </div>
+                  ) : questions && questions.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12">#</TableHead>
+                          <TableHead>Pergunta</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead className="w-24 text-right">Pontos</TableHead>
+                          <TableHead className="w-32 text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {questions.map((question, idx) => (
+                          <TableRow key={question.id}>
+                            <TableCell>{idx + 1}</TableCell>
+                            <TableCell>
+                              <div className="font-medium truncate max-w-[300px]">
+                                {question.question}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {question.question_type === 'multiple_choice' 
+                                ? 'Múltipla escolha' 
+                                : 'Verdadeiro/Falso'}
+                            </TableCell>
+                            <TableCell className="text-right">{question.points}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setEditingQuestion(question)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="text-red-500 hover:text-red-700"
+                                  onClick={() => setQuestionToDelete(question.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-12">
+                      <p className="text-gray-500 mb-4">Nenhuma pergunta cadastrada</p>
+                      <Button 
+                        onClick={() => setIsAddingQuestion(true)}
+                        variant="outline"
+                      >
+                        Adicionar primeira pergunta
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
         </div>
       </div>
+
+      <AlertDialog open={!!questionToDelete} onOpenChange={(open) => !open && setQuestionToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta pergunta? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-600 hover:bg-red-700"
+              onClick={handleDeleteQuestion}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
