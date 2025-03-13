@@ -11,7 +11,7 @@ const TWITTER_ACCOUNTS = [
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-const twitterBearerToken = Deno.env.get('TWITTER_BEARER_TOKEN') || '1900002471734349824maridofarol';
+const twitterBearerToken = Deno.env.get('TWITTER_BEARER_TOKEN') || 'tvffoi0U0JW22Yy7TxVdiujML';
 
 interface NewsItem {
   id?: string;
