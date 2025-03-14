@@ -7,8 +7,7 @@ import {
   fetchInfoMoneyNews,
   fetchValorEconomicoNews,
   fetchCnnMoneyNews,
-  fetchForbesNews,
-  fetchAlphaVantageNews
+  fetchForbesNews
 } from './utils/rss-fetchers.ts';
 
 serve(async (req) => {
@@ -18,44 +17,39 @@ serve(async (req) => {
   }
 
   try {
-    const { category, excludeSources = [] } = await req.json();
-    console.log(`Recebendo request para fetch-news com categoria: ${category}, excluindo fontes: ${excludeSources}`);
-
-    let allData: NewsItem[] = [];
+    const { excludeSources = [] } = await req.json();
+    console.log(`Recebendo request para fetch-news, excluindo fontes: ${excludeSources}`);
 
     // Sempre excluir Reuters
     const sourcesToExclude = [...excludeSources, "Reuters"];
     console.log("Fontes a serem excluídas:", sourcesToExclude);
 
-    // Busca notícias do Alpha Vantage (apenas se a categoria for especificada)
-    if (category) {
-      const alphaVantageNews = await fetchAlphaVantageNews(category);
-      allData = [...allData, ...alphaVantageNews];
-    } else {
-      // Se nenhuma categoria for especificada, busca de todas as fontes RSS
-      const [
-        bloombergNews,
-        infomoneyNews,
-        valorEconomicoNews,
-        cnnMoneyNews,
-        forbesNews
-      ] = await Promise.all([
-        fetchBloombergNews(),
-        fetchInfoMoneyNews(),
-        fetchValorEconomicoNews(),
-        fetchCnnMoneyNews(),
-        fetchForbesNews()
-      ]);
+    // Fetch news from all RSS sources
+    console.log("Iniciando busca de todas as fontes RSS");
+    const [
+      bloombergNews,
+      infomoneyNews,
+      valorEconomicoNews,
+      cnnMoneyNews,
+      forbesNews
+    ] = await Promise.all([
+      fetchBloombergNews(),
+      fetchInfoMoneyNews(),
+      fetchValorEconomicoNews(),
+      fetchCnnMoneyNews(),
+      fetchForbesNews()
+    ]);
 
-      allData = [
-        ...allData,
-        ...bloombergNews,
-        ...infomoneyNews,
-        ...valorEconomicoNews,
-        ...cnnMoneyNews,
-        ...forbesNews
-      ];
-    }
+    // Combine all news sources
+    let allData: NewsItem[] = [
+      ...bloombergNews,
+      ...infomoneyNews,
+      ...valorEconomicoNews,
+      ...cnnMoneyNews,
+      ...forbesNews
+    ];
+
+    console.log(`Total de notícias encontradas: ${allData.length}`);
 
     // Filtrar para remover notícias das fontes excluídas (incluindo Reuters)
     const filteredData = allData.filter(item => {

@@ -6,15 +6,22 @@ import {
   VALOR_ECONOMICO_RSS_FEED, 
   CNN_MONEY_RSS_FEED, 
   FORBES_RSS_FEED,
-  ALPHAVANTAGE_API_KEY,
   NewsItem
 } from "./config.ts";
 
 export async function fetchBloombergNews(): Promise<NewsItem[]> {
   try {
+    console.log("Fetching Bloomberg news from:", BLOOMBERG_RSS_FEED);
     const res = await fetch(BLOOMBERG_RSS_FEED);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
     const xml = await res.text();
     const feed = await parseFeed(xml);
+    
+    console.log(`Successfully fetched ${feed.entries.length} Bloomberg news items`);
 
     return feed.entries.map(entry => ({
       title: entry.title?.value || 'Sem título',
@@ -32,9 +39,17 @@ export async function fetchBloombergNews(): Promise<NewsItem[]> {
 
 export async function fetchInfoMoneyNews(): Promise<NewsItem[]> {
   try {
+    console.log("Fetching InfoMoney news from:", INFOMONEY_RSS_FEED);
     const res = await fetch(INFOMONEY_RSS_FEED);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
     const xml = await res.text();
     const feed = await parseFeed(xml);
+    
+    console.log(`Successfully fetched ${feed.entries.length} InfoMoney news items`);
 
     return feed.entries.map(entry => ({
       title: entry.title?.value || 'Sem título',
@@ -52,9 +67,17 @@ export async function fetchInfoMoneyNews(): Promise<NewsItem[]> {
 
 export async function fetchValorEconomicoNews(): Promise<NewsItem[]> {
   try {
+    console.log("Fetching Valor Econômico news from:", VALOR_ECONOMICO_RSS_FEED);
     const res = await fetch(VALOR_ECONOMICO_RSS_FEED);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
     const xml = await res.text();
     const feed = await parseFeed(xml);
+    
+    console.log(`Successfully fetched ${feed.entries.length} Valor Econômico news items`);
 
     return feed.entries.map(entry => ({
       title: entry.title?.value || 'Sem título',
@@ -72,9 +95,17 @@ export async function fetchValorEconomicoNews(): Promise<NewsItem[]> {
 
 export async function fetchCnnMoneyNews(): Promise<NewsItem[]> {
   try {
+    console.log("Fetching CNN Money news from:", CNN_MONEY_RSS_FEED);
     const res = await fetch(CNN_MONEY_RSS_FEED);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
     const xml = await res.text();
     const feed = await parseFeed(xml);
+    
+    console.log(`Successfully fetched ${feed.entries.length} CNN Money news items`);
 
     return feed.entries.map(entry => ({
       title: entry.title?.value || 'Sem título',
@@ -92,9 +123,17 @@ export async function fetchCnnMoneyNews(): Promise<NewsItem[]> {
 
 export async function fetchForbesNews(): Promise<NewsItem[]> {
   try {
+    console.log("Fetching Forbes news from:", FORBES_RSS_FEED);
     const res = await fetch(FORBES_RSS_FEED);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
     const xml = await res.text();
     const feed = await parseFeed(xml);
+    
+    console.log(`Successfully fetched ${feed.entries.length} Forbes news items`);
 
     return feed.entries.map(entry => ({
       title: entry.title?.value || 'Sem título',
@@ -106,37 +145,6 @@ export async function fetchForbesNews(): Promise<NewsItem[]> {
     }));
   } catch (error) {
     console.error("Erro ao buscar notícias da Forbes:", error);
-    return [];
-  }
-}
-
-export async function fetchAlphaVantageNews(category: string = 'economy'): Promise<NewsItem[]> {
-  if (!ALPHAVANTAGE_API_KEY) {
-    console.warn("Chave da API Alpha Vantage não configurada.");
-    return [];
-  }
-
-  const apiUrl = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&topics=${category}&apikey=${ALPHAVANTAGE_API_KEY}`;
-
-  try {
-    const res = await fetch(apiUrl);
-    const data = await res.json();
-
-    if (data.feed) {
-      return data.feed.map(item => ({
-        title: item.title || 'Sem título',
-        content: item.summary || '',
-        publication_date: item.time_published,
-        source_url: item.url,
-        source: 'Alpha Vantage',
-        image_url: item.banner_image || undefined,
-      }));
-    } else {
-      console.warn("Nenhuma notícia encontrada na Alpha Vantage para a categoria:", category);
-      return [];
-    }
-  } catch (error) {
-    console.error("Erro ao buscar notícias da Alpha Vantage:", error);
     return [];
   }
 }
