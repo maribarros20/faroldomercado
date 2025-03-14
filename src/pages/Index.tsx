@@ -299,7 +299,7 @@ const Index = () => {
                 </Button>
               </div>
               
-              <Button type="submit" disabled={loading} className="w-full bg-trade-blue hover:bg-trade-blue text-white">
+              <Button type="submit" disabled={loading} className="w-full bg-trade-blue hover:bg-trade-blue  hover:scale-105 text-white">
                 Entrar
                 {loading && <span className="ml-2 animate-spin">◌</span>}
               </Button>
