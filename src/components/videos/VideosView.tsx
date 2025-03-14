@@ -1,23 +1,19 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Youtube, Video, Play, Clock, Tag, Bookmark } from "lucide-react";
+import { Play, Clock, Tag, Bookmark } from "lucide-react";
 import { useVideos, VideoSource, Video as VideoType, incrementVideoViews } from "@/services/VideosService";
 import { Spinner } from "@/components/ui/spinner";
 import MaterialsService from "@/services/MaterialsService";
 import { useQuery } from "@tanstack/react-query";
-
-const learningPaths = [
-  { id: "all", name: "Todos" },
-  { id: "iniciantes", name: "Iniciantes" },
-  { id: "estrategias-avancadas", name: "Estratégias Avançadas" },
-  { id: "analise-tecnica", name: "Análise Técnica" },
-  { id: "gerenciamento-risco", name: "Gerenciamento de Risco" }
-];
+import { supabase } from "@/integrations/supabase/client";
+import VideosFilters from "./VideosFilters";
+import VideosStatusTabs from "./VideosStatusTabs";
+import { useVideoProgress } from "@/services/videos/hooks/useVideoProgress";
 
 const VideoCard = ({ video }: { video: VideoType }) => {
   const navigate = useNavigate();
@@ -31,16 +27,33 @@ const VideoCard = ({ video }: { video: VideoType }) => {
   const getSourceIcon = (source: VideoSource) => {
     switch (source) {
       case "youtube":
-        return <Youtube size={16} className="text-red-500" />;
+        return <div className="text-red-500">YT</div>;
       case "vimeo":
-        return <Video size={16} className="text-blue-500" />;
+        return <div className="text-blue-500">VM</div>;
       default:
-        return <Video size={16} className="text-green-500" />;
+        return <div className="text-green-500">VD</div>;
     }
   };
 
   const handleClick = async () => {
     await incrementVideoViews(video.id);
+    
+    // Track view activity
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+      
+      if (userId) {
+        await supabase.from('user_activities').insert({
+          user_id: userId,
+          content_id: video.id,
+          activity_type: 'view_video'
+        });
+      }
+    } catch (error) {
+      console.error('Error recording video view activity:', error);
+    }
+    
     navigate(`/videos/${video.id}`);
   };
 
@@ -116,8 +129,24 @@ const VideoCard = ({ video }: { video: VideoType }) => {
 
 const VideosView = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [activeStatus, setActiveStatus] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedNavigation, setSelectedNavigation] = useState("all");
+  const [selectedFormat, setSelectedFormat] = useState("all");
+  
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Fetch user session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setUserId(data.session.user.id);
+      }
+    };
+    
+    checkSession();
+  }, []);
 
   const { data: categoriesData = [] } = useQuery({
     queryKey: ['materialCategories'],
@@ -125,90 +154,100 @@ const VideosView = () => {
     staleTime: 1000 * 60 * 10 // 10 minutes
   });
 
-  const categoryFilter = activeCategory !== "all" ?
-    categoriesData.find(c => c.id === activeCategory)?.name : undefined;
+  const { data: navigationsData = [] } = useQuery({
+    queryKey: ['knowledgeNavigations'],
+    queryFn: () => MaterialsService.getKnowledgeNavigations(),
+    staleTime: 1000 * 60 * 10 // 10 minutes
+  });
 
-  const { data: videos = [], isLoading, error } = useVideos(categoryFilter);
+  const { data: formatsData = [] } = useQuery({
+    queryKey: ['materialFormats'],
+    queryFn: () => MaterialsService.getMaterialFormats(),
+    staleTime: 1000 * 60 * 10 // 10 minutes
+  });
 
-  const filteredVideos = videos.filter(video => 
+  const categoryFilter = selectedCategory !== "all" ?
+    categoriesData.find(c => c.id === selectedCategory || c.name === selectedCategory)?.name : undefined;
+
+  const { data: videos = [], isLoading: isVideosLoading, error } = useVideos(categoryFilter);
+
+  // Apply text search filter
+  const textFilteredVideos = videos.filter(video => 
     video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    video.description.toLowerCase().includes(searchQuery.toLowerCase())
+    video.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const categories = [
-    { id: "all", name: "Todos" },
-    ...categoriesData.map(cat => ({ id: cat.id, name: cat.name }))
-  ];
+  // Apply navigation filter
+  const navigationFilteredVideos = selectedNavigation === "all" 
+    ? textFilteredVideos 
+    : textFilteredVideos.filter(video => video.navigation_id === selectedNavigation);
+
+  // Apply format filter
+  const formatFilteredVideos = selectedFormat === "all"
+    ? navigationFilteredVideos
+    : navigationFilteredVideos.filter(video => video.format_id === selectedFormat);
+
+  // Use the custom hook for progress filtering
+  const { filteredVideos, isLoading: isProgressLoading } = useVideoProgress(formatFilteredVideos, userId);
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("all");
+    setSelectedNavigation("all");
+    setSelectedFormat("all");
+  };
+
+  const isLoading = isVideosLoading || isProgressLoading;
 
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-2xl font-bold mb-6">Vídeos Educacionais</h1>
       
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <Tabs 
-          value={activeTab} 
-          onValueChange={setActiveTab}
-          className="w-full md:w-auto"
-        >
-          <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full md:w-auto">
-            {learningPaths.map(path => (
-              <TabsTrigger key={path.id} value={path.id} className="text-xs md:text-sm">
-                {path.name}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        
-        <div className="relative w-full md:w-72">
-          <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <Input 
-            className="pl-10 py-2 border-gray-200 w-full" 
-            placeholder="Buscar vídeos..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <div className="mb-6">
+        <VideosFilters
+          categories={categoriesData}
+          navigations={navigationsData}
+          formats={formatsData}
+          selectedCategory={selectedCategory}
+          selectedNavigation={selectedNavigation}
+          selectedFormat={selectedFormat}
+          searchQuery={searchQuery}
+          onCategoryChange={setSelectedCategory}
+          onNavigationChange={setSelectedNavigation}
+          onFormatChange={setSelectedFormat}
+          onSearchChange={setSearchQuery}
+          onClearFilters={handleClearFilters}
+        />
       </div>
       
-      <div className="mb-6 overflow-x-auto">
-        <div className="flex gap-2 min-w-max">
-          {categories.map(category => (
-            <Button
-              key={category.id}
-              variant={activeCategory === category.id ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveCategory(category.id)}
-              className="whitespace-nowrap"
-            >
-              {category.name}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <Spinner size="lg" />
-          <span className="ml-3">Carregando vídeos...</span>
-        </div>
-      ) : error ? (
-        <div className="text-center py-8 text-red-500">
-          <p>Erro ao carregar vídeos: {(error as Error).message}</p>
-        </div>
-      ) : filteredVideos.length === 0 ? (
-        <div className="text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum vídeo encontrado</h3>
-          <p className="text-gray-500">
-            Não foi possível encontrar vídeos com os filtros selecionados.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredVideos.map(video => (
-            <VideoCard key={video.id} video={video} />
-          ))}
-        </div>
-      )}
+      <VideosStatusTabs 
+        activeStatus={activeStatus}
+        onStatusChange={setActiveStatus}
+      >
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <Spinner size="lg" />
+            <span className="ml-3">Carregando vídeos...</span>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8 text-red-500">
+            <p>Erro ao carregar vídeos: {(error as Error).message}</p>
+          </div>
+        ) : filteredVideos(activeStatus).length === 0 ? (
+          <div className="text-center py-12">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum vídeo encontrado</h3>
+            <p className="text-gray-500">
+              Não foi possível encontrar vídeos com os filtros selecionados.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredVideos(activeStatus).map(video => (
+              <VideoCard key={video.id} video={video} />
+            ))}
+          </div>
+        )}
+      </VideosStatusTabs>
     </div>
   );
 };
