@@ -1,6 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from './utils/cors.ts';
-import { NewsItem, NYTIMES_ECONOMY_RSS_FEED } from './utils/config.ts';
+import { 
+  NewsItem, 
+  NYTIMES_ECONOMY_RSS_FEED,
+  decodeHtmlEntities,
+  extractImage,
+  getDefaultSourceImage
+} from './utils/config.ts';
 import { 
   fetchBloombergMarketsNews,
   fetchBloombergEconomicsNews,
@@ -18,7 +24,12 @@ async function fetchNYTimesEconomyNews(): Promise<NewsItem[]> {
   console.log("Fetching NY Times Economy news from:", NYTIMES_ECONOMY_RSS_FEED);
   
   try {
-    const response = await fetch(NYTIMES_ECONOMY_RSS_FEED);
+    const response = await fetch(NYTIMES_ECONOMY_RSS_FEED, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; FarolInveste/1.0; +http://farolinveste.com)'
+      },
+      timeout: 10000 // 10 seconds timeout
+    });
     
     if (!response.ok) {
       console.error(`Failed to fetch NY Times Economy news: ${response.status} ${response.statusText}`);
@@ -30,55 +41,84 @@ async function fetchNYTimesEconomyNews(): Promise<NewsItem[]> {
     const xmlDoc = parser.parseFromString(xml, "text/xml");
     const items = xmlDoc.querySelectorAll("item");
     
+    console.log(`Found ${items.length} items in NY Times RSS feed`);
+    
     const result: NewsItem[] = [];
     
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       
-      // Extract basic info
-      const title = item.querySelector("title")?.textContent || "";
-      const link = item.querySelector("link")?.textContent || "";
-      const description = item.querySelector("description")?.textContent || "";
-      const pubDate = item.querySelector("pubDate")?.textContent || "";
-      const creator = item.querySelector("dc\\:creator")?.textContent || "New York Times";
-      
-      // Extract media/image
-      let image_url = "";
-      const mediaContent = item.querySelector("media\\:content");
-      if (mediaContent) {
-        image_url = mediaContent.getAttribute("url") || "";
-      }
-      
-      // If no media content is found, try to find an image in the description
-      if (!image_url) {
-        const imgMatch = description.match(/<img[^>]+src="([^">]+)"/);
-        if (imgMatch && imgMatch.length > 1) {
-          image_url = imgMatch[1];
+      try {
+        // Extract basic info
+        const title = decodeHtmlEntities(item.querySelector("title")?.textContent || "");
+        const link = item.querySelector("link")?.textContent || "";
+        const description = item.querySelector("description")?.textContent || "";
+        const pubDate = item.querySelector("pubDate")?.textContent || "";
+        const creator = item.querySelector("dc\\:creator")?.textContent || "New York Times";
+        
+        // Extract media/image with multiple methods
+        let image_url = "";
+        
+        // Try media namespace tags first
+        const mediaContent = item.querySelector("media\\:content");
+        if (mediaContent) {
+          image_url = mediaContent.getAttribute("url") || "";
         }
+        
+        // Try media:thumbnail
+        if (!image_url) {
+          const mediaThumbnail = item.querySelector("media\\:thumbnail");
+          if (mediaThumbnail) {
+            image_url = mediaThumbnail.getAttribute("url") || "";
+          }
+        }
+        
+        // Try enclosure tag
+        if (!image_url) {
+          const enclosure = item.querySelector("enclosure");
+          if (enclosure && enclosure.getAttribute("type")?.startsWith("image/")) {
+            image_url = enclosure.getAttribute("url") || "";
+          }
+        }
+        
+        // If no media content is found, try to find an image in the description
+        if (!image_url) {
+          image_url = extractImage(description, "New York Times") || "";
+        }
+        
+        // Use NYT logo as fallback if no image is found
+        if (!image_url) {
+          image_url = getDefaultSourceImage("New York Times");
+        }
+        
+        // Validate image URL
+        try {
+          if (image_url) new URL(image_url);
+        } catch (e) {
+          console.warn(`Invalid image URL for NYTimes article "${title}": ${image_url}`);
+          image_url = getDefaultSourceImage("New York Times");
+        }
+        
+        // Get content and clean it
+        let content = description;
+        // Remove HTML tags but keep the text content
+        content = decodeHtmlEntities(content.replace(/<[^>]*>/g, ' ').trim());
+        // Clean up extra spaces
+        content = content.replace(/\s+/g, ' ');
+        
+        result.push({
+          title,
+          content,
+          publication_date: pubDate,
+          author: creator,
+          category: "Economia",
+          image_url,
+          source: "New York Times",
+          source_url: link
+        });
+      } catch (itemError) {
+        console.error(`Error processing NY Times news item: ${itemError.message}`);
       }
-      
-      // Use NYT logo as fallback if no image is found
-      if (!image_url) {
-        image_url = "https://static01.nyt.com/images/2022/09/12/NYT-METS-1000x1000-1678734279986/NYT-METS-1000x1000-1678734279986-mobileMasterAt3x.jpg";
-      }
-      
-      // Get content and clean it
-      let content = description;
-      // Remove HTML tags but keep the text content
-      content = content.replace(/<[^>]*>/g, ' ').trim();
-      // Clean up extra spaces
-      content = content.replace(/\s+/g, ' ');
-      
-      result.push({
-        title,
-        content,
-        publication_date: pubDate,
-        author: creator,
-        category: "Economia",
-        image_url,
-        source: "New York Times",
-        source_url: link
-      });
     }
     
     console.log(`Successfully fetched ${result.length} articles from NY Times Economy`);
@@ -201,51 +241,15 @@ serve(async (req) => {
       return true;
     });
 
-    // Fix HTML entities in UOL news and other sources
+    // Fix HTML entities in all news items
     allData = allData.map(item => {
-      if (item.title) {
-        // Decode HTML entities
-        const decodedTitle = item.title
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .replace(/&nbsp;/g, ' ')
-          .replace(/&#243;/g, 'ó')
-          .replace(/&#231;/g, 'ç')
-          .replace(/&#227;/g, 'ã')
-          .replace(/&#237;/g, 'í')
-          .replace(/&#224;/g, 'à')
-          .replace(/&#233;/g, 'é')
-          .replace(/&#250;/g, 'ú')
-          .replace(/&#234;/g, 'ê');
-        
-        item.title = decodedTitle;
-      }
-      
-      if (item.content) {
-        // Decode HTML entities in content
-        const decodedContent = item.content
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .replace(/&nbsp;/g, ' ')
-          .replace(/&#243;/g, 'ó')
-          .replace(/&#231;/g, 'ç')
-          .replace(/&#227;/g, 'ã')
-          .replace(/&#237;/g, 'í')
-          .replace(/&#224;/g, 'à')
-          .replace(/&#233;/g, 'é')
-          .replace(/&#250;/g, 'ú')
-          .replace(/&#234;/g, 'ê');
-        
-        item.content = decodedContent;
-      }
-      
-      return item;
+      return {
+        ...item,
+        title: decodeHtmlEntities(item.title || ''),
+        subtitle: item.subtitle ? decodeHtmlEntities(item.subtitle) : undefined,
+        content: decodeHtmlEntities(item.content || ''),
+        author: item.author ? decodeHtmlEntities(item.author) : undefined
+      };
     });
 
     // Filter news to only include current day and previous day
@@ -289,58 +293,43 @@ serve(async (req) => {
     
     console.log(`Total de notícias após filtro de data: ${allData.length}`);
 
-    // Ensure all items have image_url
+    // Ensure all items have valid image_url and fix any broken URLs
     allData = allData.map(item => {
-      if (!item.image_url) {
-        // Select appropriate default image based on source
-        switch (item.source) {
-          case 'Bloomberg Markets':
-          case 'Bloomberg Economics':
-          case 'Bloomberg':
-            item.image_url = 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
-            break;
-          case 'CNN Money':
-            item.image_url = 'https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png';
-            break;
-          case 'Bloomberg Línea':
-            item.image_url = 'https://www.bloomberglinea.com/resizer/hYQJgW06pnxUVAc_iEPKWBw-6tM=/1440x0/filters:format(jpg):quality(70)/cloudfront-us-east-1.images.arcpublishing.com/bloomberglinea/UOQI5QZ3SNGLTBV7RFAMLSB5YM.jpg';
-            break;
-          case 'Valor Econômico':
-            item.image_url = 'https://www.valor.com.br/sites/all/themes/valor_2016/logo.png';
-            break;
-          case 'BBC Economia':
-          case 'BBC':
-            item.image_url = 'https://ichef.bbci.co.uk/news/640/cpsprodpb/F3C4/production/_123996607_bbcbrasil.png';
-            break;
-          case 'UOL Economia':
-          case 'UOL':
-            item.image_url = 'https://conteudo.imguol.com.br/c/home/11/2019/10/30/logo-uol-horizontal-1572447337368_1920x1080.jpg';
-            break;
-          case 'Folha de São Paulo':
-            item.image_url = 'https://upload.wikimedia.org/wikipedia/commons/f/f1/Logo_Folha_de_S.Paulo.svg';
-            break;
-          case 'Valor Investing':
-            item.image_url = 'https://valorinveste.globo.com/includes/site_vi_2019/img/logo_valorinveste.svg';
-            break;
-          case 'New York Times':
-          case 'NYTimes':
-            item.image_url = 'https://static01.nyt.com/images/2022/09/12/NYT-METS-1000x1000-1678734279986/NYT-METS-1000x1000-1678734279986-mobileMasterAt3x.jpg';
-            break;
-          default:
-            item.image_url = 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop';
+      // Validate existing image URL
+      let validatedImageUrl = '';
+      
+      if (item.image_url) {
+        try {
+          new URL(item.image_url);
+          validatedImageUrl = item.image_url;
+        } catch (e) {
+          console.warn(`URL de imagem inválida para "${item.title}": ${item.image_url}`);
+          validatedImageUrl = '';
         }
       }
       
-      // Validar a URL da imagem
-      try {
-        new URL(item.image_url);
-      } catch (e) {
-        console.warn(`URL de imagem inválida para "${item.title}": ${item.image_url}`);
-        // Usar imagem de fallback
-        item.image_url = 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop';
+      // If image URL is empty or invalid, try to extract from content
+      if (!validatedImageUrl && item.content) {
+        const extractedImage = extractImage(item.content, item.source);
+        if (extractedImage) {
+          try {
+            new URL(extractedImage);
+            validatedImageUrl = extractedImage;
+          } catch (e) {
+            console.warn(`URL de imagem extraída inválida para "${item.title}": ${extractedImage}`);
+          }
+        }
       }
       
-      return item;
+      // If still no valid URL, use source-specific default
+      if (!validatedImageUrl) {
+        validatedImageUrl = getDefaultSourceImage(item.source);
+      }
+      
+      return {
+        ...item,
+        image_url: validatedImageUrl
+      };
     });
 
     // Filtrar para remover notícias das fontes excluídas (incluindo Reuters)

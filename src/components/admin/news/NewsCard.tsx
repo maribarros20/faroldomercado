@@ -13,6 +13,7 @@ interface NewsCardProps {
 export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [fallbackTriggered, setFallbackTriggered] = useState(false);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
@@ -28,8 +29,16 @@ export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
     }
   };
 
-  // Improved image fallback handling
+  // Improved image fallback handling with progressive loading
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    // Only do fallback once to prevent infinite loops
+    if (fallbackTriggered) {
+      setImageError(true);
+      setImageLoaded(true);
+      return;
+    }
+    
+    setFallbackTriggered(true);
     setImageError(true);
     console.warn(`Failed to load image for news: ${newsItem.title}`);
     
@@ -73,21 +82,47 @@ export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
     }
   };
 
-  // Preload image
+  // Preload image with better error handling
   React.useEffect(() => {
-    if (newsItem.image_url) {
-      const img = new Image();
-      img.src = newsItem.image_url;
-      img.onload = () => setImageLoaded(true);
-      img.onerror = () => {
+    if (!newsItem.image_url) return;
+    
+    const img = new Image();
+    
+    img.onload = () => {
+      setImageLoaded(true);
+      setImageError(false);
+    };
+    
+    img.onerror = () => {
+      if (!fallbackTriggered) {
+        setFallbackTriggered(true);
         setImageError(true);
-        setImageLoaded(true);
-      };
-    }
-  }, [newsItem.image_url]);
+        
+        // Try with fallback immediately
+        const fallbackImg = new Image();
+        const fallbackSrc = getSourceFallbackImage(newsItem.source);
+        
+        fallbackImg.onload = () => {
+          setImageLoaded(true);
+        };
+        
+        fallbackImg.onerror = () => {
+          setImageLoaded(true); // Show something rather than nothing
+          console.error(`Even fallback image failed for ${newsItem.title}`);
+        };
+        
+        fallbackImg.src = fallbackSrc;
+      } else {
+        setImageLoaded(true); // Show something rather than nothing
+      }
+    };
+    
+    img.src = newsItem.image_url;
+  }, [newsItem.image_url, newsItem.source, newsItem.title, fallbackTriggered]);
 
   const handleImageLoad = () => {
     setImageLoaded(true);
+    setImageError(false);
   };
   
   // Decode HTML entities in content
@@ -101,6 +136,11 @@ export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
   const displaySubtitle = newsItem.subtitle ? decodeHtmlEntities(newsItem.subtitle) : '';
   const displayContent = decodeHtmlEntities(newsItem.content);
 
+  // Determine the image source based on loading state and errors
+  const imageSrc = imageError || !newsItem.image_url 
+    ? getSourceFallbackImage(newsItem.source) 
+    : (newsItem.image_url || getSourceFallbackImage(newsItem.source));
+
   return (
     <Card className="overflow-hidden h-full flex flex-col">
       <div className="relative h-48 bg-muted">
@@ -110,7 +150,7 @@ export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
         )}
         
         <img
-          src={imageError ? getSourceFallbackImage(newsItem.source) : (newsItem.image_url || getSourceFallbackImage(newsItem.source))}
+          src={imageSrc}
           alt={displayTitle}
           className={`object-cover w-full h-full transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
           onError={handleImageError}

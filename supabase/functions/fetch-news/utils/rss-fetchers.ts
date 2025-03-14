@@ -10,99 +10,21 @@ import {
   UOL_ECONOMIA_RSS_FEED,
   FOLHA_MERCADO_RSS_FEED,
   VALOR_INVESTING_RSS_FEED,
-  NewsItem
+  NewsItem,
+  decodeHtmlEntities,
+  extractImage,
+  getDefaultSourceImage
 } from "./config.ts";
 
-// Enhanced function to extract image URLs from content
-function extractImageUrl(content: string, source?: string): string | undefined {
-  if (!content) return undefined;
-  
-  // Source-specific image extraction
-  if (source) {
-    if (source.includes('UOL')) {
-      // UOL specific image extraction
-      const uolRegex = /<img[^>]+src="(https:\/\/conteudo\.imguol\.com\.br\/[^">]+)"/i;
-      const uolMatch = content.match(uolRegex);
-      if (uolMatch && uolMatch[1]) {
-        return uolMatch[1];
-      }
-    } else if (source.includes('Folha')) {
-      // Folha specific image extraction
-      const folhaRegex = /<img[^>]+src="(https:\/\/f\.i\.uol\.com\.br\/[^">]+)"/i;
-      const folhaMatch = content.match(folhaRegex);
-      if (folhaMatch && folhaMatch[1]) {
-        return folhaMatch[1];
-      }
-    } else if (source.includes('BBC')) {
-      // BBC specific image extraction
-      const bbcRegex = /<img[^>]+src="(https:\/\/ichef\.bbci\.co\.uk\/[^">]+)"/i;
-      const bbcMatch = content.match(bbcRegex);
-      if (bbcMatch && bbcMatch[1]) {
-        return bbcMatch[1];
-      }
-    }
-  }
-  
-  // Check for media:content tags with url attribute
-  const mediaContentRegex = /<media:content[^>]+url="([^">]+)"/i;
-  const mediaContentMatch = content.match(mediaContentRegex);
-  if (mediaContentMatch && mediaContentMatch[1]) {
-    return mediaContentMatch[1];
-  }
-  
-  // Check for media:thumbnail tags
-  const mediaThumbnailRegex = /<media:thumbnail[^>]+url="([^">]+)"/i;
-  const mediaThumbnailMatch = content.match(mediaThumbnailRegex);
-  if (mediaThumbnailMatch && mediaThumbnailMatch[1]) {
-    return mediaThumbnailMatch[1];
-  }
-
-  // Check for enclosure tags with url attribute (common in RSS)
-  const enclosureRegex = /<enclosure[^>]+url="([^">]+)"/i;
-  const enclosureMatch = content.match(enclosureRegex);
-  if (enclosureMatch && enclosureMatch[1]) {
-    return enclosureMatch[1];
-  }
-  
-  // Check for og:image meta tags
-  const ogImageRegex = /<meta[^>]+property="og:image"[^>]+content="([^">]+)"/i;
-  const ogImageMatch = content.match(ogImageRegex);
-  if (ogImageMatch && ogImageMatch[1]) {
-    return ogImageMatch[1];
-  }
-  
-  // Check for image tags
-  const imgRegex = /<img[^>]+src="([^">]+)"/i;
-  const imgMatch = content.match(imgRegex);
-  if (imgMatch && imgMatch[1]) {
-    return imgMatch[1];
-  }
-  
-  // Check for image link in content or description
-  const linkImgRegex = /https?:\/\/\S+\.(?:jpg|jpeg|png|gif|webp)/i;
-  const linkMatch = content.match(linkImgRegex);
-  if (linkMatch) {
-    return linkMatch[0];
-  }
-  
-  return undefined;
-}
-
-// Better HTML content cleaning function that preserves more text
+// Enhanced function to clean HTML content
 function cleanHtmlContent(content: string): string {
   if (!content) return '';
   
   // First extract CDATA if present
   const cdataContent = extractFromCDATA(content);
   
-  // Replace common HTML entities
-  let cleanText = cdataContent
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ');
+  // Decode HTML entities
+  let cleanText = decodeHtmlEntities(cdataContent);
   
   // Remove script and style tags with their content
   cleanText = cleanText.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ');
@@ -273,7 +195,7 @@ function createNewsItem(
   
   // If no media, try extracting from content
   if (!imageUrl) {
-    imageUrl = extractImageUrl(rawContent, source) || '';
+    imageUrl = extractImage(rawContent, source) || '';
   }
   
   // If still no image, check for thumbnail
@@ -281,13 +203,41 @@ function createNewsItem(
     imageUrl = entry.thumbnail.url || '';
   }
   
+  // Try to find image in enclosures
+  if (!imageUrl && entry.enclosures && entry.enclosures.length > 0) {
+    for (const enclosure of entry.enclosures) {
+      if (enclosure.type && enclosure.type.startsWith('image/') && enclosure.url) {
+        imageUrl = enclosure.url;
+        break;
+      }
+    }
+  }
+  
+  // If still no valid image URL, use source default
+  if (!imageUrl) {
+    imageUrl = getDefaultSourceImage(source);
+  }
+  
+  // Validate URL
+  try {
+    new URL(imageUrl);
+  } catch (e) {
+    console.warn(`Invalid image URL for article "${title}": ${imageUrl}`);
+    imageUrl = getDefaultSourceImage(source);
+  }
+  
+  // Ensure text fields are properly decoded
+  const cleanTitle = decodeHtmlEntities(title);
+  const cleanSubtitle = decodeHtmlEntities(subtitle);
+  const cleanAuthor = decodeHtmlEntities(author);
+  
   // Create and return the complete news item
   return {
-    title,
-    subtitle,
+    title: cleanTitle,
+    subtitle: cleanSubtitle,
     content,
     publication_date: new Date(pubDate).toISOString(),
-    author,
+    author: cleanAuthor,
     category,
     image_url: imageUrl,
     source,
@@ -347,21 +297,8 @@ export async function fetchCnnMoneyMarketsNews(): Promise<NewsItem[]> {
     console.log(`Successfully fetched ${feed.entries.length} CNN Money Markets news items`);
     
     const newsItems = feed.entries.map(entry => {
-      // CNN Money has a specific format
-      const imageUrl = extractImageUrl(entry.description?.value || '') || 
-                     'https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png';
-      
-      return {
-        title: entry.title?.value || 'Sem título',
-        subtitle: '',
-        content: cleanHtmlContent(entry.description?.value || ''),
-        publication_date: new Date(entry.published || new Date()).toISOString(),
-        author: entry.author?.name || 'CNN Money',
-        category: 'Mercado de Ações',
-        image_url: imageUrl,
-        source: 'CNN Money',
-        source_url: entry.links?.[0]?.href || '',
-      };
+      // CNN Money has a specific format, handled by our generic createNewsItem
+      return createNewsItem('CNN Money', entry, 'Mercado de Ações');
     });
     
     // Filter for freshness - only current day and one day prior
@@ -382,21 +319,7 @@ export async function fetchCnnMoneyEconomyNews(): Promise<NewsItem[]> {
     console.log(`Successfully fetched ${feed.entries.length} CNN Money Economy news items`);
     
     const newsItems = feed.entries.map(entry => {
-      // CNN Money has a specific format
-      const imageUrl = extractImageUrl(entry.description?.value || '') || 
-                     'https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png';
-      
-      return {
-        title: entry.title?.value || 'Sem título',
-        subtitle: '',
-        content: cleanHtmlContent(entry.description?.value || ''),
-        publication_date: new Date(entry.published || new Date()).toISOString(),
-        author: entry.author?.name || 'CNN Money',
-        category: 'Economia',
-        image_url: imageUrl,
-        source: 'CNN Money',
-        source_url: entry.links?.[0]?.href || '',
-      };
+      return createNewsItem('CNN Money', entry, 'Economia');
     });
     
     // Filter for freshness - only current day and one day prior
@@ -417,40 +340,7 @@ export async function fetchBloombergLineaNews(): Promise<NewsItem[]> {
     console.log(`Successfully fetched ${feed.entries.length} Bloomberg Línea news items`);
     
     const newsItems = feed.entries.map(entry => {
-      let imageUrl = '';
-      
-      // Bloomberg Línea often includes images in media:content
-      if (entry.media && entry.media.length > 0) {
-        for (const media of entry.media) {
-          if (media.url) {
-            imageUrl = media.url;
-            break;
-          }
-        }
-      }
-      
-      // If no media found, try to extract from content
-      if (!imageUrl) {
-        const contentStr = entry.content?.value || entry.description?.value || '';
-        imageUrl = extractImageUrl(contentStr) || '';
-      }
-      
-      // If still no image, use default
-      if (!imageUrl) {
-        imageUrl = 'https://www.bloomberglinea.com/resizer/hYQJgW06pnxUVAc_iEPKWBw-6tM=/1440x0/filters:format(jpg):quality(70)/cloudfront-us-east-1.images.arcpublishing.com/bloomberglinea/UOQI5QZ3SNGLTBV7RFAMLSB5YM.jpg';
-      }
-      
-      return {
-        title: entry.title?.value || 'Sem título',
-        subtitle: '',
-        content: cleanHtmlContent(entry.content?.value || entry.description?.value || ''),
-        publication_date: new Date(entry.published || new Date()).toISOString(),
-        author: entry.author?.name || 'Bloomberg Línea',
-        category: 'Economia',
-        image_url: imageUrl,
-        source: 'Bloomberg Línea',
-        source_url: entry.links?.[0]?.href || '',
-      };
+      return createNewsItem('Bloomberg Línea', entry, 'Economia');
     });
     
     // Filter for freshness - only current day and one day prior
@@ -471,34 +361,7 @@ export async function fetchValorEconomicoNews(): Promise<NewsItem[]> {
     console.log(`Successfully fetched ${feed.entries.length} Valor Econômico news items`);
 
     const newsItems = feed.entries.map(entry => {
-      // Try to find image in content
-      let imageUrl = '';
-      
-      if (entry.media && entry.media.length > 0) {
-        imageUrl = entry.media[0].url || '';
-      }
-      
-      if (!imageUrl) {
-        const contentStr = entry.content?.value || entry.description?.value || '';
-        imageUrl = extractImageUrl(contentStr) || '';
-      }
-      
-      // If no image found, use Valor's logo
-      if (!imageUrl) {
-        imageUrl = 'https://www.valor.com.br/sites/all/themes/valor_2016/logo.png';
-      }
-      
-      return {
-        title: entry.title?.value || 'Sem título',
-        subtitle: '',
-        content: cleanHtmlContent(entry.content?.value || entry.description?.value || ''),
-        publication_date: new Date(entry.published || new Date()).toISOString(),
-        author: entry.author?.name || 'Valor Econômico',
-        category: 'Economia',
-        image_url: imageUrl,
-        source: 'Valor Econômico',
-        source_url: entry.links?.[0]?.href || '',
-      };
+      return createNewsItem('Valor Econômico', entry, 'Economia');
     });
     
     // Filter for freshness - only current day and one day prior
@@ -509,7 +372,7 @@ export async function fetchValorEconomicoNews(): Promise<NewsItem[]> {
   }
 }
 
-// BBC Economia RSS Feed
+// BBC Economia RSS Feed - Fixed to handle their specific format
 export async function fetchBBCEconomiaNews(): Promise<NewsItem[]> {
   try {
     console.log("Fetching BBC Economia news from:", BBC_ECONOMIA_RSS_FEED);
@@ -519,34 +382,8 @@ export async function fetchBBCEconomiaNews(): Promise<NewsItem[]> {
     console.log(`Successfully fetched ${feed.entries.length} BBC Economia news items`);
 
     const newsItems = feed.entries.map(entry => {
-      // Try to find image in content
-      let imageUrl = '';
-      
-      if (entry.media && entry.media.length > 0) {
-        imageUrl = entry.media[0].url || '';
-      }
-      
-      if (!imageUrl) {
-        const contentStr = entry.content?.value || entry.description?.value || '';
-        imageUrl = extractImageUrl(contentStr, 'BBC') || '';
-      }
-      
-      // If no image found, use BBC's default
-      if (!imageUrl) {
-        imageUrl = 'https://ichef.bbci.co.uk/news/640/cpsprodpb/F3C4/production/_123996607_bbcbrasil.png';
-      }
-      
-      return {
-        title: entry.title?.value || 'Sem título',
-        subtitle: '',
-        content: cleanHtmlContent(entry.content?.value || entry.description?.value || ''),
-        publication_date: new Date(entry.published || new Date()).toISOString(),
-        author: entry.author?.name || 'BBC Brasil',
-        category: 'Economia',
-        image_url: imageUrl,
-        source: 'BBC Economia',
-        source_url: entry.links?.[0]?.href || '',
-      };
+      // BBC feeds have specific format, but createNewsItem handles it well
+      return createNewsItem('BBC Economia', entry, 'Economia');
     });
     
     // Filter for freshness - only current day and one day prior
@@ -557,7 +394,7 @@ export async function fetchBBCEconomiaNews(): Promise<NewsItem[]> {
   }
 }
 
-// UOL Economia RSS Feed
+// UOL Economia RSS Feed - With enhanced encoding and image handling
 export async function fetchUOLEconomiaNews(): Promise<NewsItem[]> {
   try {
     console.log("Fetching UOL Economia news from:", UOL_ECONOMIA_RSS_FEED);
@@ -567,34 +404,16 @@ export async function fetchUOLEconomiaNews(): Promise<NewsItem[]> {
     console.log(`Successfully fetched ${feed.entries.length} UOL Economia news items`);
 
     const newsItems = feed.entries.map(entry => {
-      // Try to find image in content
-      let imageUrl = '';
+      const item = createNewsItem('UOL Economia', entry, 'Economia');
       
-      if (entry.media && entry.media.length > 0) {
-        imageUrl = entry.media[0].url || '';
+      // Additional UOL-specific processing for character encoding
+      item.title = decodeHtmlEntities(item.title);
+      item.content = decodeHtmlEntities(item.content);
+      if (item.subtitle) {
+        item.subtitle = decodeHtmlEntities(item.subtitle);
       }
       
-      if (!imageUrl) {
-        const contentStr = entry.content?.value || entry.description?.value || '';
-        imageUrl = extractImageUrl(contentStr, 'UOL') || '';
-      }
-      
-      // If no image found, use UOL's logo
-      if (!imageUrl) {
-        imageUrl = 'https://conteudo.imguol.com.br/c/home/11/2019/10/30/logo-uol-horizontal-1572447337368_1920x1080.jpg';
-      }
-      
-      return {
-        title: entry.title?.value || 'Sem título',
-        subtitle: '',
-        content: cleanHtmlContent(entry.content?.value || entry.description?.value || ''),
-        publication_date: new Date(entry.published || new Date()).toISOString(),
-        author: entry.author?.name || 'UOL Economia',
-        category: 'Economia',
-        image_url: imageUrl,
-        source: 'UOL Economia',
-        source_url: entry.links?.[0]?.href || '',
-      };
+      return item;
     });
     
     // Filter for freshness - only current day and one day prior
@@ -615,34 +434,7 @@ export async function fetchFolhaMercadoNews(): Promise<NewsItem[]> {
     console.log(`Successfully fetched ${feed.entries.length} Folha Mercado news items`);
 
     const newsItems = feed.entries.map(entry => {
-      // Try to find image in content
-      let imageUrl = '';
-      
-      if (entry.media && entry.media.length > 0) {
-        imageUrl = entry.media[0].url || '';
-      }
-      
-      if (!imageUrl) {
-        const contentStr = entry.content?.value || entry.description?.value || '';
-        imageUrl = extractImageUrl(contentStr, 'Folha') || '';
-      }
-      
-      // If no image found, use Folha's logo
-      if (!imageUrl) {
-        imageUrl = 'https://upload.wikimedia.org/wikipedia/commons/f/f1/Logo_Folha_de_S.Paulo.svg';
-      }
-      
-      return {
-        title: entry.title?.value || 'Sem título',
-        subtitle: '',
-        content: cleanHtmlContent(entry.content?.value || entry.description?.value || ''),
-        publication_date: new Date(entry.published || new Date()).toISOString(),
-        author: entry.author?.name || 'Folha de São Paulo',
-        category: 'Mercado',
-        image_url: imageUrl,
-        source: 'Folha de São Paulo',
-        source_url: entry.links?.[0]?.href || '',
-      };
+      return createNewsItem('Folha de São Paulo', entry, 'Mercado');
     });
     
     // Filter for freshness - only current day and one day prior
@@ -663,34 +455,7 @@ export async function fetchValorInvestingNews(): Promise<NewsItem[]> {
     console.log(`Successfully fetched ${feed.entries.length} Valor Investing news items`);
 
     const newsItems = feed.entries.map(entry => {
-      // Try to find image in content
-      let imageUrl = '';
-      
-      if (entry.media && entry.media.length > 0) {
-        imageUrl = entry.media[0].url || '';
-      }
-      
-      if (!imageUrl) {
-        const contentStr = entry.content?.value || entry.description?.value || '';
-        imageUrl = extractImageUrl(contentStr) || '';
-      }
-      
-      // If no image found, use Valor Investing's logo
-      if (!imageUrl) {
-        imageUrl = 'https://valorinveste.globo.com/includes/site_vi_2019/img/logo_valorinveste.svg';
-      }
-      
-      return {
-        title: entry.title?.value || 'Sem título',
-        subtitle: '',
-        content: cleanHtmlContent(entry.content?.value || entry.description?.value || ''),
-        publication_date: new Date(entry.published || new Date()).toISOString(),
-        author: entry.author?.name || 'Valor Investing',
-        category: 'Investimentos',
-        image_url: imageUrl,
-        source: 'Valor Investing',
-        source_url: entry.links?.[0]?.href || '',
-      };
+      return createNewsItem('Valor Investing', entry, 'Investimentos');
     });
     
     // Filter for freshness - only current day and one day prior
@@ -700,4 +465,3 @@ export async function fetchValorInvestingNews(): Promise<NewsItem[]> {
     return [];
   }
 }
-
