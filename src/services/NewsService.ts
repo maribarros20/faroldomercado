@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface NewsItem {
@@ -37,7 +36,6 @@ export const FINANCIAL_NEWS_SOURCES = [
   "Bloomberg",
   "Bloomberg Línea",
   "CNN Money",
-  "Reuters",
   "Forbes",
   "Alpha Vantage",
   "Farol Investe",
@@ -195,7 +193,10 @@ export const fetchAllNews = async (
     
     // Primeiro, buscar notícias da edge function fetch-news
     const { data: newsData, error: newsError } = await supabase.functions.invoke('fetch-news', {
-      body: { category }
+      body: { 
+        category,
+        excludeSources: ["Reuters"] // Add parameter to exclude Reuters
+      }
     });
     
     if (newsError) {
@@ -218,9 +219,12 @@ export const fetchAllNews = async (
       ...(socialData || [])
     ];
     
+    // Filter out Reuters news
+    const filteredNews = allNews.filter(item => item.source !== "Reuters");
+    
     // Remover duplicações por título
     const uniqueNews = Array.from(
-      new Map(allNews.map(item => [item.title, item])).values()
+      new Map(filteredNews.map(item => [item.title, item])).values()
     );
     
     // Garantir que todo o conteúdo esteja limpo de tags CDATA e HTML
@@ -232,7 +236,7 @@ export const fetchAllNews = async (
       author: cleanTextContent(item.author),
       category: cleanTextContent(item.category),
       image_url: getValidImageUrl(item.image_url),
-      // Corrigir links para Reuters
+      // Corrigir links para outras fontes (exceto Reuters)
       source_url: fixSourceUrl(item.source, item.source_url)
     }));
     

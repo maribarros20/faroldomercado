@@ -1,12 +1,15 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
-import { corsHeaders } from '../_shared/cors.ts'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { corsHeaders } from '../_shared/cors.ts';
+import { parseFeed } from "https://deno.land/x/rss@1.0.0/mod.ts";
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const BLOOMBERG_RSS_FEED = "https://www.bloomberg.com/feeds/markets/europe.xml";
+const INFOMONEY_RSS_FEED = "https://www.infomoney.com.br/feed/";
+const VALOR_ECONOMICO_RSS_FEED = "https://valor.globo.com/rss/";
+const CNN_MONEY_RSS_FEED = "http://rss.cnn.com/rss/money_latest.rss";
+const FORBES_RSS_FEED = "https://www.forbes.com/markets/feed/";
+const ALPHAVANTAGE_API_KEY = Deno.env.get("ALPHAVANTAGE_API_KEY");
 
-// Interfaces
 interface NewsItem {
-  id?: string;
   title: string;
   subtitle?: string;
   content: string;
@@ -14,800 +17,207 @@ interface NewsItem {
   author?: string;
   category?: string;
   image_url?: string;
-  source: string;
+  source?: string;
   source_url?: string;
-  created_at?: string;
-  updated_at?: string;
 }
 
-// Function to clean CDATA tags and HTML entities
-function cleanContent(content: string): string {
-  if (!content) return '';
-  
-  // Remove CDATA tags
-  const withoutCDATA = content.replace(/<!\[CDATA\[(.*?)\]\]>/gs, '$1');
-  
-  // Remove HTML tags but keep the content
-  const withoutHTML = withoutCDATA.replace(/<[^>]*>?/gm, '');
-  
-  // Decode HTML entities
-  return withoutHTML
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ');
-}
-
-// Função para extrair imagem do conteúdo HTML
-function extractImageFromContent(content: string): string | null {
-  const imgRegex = /<img[^>]+src="([^">]+)"/i;
-  const match = content.match(imgRegex);
-  return match ? match[1] : null;
-}
-
-// Configuração das fontes de RSS
-const RSS_SOURCES = [
-  {
-    url: 'https://www.infomoney.com.br/feed/',
-    source: 'InfoMoney',
-    defaultCategory: 'Mercado de Ações'
-  },
-  {
-    url: 'https://valor.globo.com/rss/valor',
-    source: 'Valor Econômico',
-    defaultCategory: 'Economia'
-  },
-  {
-    url: 'https://feeds.bloomberg.com/markets/news.rss',
-    source: 'Bloomberg',
-    defaultCategory: 'Mercado de Ações'
-  },
-  {
-    url: 'https://feeds.bloomberg.com/economics/news.rss',
-    source: 'Bloomberg',
-    defaultCategory: 'Economia'
-  },
-  {
-    url: 'https://ir.thomsonreuters.com/rss/news-releases.xml?items=15',
-    source: 'Thomson Reuters',
-    defaultCategory: 'Mercado de Ações'
-  },
-  {
-    url: 'http://rss.cnn.com/rss/money_markets.rss',
-    source: 'CNN Money',
-    defaultCategory: 'Mercado de Ações'
-  },
-  {
-    url: 'https://www.bloomberglinea.com.br/arc/outboundfeeds/sections-feed.xml',
-    source: 'Bloomberg Línea',
-    defaultCategory: 'Mercado de Ações'
-  }
-];
-
-// Função para buscar notícias de uma fonte RSS
-async function fetchRSS(source: { url: string, source: string, defaultCategory: string }): Promise<NewsItem[]> {
+async function fetchBloombergNews(): Promise<NewsItem[]> {
   try {
-    console.log(`Buscando notícias de ${source.source} (${source.url})`);
-    const response = await fetch(source.url);
-    
-    if (!response.ok) {
-      console.error(`Erro ao buscar RSS de ${source.source}: ${response.status}`);
-      return [];
-    }
-    
-    const xml = await response.text();
-    
-    // Tentativa mais robusta de parsing de XML com tratamento específico por fonte
-    let news: NewsItem[] = [];
-    
-    if (source.source === 'Bloomberg' || source.source === 'Bloomberg Línea' || source.source === 'CNN Money') {
-      // Tratamento específico para fontes que podem ter formatos especiais
-      news = parseBloombegAndCNNRSS(xml, source);
-    } else if (source.source === 'Thomson Reuters') {
-      // Tratamento específico para Thomson Reuters
-      news = parseThomsonReutersRSS(xml, source);
-    } else {
-      // Parsing genérico para as demais fontes
-      news = parseRSS(xml, {
-        source: source.source,
-        defaultCategory: source.defaultCategory
-      });
-    }
-    
-    console.log(`Obtidas ${news.length} notícias de ${source.source}`);
-    return news;
-  } catch (error) {
-    console.error(`Erro ao processar RSS de ${source.source}:`, error);
-    return [];
-  }
-}
+    const res = await fetch(BLOOMBERG_RSS_FEED);
+    const xml = await res.text();
+    const feed = await parseFeed(xml);
 
-// Função para tratar especificadamente feeds da Bloomberg e CNN
-function parseBloombegAndCNNRSS(xml: string, options: { url: string, source: string, defaultCategory: string }): NewsItem[] {
-  try {
-    const items: NewsItem[] = [];
-    const isBloomberg = options.source.includes('Bloomberg');
-    const isCNN = options.source.includes('CNN');
-    
-    // Regex adaptados para capturar formatos específicos
-    const itemRegex = isBloomberg || isCNN 
-      ? /<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/g
-      : /<entry(?:\s[^>]*)?>([\s\S]*?)<\/entry>/g;
-    
-    const titleRegex = /<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/;
-    const linkRegex = isBloomberg || isCNN
-      ? /<link(?:\s[^>]*)?>([\s\S]*?)<\/link>/
-      : /<link(?:\s[^>]*)?href="([^"]+)"/;
-    
-    const descRegex = /<description(?:\s[^>]*)?>([\s\S]*?)<\/description>/;
-    const contentRegex = /<content:encoded(?:\s[^>]*)?>([\s\S]*?)<\/content:encoded>/;
-    const pubDateRegex = /<pubDate(?:\s[^>]*)?>([\s\S]*?)<\/pubDate>/;
-    const dateRegex = /<dc:date(?:\s[^>]*)?>([\s\S]*?)<\/dc:date>/;
-    const updatedRegex = /<updated(?:\s[^>]*)?>([\s\S]*?)<\/updated>/;
-    const authorRegex = /<dc:creator(?:\s[^>]*)?>([\s\S]*?)<\/dc:creator>/;
-    const authorNameRegex = /<author(?:\s[^>]*)?><name(?:\s[^>]*)?>([\s\S]*?)<\/name>/;
-    const categoryRegex = /<category(?:\s[^>]*)?>([\s\S]*?)<\/category>/;
-    const mediaContentRegex = /<media:content(?:\s[^>]*)?url="([^"]+)"/;
-    
-    let match;
-    while ((match = itemRegex.exec(xml)) !== null) {
-      const itemContent = match[1];
-      
-      // Extrair informações com tratamento específico para cada fonte
-      let title = (itemContent.match(titleRegex) || [])[1] || 'Sem título';
-      
-      // Capturar o link correto baseado na fonte
-      let link;
-      if (isBloomberg || isCNN) {
-        link = (itemContent.match(linkRegex) || [])[1] || '';
-      } else {
-        const linkMatch = itemContent.match(linkRegex);
-        link = linkMatch && linkMatch[1] ? linkMatch[1] : '';
-      }
-      
-      // Capturar descrição ou conteúdo
-      let description = (itemContent.match(descRegex) || [])[1] || '';
-      let content = (itemContent.match(contentRegex) || [])[1] || description;
-      
-      // Capturar data de publicação com múltiplas tentativas
-      let pubDateStr = '';
-      if (itemContent.match(pubDateRegex)) {
-        pubDateStr = (itemContent.match(pubDateRegex) || [])[1] || '';
-      } else if (itemContent.match(dateRegex)) {
-        pubDateStr = (itemContent.match(dateRegex) || [])[1] || '';
-      } else if (itemContent.match(updatedRegex)) {
-        pubDateStr = (itemContent.match(updatedRegex) || [])[1] || '';
-      }
-      
-      // Capturar autor com múltiplas tentativas
-      let creator = '';
-      if (itemContent.match(authorRegex)) {
-        creator = (itemContent.match(authorRegex) || [])[1] || '';
-      } else if (itemContent.match(authorNameRegex)) {
-        creator = (itemContent.match(authorNameRegex) || [])[1] || '';
-      }
-      creator = creator || options.source;
-      
-      // Capturar categoria
-      let category = (itemContent.match(categoryRegex) || [])[1] || options.defaultCategory;
-      
-      // Tratar data de publicação
-      let pubDate;
-      try {
-        pubDate = pubDateStr ? new Date(pubDateStr).toISOString() : new Date().toISOString();
-      } catch (e) {
-        pubDate = new Date().toISOString();
-      }
-      
-      // Extração de imagem com múltiplas estratégias
-      let imageUrl = null;
-      
-      // Tentar media:content tag
-      const mediaMatch = itemContent.match(mediaContentRegex);
-      if (mediaMatch && mediaMatch[1]) {
-        imageUrl = mediaMatch[1];
-      }
-      
-      // Se ainda não tem imagem, tentar encontrar no conteúdo ou descrição
-      if (!imageUrl) {
-        imageUrl = extractImageFromContent(content) || extractImageFromContent(description);
-      }
-      
-      // Imagem de fallback baseada na fonte
-      if (!imageUrl) {
-        if (isBloomberg) {
-          imageUrl = 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
-        } else if (isCNN) {
-          imageUrl = 'https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png';
-        } else {
-          imageUrl = 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop';
-        }
-      }
-      
-      // Limpar conteúdo de tags CDATA e HTML
-      title = cleanContent(title);
-      link = cleanContent(link);
-      description = cleanContent(description);
-      content = cleanContent(content || description);
-      creator = cleanContent(creator);
-      category = cleanContent(category);
-      
-      // Verificar se é notícia financeira
-      const isFinancialNews = checkIfFinancialMarketNews(title, content, category);
-      
-      if (isFinancialNews) {
-        items.push({
-          title: title,
-          subtitle: description.substring(0, 120) + (description.length > 120 ? '...' : ''),
-          content: content || description,
-          publication_date: pubDate,
-          author: creator,
-          category: category,
-          image_url: imageUrl,
-          source: options.source,
-          source_url: link
-        });
-      }
-    }
-    
-    return items;
-  } catch (error) {
-    console.error('Erro ao parsear RSS específico:', error);
-    return [];
-  }
-}
-
-// Função específica para Thomson Reuters
-function parseThomsonReutersRSS(xml: string, options: { url: string, source: string, defaultCategory: string }): NewsItem[] {
-  try {
-    const items: NewsItem[] = [];
-    const itemRegex = /<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/g;
-    const titleRegex = /<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/;
-    const linkRegex = /<link(?:\s[^>]*)?>([\s\S]*?)<\/link>/;
-    const descRegex = /<description(?:\s[^>]*)?>([\s\S]*?)<\/description>/;
-    const pubDateRegex = /<pubDate(?:\s[^>]*)?>([\s\S]*?)<\/pubDate>/;
-    
-    let match;
-    while ((match = itemRegex.exec(xml)) !== null) {
-      const itemContent = match[1];
-      
-      let title = (itemContent.match(titleRegex) || [])[1] || 'Thomson Reuters News';
-      let link = (itemContent.match(linkRegex) || [])[1] || '';
-      let description = (itemContent.match(descRegex) || [])[1] || '';
-      let pubDateStr = (itemContent.match(pubDateRegex) || [])[1] || '';
-      
-      // Tratar data de publicação
-      let pubDate;
-      try {
-        pubDate = pubDateStr ? new Date(pubDateStr).toISOString() : new Date().toISOString();
-      } catch (e) {
-        pubDate = new Date().toISOString();
-      }
-      
-      // Limpeza de conteúdo
-      title = cleanContent(title);
-      link = cleanContent(link);
-      description = cleanContent(description);
-      
-      // Verificar se é notícia financeira
-      const isFinancialNews = checkIfFinancialMarketNews(title, description, options.defaultCategory);
-      
-      if (isFinancialNews) {
-        items.push({
-          title: title,
-          subtitle: description.substring(0, 120) + (description.length > 120 ? '...' : ''),
-          content: description,
-          publication_date: pubDate,
-          author: 'Thomson Reuters',
-          category: options.defaultCategory,
-          image_url: 'https://s3.ap-southeast-1.amazonaws.com/thomson-media-resources/images/logos/tr-new.svg',
-          source: options.source,
-          source_url: link
-        });
-      }
-    }
-    
-    return items;
-  } catch (error) {
-    console.error('Erro ao parsear RSS Thomson Reuters:', error);
-    return [];
-  }
-}
-
-// Função simplificada para parse de RSS
-function parseRSS(xml: string, options: { source: string, defaultCategory: string }): NewsItem[] {
-  try {
-    const items: NewsItem[] = [];
-    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-    const titleRegex = /<title>([\s\S]*?)<\/title>/;
-    const linkRegex = /<link>([\s\S]*?)<\/link>/;
-    const descriptionRegex = /<description>([\s\S]*?)<\/description>/;
-    const contentRegex = /<content:encoded>([\s\S]*?)<\/content:encoded>/;
-    const pubDateRegex = /<pubDate>([\s\S]*?)<\/pubDate>/;
-    const creatorRegex = /<dc:creator>([\s\S]*?)<\/dc:creator>/;
-    const categoryRegex = /<category>([\s\S]*?)<\/category>/;
-    const mediaContentRegex = /<media:content[^>]*url="([^"]*)"[^>]*>/;
-    const enclosureRegex = /<enclosure[^>]*url="([^"]*)"[^>]*>/;
-    
-    let match;
-    while ((match = itemRegex.exec(xml)) !== null) {
-      const itemContent = match[1];
-      
-      // Extrair informações e limpar CDATA tags
-      let title = (itemContent.match(titleRegex) || [])[1] || 'Sem título';
-      let link = (itemContent.match(linkRegex) || [])[1] || '';
-      let description = (itemContent.match(descriptionRegex) || [])[1] || '';
-      let content = (itemContent.match(contentRegex) || [])[1] || description;
-      const pubDateStr = (itemContent.match(pubDateRegex) || [])[1] || '';
-      let creator = (itemContent.match(creatorRegex) || [])[1] || options.source;
-      let category = (itemContent.match(categoryRegex) || [])[1] || options.defaultCategory;
-      
-      // Tratar data de publicação
-      let pubDate;
-      try {
-        pubDate = pubDateStr ? new Date(pubDateStr).toISOString() : new Date().toISOString();
-      } catch (e) {
-        pubDate = new Date().toISOString();
-      }
-      
-      // Extract image from multiple possible sources
-      let imageUrl = null;
-      
-      // Try media:content tag first
-      const mediaMatch = itemContent.match(mediaContentRegex);
-      if (mediaMatch && mediaMatch[1]) {
-        imageUrl = mediaMatch[1];
-      }
-      
-      // If no media:content, try enclosure tag
-      if (!imageUrl) {
-        const enclosureMatch = itemContent.match(enclosureRegex);
-        if (enclosureMatch && enclosureMatch[1]) {
-          imageUrl = enclosureMatch[1];
-        }
-      }
-      
-      // If still no image, try extracting from content or description
-      if (!imageUrl) {
-        imageUrl = extractImageFromContent(content) || extractImageFromContent(description);
-      }
-      
-      // Fallback image based on source
-      if (!imageUrl) {
-        switch (options.source) {
-          case 'InfoMoney':
-            imageUrl = 'https://www.infomoney.com.br/wp-content/themes/infomoney/assets/img/logo-infomoney.png';
-            break;
-          case 'Valor Econômico':
-            imageUrl = 'https://www.valor.com.br/sites/all/themes/valor_2016/logo.png';
-            break;
-          case 'CNN Money':
-            imageUrl = 'https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png';
-            break;
-          case 'Bloomberg':
-          case 'Bloomberg Línea':
-            imageUrl = 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
-            break;
-          case 'Thomson Reuters':
-            imageUrl = 'https://s3.ap-southeast-1.amazonaws.com/thomson-media-resources/images/logos/tr-new.svg';
-            break;
-          default:
-            imageUrl = 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop';
-        }
-      }
-      
-      // Clean all content from CDATA and HTML tags
-      title = cleanContent(title);
-      link = cleanContent(link);
-      description = cleanContent(description);
-      content = cleanContent(content || description);
-      creator = cleanContent(creator);
-      category = cleanContent(category);
-      
-      // Filter for financial market news
-      const isFinancialNews = checkIfFinancialMarketNews(title, content, category);
-      
-      if (isFinancialNews) {
-        items.push({
-          title: title,
-          subtitle: description.substring(0, 120) + (description.length > 120 ? '...' : ''),
-          content: content || description,
-          publication_date: pubDate,
-          author: creator,
-          category: category,
-          image_url: imageUrl,
-          source: options.source,
-          source_url: link
-        });
-      }
-    }
-    
-    return items;
-  } catch (error) {
-    console.error('Erro ao parsear RSS:', error);
-    return [];
-  }
-}
-
-// Função para verificar se a notícia é relacionada ao mercado financeiro
-function checkIfFinancialMarketNews(title: string, content: string, category: string): boolean {
-  const financialKeywords = [
-    'bolsa', 'ações', 'mercado', 'investimento', 'financeiro', 'finanças', 
-    'ibovespa', 'nasdaq', 'dow jones', 'S&P 500', 'taxa de juros', 'selic', 
-    'dólar', 'euro', 'economia', 'banco central', 'fed', 'petrobras', 'vale', 
-    'itaú', 'bradesco', 'santander', 'nubank', 'bitcoin', 'cripto', 
-    'commodities', 'balanço', 'lucro', 'prejuízo', 'dividendos', 'stock', 'market',
-    'finance', 'financial', 'investment', 'investor', 'trading', 'trader',
-    'wall street', 'treasury', 'bond', 'equity', 'fund', 'etf'
-  ];
-  
-  const lowerTitle = title.toLowerCase();
-  const lowerContent = content.toLowerCase();
-  const lowerCategory = category.toLowerCase();
-  
-  // Categorias financeiras
-  const isFinancialCategory = [
-    'mercado de ações', 'mercado financeiro', 'economia', 'finanças', 
-    'investimentos', 'negócios'
-  ].some(cat => lowerCategory.includes(cat));
-  
-  if (isFinancialCategory) {
-    return true;
-  }
-  
-  // Verifica palavras-chave no título (maior peso)
-  const titleHasKeywords = financialKeywords.some(keyword => 
-    lowerTitle.includes(keyword.toLowerCase())
-  );
-  
-  if (titleHasKeywords) {
-    return true;
-  }
-  
-  // Verifica palavras-chave no conteúdo (menor peso)
-  const contentKeywordCount = financialKeywords.filter(keyword => 
-    lowerContent.includes(keyword.toLowerCase())
-  ).length;
-  
-  // Se tiver pelo menos 2 palavras-chave no conteúdo
-  return contentKeywordCount >= 2;
-}
-
-// Função para buscar notícias da API Alpha Vantage (notícias financeiras)
-async function fetchAlphaVantageNews(): Promise<NewsItem[]> {
-  try {
-    const apiKey = Deno.env.get('ALPHA_VANTAGE_API_KEY');
-    if (!apiKey) {
-      console.error('API Key não configurada para Alpha Vantage');
-      return [];
-    }
-    
-    const response = await fetch(
-      `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=financial_markets&apikey=${apiKey}`
-    );
-    
-    if (!response.ok) {
-      console.error(`Erro na API Alpha Vantage: ${response.status}`);
-      return [];
-    }
-    
-    const data = await response.json();
-    
-    if (!data || !data.feed) {
-      console.error('Formato de resposta inválido da Alpha Vantage');
-      return [];
-    }
-    
-    return data.feed.map((item: any) => ({
-      title: item.title || 'Sem título',
-      subtitle: item.summary,
-      content: item.summary || 'Sem conteúdo disponível',
-      publication_date: item.time_published || new Date().toISOString(),
-      author: item.authors?.[0] || 'Alpha Vantage',
-      category: item.category || 'Mercado de Ações',
-      image_url: item.banner_image || null,
-      source: item.source || 'Alpha Vantage',
-      source_url: item.url,
+    return feed.entries.map(entry => ({
+      title: entry.title?.value || 'Sem título',
+      content: entry.summary?.value || '',
+      publication_date: entry.published,
+      source_url: entry.id,
+      source: 'Bloomberg',
+      image_url: 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png',
     }));
   } catch (error) {
-    console.error('Erro ao buscar notícias da Alpha Vantage:', error);
+    console.error("Erro ao buscar notícias da Bloomberg:", error);
     return [];
   }
 }
 
-// Backup de notícias para exibição quando houver problemas com as APIs externas
-function getBackupNews(): NewsItem[] {
-  const currentDate = new Date().toISOString();
-  return [
-    {
-      title: "Mercados globais reagem à decisão do FED sobre taxas de juros",
-      subtitle: "Reserva Federal mantém taxas inalteradas, mas sinaliza possíveis cortes em 2024",
-      content: "Os mercados financeiros globais reagiram positivamente à decisão do Federal Reserve de manter as taxas de juros inalteradas na reunião desta quarta-feira. O presidente do Fed, Jerome Powell, indicou que o banco central americano pode começar a reduzir as taxas em 2024, dependendo dos dados de inflação e emprego nos próximos meses.",
-      publication_date: currentDate,
-      author: "Bloomberg News",
-      category: "Economia",
-      image_url: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=2070&auto=format&fit=crop",
-      source: "Bloomberg",
-      source_url: "https://www.bloomberg.com/news/articles/2023-12-13/fed-keeps-rates-steady-signals-three-2024-cuts-as-inflation-eases",
-    },
-    {
-      title: "Petrobras anuncia novo plano de investimentos para 2024-2028",
-      subtitle: "Estatal prevê investir US$ 102 bilhões em cinco anos, com foco em exploração e produção",
-      content: "A Petrobras divulgou nesta quinta-feira seu plano estratégico para o período de 2024 a 2028, com investimentos previstos de US$ 102 bilhões. Segundo a companhia, 72% desse valor será destinado à área de exploração e produção, principalmente em projetos do pré-sal. A empresa também prevê aportes significativos em transição energética, com US$ 16 bilhões para iniciativas de descarbonização e energias renováveis.",
-      publication_date: currentDate,
-      author: "Reuters",
-      category: "Negócios",
-      image_url: "https://images.unsplash.com/photo-1531403939386-c08a239fbc68?q=80&w=1970&auto=format&fit=crop",
-      source: "Reuters",
-      source_url: "https://www.reuters.com/business/energy/petrobras-unveils-102-billion-capex-plan-2024-2028-2023-11-23/",
-    },
-    {
-      title: "IPCA de novembro fica abaixo das expectativas e alivia pressão sobre Banco Central",
-      subtitle: "Inflação oficial do país avançou 0,28% no mês, abaixo das projeções de 0,30% do mercado",
-      content: "O IPCA (Índice Nacional de Preços ao Consumidor Amplo) de novembro registrou alta de 0,28%, ficando abaixo das expectativas do mercado, que previam avanço de 0,30%. No acumulado de 12 meses, a inflação está em 4,35%, dentro do teto da meta estabelecida pelo Conselho Monetário Nacional para 2023. O resultado alivia a pressão sobre o Banco Central e fortalece a expectativa de que a taxa Selic seja mantida em 11,25% na última reunião do Copom deste ano.",
-      publication_date: currentDate,
-      author: "Valor Econômico",
-      category: "Economia",
-      image_url: "https://images.unsplash.com/photo-1616803140344-7862904e6f2b?q=80&w=2070&auto=format&fit=crop",
-      source: "Valor Econômico",
-      source_url: "https://valor.globo.com/brasil/noticia/2023/12/12/ipca-de-novembro-fica-em-028percent-abaixo-das-expectativas.ghtml",
-    },
-    {
-      title: "Bitcoin ultrapassa US$ 44 mil e renova máxima do ano",
-      subtitle: "Criptomoeda está em alta com expectativa de aprovação de ETFs à vista nos EUA",
-      content: "O Bitcoin ultrapassou a marca de US$ 44 mil nesta terça-feira, atingindo sua maior cotação em 2023. A criptomoeda acumula valorização de mais de 160% no ano, impulsionada principalmente pela expectativa de que a Securities and Exchange Commission (SEC) dos Estados Unidos aprove em breve os primeiros ETFs (fundos negociados em bolsa) de Bitcoin à vista no país.",
-      publication_date: currentDate,
-      author: "CoinDesk",
-      category: "Criptomoedas",
-      image_url: "https://images.unsplash.com/photo-1625806335347-4f5f7e8d4a8e?q=80&w=2070&auto=format&fit=crop",
-      source: "CoinDesk",
-      source_url: "https://www.coindesk.com/markets/2023/12/05/bitcoin-tops-44k-for-first-time-since-april-2022/",
-    },
-    {
-      title: "Ibovespa encerra em alta e supera os 130 mil pontos",
-      subtitle: "Índice foi impulsionado por ações de bancos e commodities",
-      content: "O Ibovespa, principal índice da bolsa brasileira, fechou em alta de 1,2% nesta quarta-feira, aos 130.842 pontos, maior patamar desde julho. O movimento foi impulsionado pelo bom desempenho das ações de bancos e empresas ligadas a commodities, como Vale e Petrobras. Investidores reagiram positivamente aos sinais do Federal Reserve sobre possíveis cortes de juros no próximo ano e a dados econômicos positivos divulgados no Brasil.",
-      publication_date: currentDate,
-      author: "InfoMoney",
-      category: "Mercado de Ações",
-      image_url: "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop",
-      source: "InfoMoney",
-      source_url: "https://www.infomoney.com.br/mercados/ibovespa-hoje-bolsa-sobe-mais-de-1-e-fecha-acima-dos-130-mil-pontos/",
-    }
-  ];
-}
-
-// Função principal para buscar notícias de todas as fontes
-async function fetchAllExternalNews(category?: string): Promise<NewsItem[]> {
+async function fetchInfoMoneyNews(): Promise<NewsItem[]> {
   try {
-    console.log("Iniciando busca de notícias externas...");
-    
-    // Buscar notícias de todas as fontes RSS em paralelo
-    const rssPromises = RSS_SOURCES.map(source => fetchRSS(source));
-    
-    // Adicionar Alpha Vantage se configurado
-    const allPromises = [...rssPromises, fetchAlphaVantageNews()];
-    
-    // Aguardar todas as requisições completarem
-    const results = await Promise.all(allPromises);
-    
-    // Combinar todas as notícias
-    let allNews = results.flat();
-    
-    console.log(`Total de notícias obtidas: ${allNews.length}`);
-    
-    // Se não houver notícias (por problemas nas APIs), usar backup
-    if (allNews.length === 0) {
-      console.log('Usando notícias de backup devido a falhas nas APIs');
-      allNews = getBackupNews();
-    }
-    
-    // Filtrar por categoria, se especificada
-    if (category && category !== 'all') {
-      allNews = allNews.filter(news => 
-        news.category?.toLowerCase().includes(category.toLowerCase())
-      );
-    }
-    
-    // Ordenar por data (mais recentes primeiro)
-    allNews.sort((a, b) => {
-      const dateA = new Date(a.publication_date || '').getTime();
-      const dateB = new Date(b.publication_date || '').getTime();
-      return dateB - dateA;
-    });
-    
-    // Remover possíveis duplicatas (baseado no título)
-    const uniqueNews = Array.from(
-      allNews.reduce((map, item) => {
-        if (!map.has(item.title)) {
-          map.set(item.title, item);
-        }
-        return map;
-      }, new Map()).values()
-    );
-    
-    console.log(`Total de notícias após filtragem: ${uniqueNews.length}`);
-    return uniqueNews;
+    const res = await fetch(INFOMONEY_RSS_FEED);
+    const xml = await res.text();
+    const feed = await parseFeed(xml);
+
+    return feed.entries.map(entry => ({
+      title: entry.title?.value || 'Sem título',
+      content: entry.summary?.value || '',
+      publication_date: entry.published,
+      source_url: entry.id,
+      source: 'InfoMoney',
+      image_url: 'https://www.infomoney.com.br/wp-content/themes/infomoney/assets/img/logo-infomoney.png',
+    }));
   } catch (error) {
-    console.error('Erro ao buscar notícias externas:', error);
-    // Em caso de erro, retornar backup
-    return getBackupNews();
+    console.error("Erro ao buscar notícias da InfoMoney:", error);
+    return [];
   }
 }
 
-// Buscar todas as notícias (manuais + APIs + RSS + Twitter + Reuters + Forbes)
-export const fetchAllNews = async (
-  category?: string, 
-  search?: string
-): Promise<NewsItem[]> => {
+async function fetchValorEconomicoNews(): Promise<NewsItem[]> {
   try {
-    // Chamar a edge function que lida com todas as fontes de notícias tradicionais
-    const { data, error } = await supabase.functions.invoke('fetch-news', {
-      body: { category }
-    });
-    
-    if (error) {
-      console.error("Erro ao buscar todas as notícias:", error);
+    const res = await fetch(VALOR_ECONOMICO_RSS_FEED);
+    const xml = await res.text();
+    const feed = await parseFeed(xml);
+
+    return feed.entries.map(entry => ({
+      title: entry.title?.value || 'Sem título',
+      content: entry.summary?.value || '',
+      publication_date: entry.published,
+      source_url: entry.id,
+      source: 'Valor Econômico',
+      image_url: 'https://www.valor.com.br/sites/all/themes/valor_2016/logo.png',
+    }));
+  } catch (error) {
+    console.error("Erro ao buscar notícias do Valor Econômico:", error);
+    return [];
+  }
+}
+
+async function fetchCnnMoneyNews(): Promise<NewsItem[]> {
+  try {
+    const res = await fetch(CNN_MONEY_RSS_FEED);
+    const xml = await res.text();
+    const feed = await parseFeed(xml);
+
+    return feed.entries.map(entry => ({
+      title: entry.title?.value || 'Sem título',
+      content: entry.summary?.value || '',
+      publication_date: entry.published,
+      source_url: entry.id,
+      source: 'CNN Money',
+      image_url: 'https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png',
+    }));
+  } catch (error) {
+    console.error("Erro ao buscar notícias da CNN Money:", error);
+    return [];
+  }
+}
+
+async function fetchForbesNews(): Promise<NewsItem[]> {
+  try {
+    const res = await fetch(FORBES_RSS_FEED);
+    const xml = await res.text();
+    const feed = await parseFeed(xml);
+
+    return feed.entries.map(entry => ({
+      title: entry.title?.value || 'Sem título',
+      content: entry.summary?.value || '',
+      publication_date: entry.published,
+      source_url: entry.id,
+      source: 'Forbes',
+      image_url: 'https://cdn.worldvectorlogo.com/logos/forbes-1.svg',
+    }));
+  } catch (error) {
+    console.error("Erro ao buscar notícias da Forbes:", error);
+    return [];
+  }
+}
+
+async function fetchAlphaVantageNews(category: string = 'economy'): Promise<NewsItem[]> {
+  if (!ALPHAVANTAGE_API_KEY) {
+    console.warn("Chave da API Alpha Vantage não configurada.");
+    return [];
+  }
+
+  const apiUrl = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&topics=${category}&apikey=${ALPHAVANTAGE_API_KEY}`;
+
+  try {
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+
+    if (data.feed) {
+      return data.feed.map(item => ({
+        title: item.title || 'Sem título',
+        content: item.summary || '',
+        publication_date: item.time_published,
+        source_url: item.url,
+        source: 'Alpha Vantage',
+        image_url: item.banner_image || undefined,
+      }));
+    } else {
+      console.warn("Nenhuma notícia encontrada na Alpha Vantage para a categoria:", category);
       return [];
     }
-    
-    // Chamar a nova edge function para redes sociais e fontes adicionais
-    const { data: socialData, error: socialError } = await supabase.functions.invoke('fetch-twitter-news');
-    
-    if (socialError) {
-      console.error("Erro ao buscar dados de redes sociais:", socialError);
-      // Continuar com as notícias tradicionais mesmo se falhar
-    }
-    
-    // Garantir que todo o conteúdo esteja limpo de tags CDATA e HTML
-    let allNews = data ? data.map((item: NewsItem) => ({
-      ...item,
-      title: cleanContent(item.title),
-      subtitle: cleanContent(item.subtitle),
-      content: cleanContent(item.content),
-      author: cleanContent(item.author),
-      category: cleanContent(item.category),
-      image_url: getValidImageUrl(item.image_url),
-      source: item.source === "manual" ? "Farol Investe" : item.source
-    })) : [];
-    
-    // Adicionar dados de redes sociais e fontes adicionais, se disponíveis
-    if (socialData) {
-      const socialNews = socialData.map((item: NewsItem) => ({
-        ...item,
-        title: cleanContent(item.title),
-        subtitle: cleanContent(item.subtitle),
-        content: cleanContent(item.content),
-        author: cleanContent(item.author),
-        category: cleanContent(item.category),
-        image_url: getValidImageUrl(item.image_url)
-      }));
-      
-      allNews = [...allNews, ...socialNews];
-    }
-    
-    // Filtrar por termo de busca se especificado
-    if (search) {
-      const searchLower = search.toLowerCase();
-      allNews = allNews.filter(news => 
-        news.title.toLowerCase().includes(searchLower) || 
-        news.content.toLowerCase().includes(searchLower) || 
-        news.subtitle?.toLowerCase().includes(searchLower) || 
-        news.author?.toLowerCase().includes(searchLower) ||
-        news.source?.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    // Ordenar por data (mais recentes primeiro)
-    allNews.sort((a, b) => {
-      const dateA = new Date(a.publication_date || a.created_at || "").getTime();
-      const dateB = new Date(b.publication_date || b.created_at || "").getTime();
-      return dateB - dateA;
-    });
-    
-    return allNews;
   } catch (error) {
-    console.error("Erro ao buscar todas as notícias:", error);
+    console.error("Erro ao buscar notícias da Alpha Vantage:", error);
     return [];
   }
-};
+}
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Apenas permitir GET e POST requests
-    if (req.method !== 'GET' && req.method !== 'POST') {
-      throw new Error(`Método ${req.method} não permitido`);
+    const { category, excludeSources = [] } = await req.json();
+    console.log(`Recebendo request para fetch-news com categoria: ${category}, excluindo fontes: ${excludeSources}`);
+
+    let allData: NewsItem[] = [];
+
+    // Busca notícias do Alpha Vantage (apenas se a categoria for especificada)
+    if (category) {
+      const alphaVantageNews = await fetchAlphaVantageNews(category);
+      allData = [...allData, ...alphaVantageNews];
+    } else {
+      // Se nenhuma categoria for especificada, busca de todas as fontes RSS
+      const [
+        bloombergNews,
+        infomoneyNews,
+        valorEconomicoNews,
+        cnnMoneyNews,
+        forbesNews
+      ] = await Promise.all([
+        fetchBloombergNews(),
+        fetchInfoMoneyNews(),
+        fetchValorEconomicoNews(),
+        fetchCnnMoneyNews(),
+        fetchForbesNews()
+      ]);
+
+      allData = [
+        ...allData,
+        ...bloombergNews,
+        ...infomoneyNews,
+        ...valorEconomicoNews,
+        ...cnnMoneyNews,
+        ...forbesNews
+      ];
     }
 
-    // Criar cliente Supabase para ler os dados
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Obter categoria do body se for POST
-    let category: string | undefined;
-    if (req.method === 'POST') {
-      const body = await req.json();
-      category = body.category;
-    }
-
-    // Buscar notícias externas
-    const externalNews = await fetchAllExternalNews(category);
-
-    // Buscar notícias manuais do banco de dados
-    const { data: manualNews, error } = await supabase
-      .from('market_news')
-      .select('*')
-      .order('publication_date', { ascending: false });
-
-    if (error) {
-      throw error;
-    }
-
-    // Formatar notícias manuais para ter o mesmo formato das externas
-    const formattedManualNews = manualNews ? manualNews.map(item => ({
-      ...item,
-      source: 'Farol Investe'
-    })) : [];
-
-    // Buscar notícias sociais e fontes adicionais
-    let socialNews = [];
-    try {
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/fetch-twitter-news`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      if (response.ok) {
-        socialNews = await response.json();
-      }
-    } catch (socialError) {
-      console.error('Erro ao buscar notícias sociais:', socialError);
-      // Continuar mesmo se falhar
-    }
-
-    // Combinar e ordenar por data de publicação (mais recentes primeiro)
-    const allNews = [...formattedManualNews, ...externalNews, ...socialNews].sort((a, b) => {
-      return new Date(b.publication_date || b.created_at || '').getTime() - 
-             new Date(a.publication_date || a.created_at || '').getTime();
+    // Add a filter to remove news from excluded sources
+    const filteredData = allData.filter(item => {
+      if (excludeSources.length === 0) return true;
+      return !excludeSources.includes(item.source);
     });
 
-    // Limitar a 100 resultados para não sobrecarregar
-    const limitedNews = allNews.slice(0, 100);
-
-    // Retornar todas as notícias
+    // Get timestamp for the response
+    const timestamp = new Date().toISOString();
+    
+    // Return the filtered news
     return new Response(
-      JSON.stringify(limitedNews),
+      JSON.stringify(filteredData),
       { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
       }
     );
   } catch (error) {
-    console.error('Erro na função fetch-news:', error);
+    console.error(`Error in fetch-news: ${error.message}`);
     return new Response(
-      JSON.stringify({ 
-        error: error.message 
-      }),
+      JSON.stringify({ error: error.message }),
       { 
-        status: 400, 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
       }
     );
   }

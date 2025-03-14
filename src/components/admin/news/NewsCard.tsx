@@ -64,11 +64,16 @@ export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
             <span>{newsItem.author || "Farol Investe"}</span>
             <span>{formatDate(newsItem.publication_date || newsItem.created_at)}</span>
           </div>
-          {newsItem.source_url && (
+          {(newsItem.source_url || newsItem.source === 'Farol Investe') && (
             <div className="mt-3">
               <a
-                href={newsItem.source_url}
+                href={newsItem.source_url || "#"}
                 className="text-xs inline-flex items-center gap-1 text-primary hover:underline"
+                onClick={(e) => {
+                  if (!newsItem.source_url && newsItem.source === 'Farol Investe') {
+                    e.preventDefault();
+                  }
+                }}
               >
                 <ExternalLink size={12} />
                 Ler matéria completa
