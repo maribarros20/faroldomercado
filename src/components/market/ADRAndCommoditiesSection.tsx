@@ -10,7 +10,8 @@ interface ADRAndCommoditiesSectionProps {
       time: string;
       value: string;
       change: string;
-      parameter?: string;
+      prevChange: string;
+      afterChange: string;
     };
   };
   commoditiesList: {
