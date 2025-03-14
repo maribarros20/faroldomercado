@@ -24,9 +24,21 @@ export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
     }
   };
 
-  // Fallback image handling
+  // Fallback image handling with visual feedback
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    e.currentTarget.src = 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop';
+    console.warn(`Failed to load image for news: ${newsItem.title}`);
+    let fallbackImage = 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop';
+    
+    // Use source-specific fallback
+    if (newsItem.source === 'Bloomberg Markets' || newsItem.source === 'Bloomberg Economics') {
+      fallbackImage = 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
+    } else if (newsItem.source === 'CNN Money') {
+      fallbackImage = 'https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png';
+    } else if (newsItem.source === 'Valor Econômico') {
+      fallbackImage = 'https://www.valor.com.br/sites/all/themes/valor_2016/logo.png';
+    }
+    
+    e.currentTarget.src = fallbackImage;
   };
 
   return (
