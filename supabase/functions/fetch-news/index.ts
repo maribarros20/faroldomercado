@@ -3,11 +3,11 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from './utils/cors.ts';
 import { NewsItem } from './utils/config.ts';
 import { 
-  fetchBloombergNews,
-  fetchInfoMoneyNews,
-  fetchValorEconomicoNews,
-  fetchCnnMoneyNews,
-  fetchForbesNews
+  fetchBloombergMarketsNews,
+  fetchBloombergEconomicsNews,
+  fetchCnnMoneyMarketsNews,
+  fetchBloombergLineaNews,
+  fetchValorEconomicoNews
 } from './utils/rss-fetchers.ts';
 
 serve(async (req) => {
@@ -27,26 +27,26 @@ serve(async (req) => {
     // Fetch news from all RSS sources
     console.log("Iniciando busca de todas as fontes RSS");
     const [
-      bloombergNews,
-      infomoneyNews,
-      valorEconomicoNews,
-      cnnMoneyNews,
-      forbesNews
+      bloombergMarketsNews,
+      bloombergEconomicsNews,
+      cnnMoneyMarketsNews,
+      bloombergLineaNews,
+      valorEconomicoNews
     ] = await Promise.all([
-      fetchBloombergNews(),
-      fetchInfoMoneyNews(),
-      fetchValorEconomicoNews(),
-      fetchCnnMoneyNews(),
-      fetchForbesNews()
+      fetchBloombergMarketsNews(),
+      fetchBloombergEconomicsNews(),
+      fetchCnnMoneyMarketsNews(),
+      fetchBloombergLineaNews(),
+      fetchValorEconomicoNews()
     ]);
 
     // Combine all news sources
     let allData: NewsItem[] = [
-      ...bloombergNews,
-      ...infomoneyNews,
-      ...valorEconomicoNews,
-      ...cnnMoneyNews,
-      ...forbesNews
+      ...bloombergMarketsNews,
+      ...bloombergEconomicsNews,
+      ...cnnMoneyMarketsNews,
+      ...bloombergLineaNews,
+      ...valorEconomicoNews
     ];
 
     console.log(`Total de notícias encontradas: ${allData.length}`);
