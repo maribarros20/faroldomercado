@@ -5,7 +5,6 @@ import { useUserPlan } from "@/contexts/UserPlanContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import QuickActions from "@/components/QuickActions";
 
 const DashboardHeader = () => {
   const { userName } = useUserPlan();
@@ -33,9 +32,8 @@ const DashboardHeader = () => {
         </Button>
         <h1 className="text-3xl font-bold">Radar</h1>
       </div>
-      <div className="flex items-center gap-3">
-        {greeting && <span className="text-sm text-muted-foreground mr-2">{greeting}</span>}
-        <QuickActions />
+      <div className="flex items-center">
+        {greeting && <span className="text-sm text-muted-foreground">{greeting}</span>}
       </div>
     </div>
   );
