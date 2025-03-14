@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface NewsItem {
@@ -142,7 +143,10 @@ export const fetchExternalNews = async (category?: string): Promise<NewsItem[]> 
   try {
     // Chamada para a edge function que lida com as integrações externas
     const { data, error } = await supabase.functions.invoke('fetch-news', {
-      body: { category }
+      body: { 
+        category,
+        excludeSources: ["Reuters"] // Excluir Thomson Reuters
+      }
     });
     
     if (error) {
