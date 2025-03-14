@@ -51,7 +51,9 @@ const AppLayout = ({ children }: AppLayoutProps) => {
               </div>
             </div>
             <div className="px-4 flex-1 pb-32 w-full">
-              {children}
+              <div className="max-w-7xl mx-auto w-full">
+                {children}
+              </div>
             </div>
           </main>
         </div>
@@ -59,6 +61,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       </div>
     </SidebarProvider>
   );
-};
+}
 
 export default AppLayout;

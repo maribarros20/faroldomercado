@@ -23,7 +23,7 @@ export default function Layout({ children }: LayoutProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="p-6 max-w-[1600px] mx-auto"
+            className="p-6 max-w-7xl mx-auto"
           >
             {children}
           </motion.div>
