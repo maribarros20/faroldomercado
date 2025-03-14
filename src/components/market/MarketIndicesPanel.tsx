@@ -104,7 +104,7 @@ const MarketIndicesPanel: React.FC = () => {
     <div className="space-y-6">
       <Card className="shadow-lg bg-white">
         <CardHeader className="pb-2 border-b">
-          <CardTitle className="text-xl text-[#0066FF] flex items-center">
+          <CardTitle className="text-xl text-[#323232] flex items-center">
             <BarChart4 className="h-6 w-6 mr-2" />
             Índices Futuros
           </CardTitle>
@@ -185,7 +185,7 @@ const MarketIndicesPanel: React.FC = () => {
           >
             <CardHeader className="py-2 px-4 border-b">
               <div className="flex justify-between items-center">
-                <CardTitle className="text-base font-medium">{getDisplayName(index.name)}</CardTitle>
+                <CardTitle className="text-base font-medium text-[#323232]">{getDisplayName(index.name)}</CardTitle>
                 <div className="text-xs text-gray-500 flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
                   {formatTime(index.time_data)}

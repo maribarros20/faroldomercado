@@ -17,7 +17,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = ({
   return (
     <div className="flex justify-between items-center">
       <div>
-        <h2 className="text-2xl font-bold text-[#0066FF]">Panorama do Mercado</h2>
+        <h2 className="text-2xl font-bold text-[#323232]">Panorama do Mercado</h2>
         <p className="text-gray-600">Visão consolidada de ADRs, Commodities e Indicadores de Volatilidade</p>
       </div>
       <div className="flex items-center gap-2">

@@ -27,7 +27,7 @@ const Navigation = ({ expanded, userRole }: NavigationProps) => {
       <NavItem
         to="/dashboard"
         icon={<BarChart3 size={20} />}
-        text="Painel de Mercado"
+        text="Radar"
         active={isActive("/dashboard")}
         expanded={expanded}
       />

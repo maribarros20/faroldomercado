@@ -171,7 +171,7 @@ export default function MarketRadar() {
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-[#0066FF]">Acompanhamento do mercado</h2>
+            <h2 className="text-2xl font-bold text-[#323232]">Acompanhamento do mercado</h2>
             <p className="text-gray-600">Acompanhe suas ações e principais índices de mercado</p>
             <p className="text-xs text-gray-500">
               Última atualização: {new Date().toLocaleTimeString()} 
@@ -194,7 +194,7 @@ export default function MarketRadar() {
       {/* US Stocks Carousel */}
       <Card className="shadow-lg bg-white border-none">
         <CardHeader className="pb-2 border-b">
-          <CardTitle className="text-xl text-trade-blue">7 magníficas - EUA</CardTitle>
+          <CardTitle className="text-xl text-[#323232]">7 magníficas - EUA</CardTitle>
         </CardHeader>
         <CardContent className="p-4">
           <StockCardCarousel stocks={getUSStocks()} title="" isLoading={isLoading} />
@@ -204,7 +204,7 @@ export default function MarketRadar() {
       {/* Brazilian Stocks Carousel */}
       <Card className="shadow-lg bg-white border-none">
         <CardHeader className="pb-2 border-b">
-          <CardTitle className="text-xl text-trade-blue">7 mais - BRA</CardTitle>
+          <CardTitle className="text-xl text-[#323232]">7 mais - BRA</CardTitle>
         </CardHeader>
         <CardContent className="p-4">
           <StockCardCarousel stocks={getBrazilianStocks()} title="" isLoading={isLoading} />
@@ -218,7 +218,7 @@ export default function MarketRadar() {
         <div className="lg:col-span-2">
           <Card className="shadow-lg bg-white border-none">
             <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-xl text-[#0066FF] flex items-center">Índices e Ativos</CardTitle>
+              <CardTitle className="text-xl text-[#323232] flex items-center">Índices e Ativos</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
               {isLoading ? <div className="animate-pulse space-y-2">
@@ -232,7 +232,7 @@ export default function MarketRadar() {
         <div>
           {snapshotStock && <Card className="shadow-lg bg-white border-none mb-6">
               <CardHeader className="pb-2 border-b">
-                <CardTitle className="text-xl text-[#0066FF] flex items-center">{snapshotStock.ticker} Snapshot</CardTitle>
+                <CardTitle className="text-xl text-[#323232] flex items-center">{snapshotStock.ticker} Snapshot</CardTitle>
               </CardHeader>
               <CardContent className="p-4">
                 <MarketSnapshot title="" value={snapshotStock.lastPrice.toFixed(2)} prevClose={snapshotStock.prevCloseD1} open={snapshotStock.openPrice} dayLow={snapshotStock.min10Days} dayHigh={snapshotStock.max10Days} weekLow={snapshotStock.min10Days * 0.9} weekHigh={snapshotStock.max10Days * 1.1} time={snapshotStock.updateTime} date={getCurrentDate()} />
@@ -242,7 +242,7 @@ export default function MarketRadar() {
           {/* Alertas */}
           <Card className="shadow-lg bg-white border-none">
             <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-xl text-[#0066FF] flex items-center">Alertas de Mercado</CardTitle>
+              <CardTitle className="text-xl text-[#323232] flex items-center">Alertas de Mercado</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
               <MarketAlerts alerts={alerts} isLoading={isLoading} onAlertClick={async alert => {
