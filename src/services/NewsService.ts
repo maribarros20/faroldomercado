@@ -89,8 +89,6 @@ export const getDefaultNewsImage = (source?: string): string => {
       case 'Bloomberg':
       case 'Bloomberg Línea':
         return 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
-      case 'Reuters':
-        return 'https://www.reuters.com/pf/resources/images/reuters/logo-vertical-default.svg?d=139';
       case 'Forbes':
         return 'https://cdn.worldvectorlogo.com/logos/forbes-1.svg';
       case 'Farol Investe':
@@ -162,25 +160,12 @@ export const fetchExternalNews = async (category?: string): Promise<NewsItem[]> 
       author: cleanTextContent(item.author),
       category: cleanTextContent(item.category),
       image_url: getValidImageUrl(item.image_url),
-      // Corrigir links das fontes
-      source_url: fixSourceUrl(item.source, item.source_url)
+      source_url: item.source_url || ''
     })) : [];
   } catch (error) {
     console.error("Erro ao buscar notícias externas:", error);
     return [];
   }
-};
-
-// Função para corrigir URLs de fontes específicas
-const fixSourceUrl = (source?: string, url?: string): string => {
-  if (!url) return '';
-  
-  // Corrigir links específicos de algumas fontes
-  if (source === 'Reuters' && !url.includes('https://')) {
-    return `https://www.reuters.com${url.startsWith('/') ? '' : '/'}${url}`;
-  }
-  
-  return url;
 };
 
 // Buscar todas as notícias (manuais + APIs + RSS)
@@ -195,7 +180,7 @@ export const fetchAllNews = async (
     const { data: newsData, error: newsError } = await supabase.functions.invoke('fetch-news', {
       body: { 
         category,
-        excludeSources: ["Reuters"] // Add parameter to exclude Reuters
+        excludeSources: ["Reuters"] // Excluir fontes não desejadas
       }
     });
     
@@ -219,12 +204,9 @@ export const fetchAllNews = async (
       ...(socialData || [])
     ];
     
-    // Filter out Reuters news
-    const filteredNews = allNews.filter(item => item.source !== "Reuters");
-    
     // Remover duplicações por título
     const uniqueNews = Array.from(
-      new Map(filteredNews.map(item => [item.title, item])).values()
+      new Map(allNews.map(item => [item.title, item])).values()
     );
     
     // Garantir que todo o conteúdo esteja limpo de tags CDATA e HTML
@@ -236,8 +218,7 @@ export const fetchAllNews = async (
       author: cleanTextContent(item.author),
       category: cleanTextContent(item.category),
       image_url: getValidImageUrl(item.image_url),
-      // Corrigir links para outras fontes (exceto Reuters)
-      source_url: fixSourceUrl(item.source, item.source_url)
+      source_url: item.source_url || ''
     }));
     
     // Filtrar por termo de busca se especificado

@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { parseFeed } from "https://deno.land/x/rss@1.0.0/mod.ts";
@@ -200,9 +201,8 @@ serve(async (req) => {
       return !excludeSources.includes(item.source);
     });
 
-    // Get timestamp for the response
-    const timestamp = new Date().toISOString();
-    
+    console.log(`Total de notícias após filtragem: ${filteredData.length}`);
+
     // Return the filtered news
     return new Response(
       JSON.stringify(filteredData),

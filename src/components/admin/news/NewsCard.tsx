@@ -69,6 +69,8 @@ export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
               <a
                 href={newsItem.source_url || "#"}
                 className="text-xs inline-flex items-center gap-1 text-primary hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={(e) => {
                   if (!newsItem.source_url && newsItem.source === 'Farol Investe') {
                     e.preventDefault();
