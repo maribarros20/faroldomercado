@@ -164,6 +164,10 @@ serve(async (req) => {
 
     let allData: NewsItem[] = [];
 
+    // Sempre excluir Reuters
+    const sourcesToExclude = [...excludeSources, "Reuters"];
+    console.log("Fontes a serem excluídas:", sourcesToExclude);
+
     // Busca notícias do Alpha Vantage (apenas se a categoria for especificada)
     if (category) {
       const alphaVantageNews = await fetchAlphaVantageNews(category);
@@ -194,10 +198,9 @@ serve(async (req) => {
       ];
     }
 
-    // Add a filter to remove news from excluded sources
+    // Filtrar para remover notícias das fontes excluídas (incluindo Reuters)
     const filteredData = allData.filter(item => {
-      if (excludeSources.length === 0) return true;
-      return !excludeSources.includes(item.source);
+      return !sourcesToExclude.includes(item.source);
     });
 
     console.log(`Total de notícias após filtragem: ${filteredData.length}`);

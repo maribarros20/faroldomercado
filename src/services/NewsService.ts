@@ -179,7 +179,11 @@ export const fetchAllNews = async (
   try {
     console.log("Iniciando fetchAllNews com categoria:", category, "e busca:", search);
     
-    // Primeiro, buscar notícias da edge function fetch-news
+    // Primeiro, buscar notícias manuais do Supabase
+    const manualNews = await fetchManualNews();
+    console.log("Notícias manuais obtidas:", manualNews.length);
+    
+    // Segundo, buscar notícias da edge function fetch-news
     const { data: newsData, error: newsError } = await supabase.functions.invoke('fetch-news', {
       body: { 
         category,
@@ -203,6 +207,7 @@ export const fetchAllNews = async (
     
     // Combinar todas as fontes
     const allNews = [
+      ...(manualNews || []), // Incluir notícias manuais
       ...(newsData || []), 
       ...(socialData || [])
     ];
