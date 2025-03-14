@@ -1,8 +1,9 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import CreatePostDialog from "@/components/community/CreatePostDialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,12 +23,20 @@ const CommunityPage = () => {
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
   useEffect(() => {
     const loadUserAndChannels = async () => {
       setIsLoading(true);
       try {
-        // Get session
         const { data: sessionData } = await supabase.auth.getSession();
         if (!sessionData.session) {
           toast({
@@ -39,7 +48,6 @@ const CommunityPage = () => {
           return;
         }
 
-        // Fetch user profile
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("*, mentor_id, role")
@@ -59,7 +67,6 @@ const CommunityPage = () => {
           
         setUserProfile(profileData || null);
         
-        // Check if user is admin - important to debug
         const userIsAdmin = profileData?.role === 'admin';
         console.log("User role:", profileData?.role);
         console.log("User is admin:", userIsAdmin);
@@ -67,7 +74,6 @@ const CommunityPage = () => {
         
         const userMentorId = profileData?.mentor_id || null;
 
-        // Get channels - filter based on access rules
         const { data: channelsData, error } = await supabase
           .from("community_channels")
           .select("*, mentor:mentor_id(id,name)")
@@ -81,7 +87,6 @@ const CommunityPage = () => {
         console.log("Channels data:", channelsData);
         console.log("Total channels:", channelsData.length);
         
-        // Transform the data to match the Channel type
         const typedChannels = channelsData.map((channel: any) => ({
           id: channel.id,
           name: channel.name,
@@ -95,23 +100,17 @@ const CommunityPage = () => {
           mentor_name: channel.mentor?.name
         })) as Channel[];
         
-        // Filter channels based on access permissions - admins can see all channels
         let accessibleChannels;
         
-        // Important: Use the userIsAdmin variable here to ensure consistency and avoid state timing issues
         if (userIsAdmin) {
-          // Admins see all channels
           console.log("User is admin, showing all channels");
           accessibleChannels = typedChannels;
         } else {
-          // Regular users see public channels and those matching their mentor
           console.log("User is not admin, filtering channels");
           accessibleChannels = typedChannels.filter(channel => {
-            // If not company specific, everyone can access
             if (!channel.is_company_specific) {
               return true;
             }
-            // If company specific, only users associated with the mentor can access
             return channel.mentor_id === userMentorId;
           });
         }
@@ -127,13 +126,11 @@ const CommunityPage = () => {
         
         setChannels(accessibleChannels);
         
-        // Select first channel if none selected and accessible channels exist
         if (accessibleChannels.length > 0 && !selectedChannelId) {
           setSelectedChannelId(accessibleChannels[0].id);
           setCurrentChannel(accessibleChannels[0]);
         }
         
-        // Log activity
         if (sessionData.session) {
           await supabase.from("user_activities").insert({
             user_id: sessionData.session.user.id,
@@ -156,7 +153,6 @@ const CommunityPage = () => {
     loadUserAndChannels();
   }, [toast]);
 
-  // Check channel access when selection changes
   useEffect(() => {
     if (!selectedChannelId || !channels.length) return;
     
@@ -164,7 +160,6 @@ const CommunityPage = () => {
     if (selectedChannel) {
       setCurrentChannel(selectedChannel);
       
-      // Use isAdmin from state to be consistent
       if (!isAdmin && selectedChannel.is_company_specific && selectedChannel.mentor_id !== userProfile?.mentor_id) {
         setAccessDenied(true);
       } else {
@@ -190,7 +185,19 @@ const CommunityPage = () => {
   };
 
   return (
-    <div className="container max-w-7xl mx-auto py-6 px-4">
+    <div className="container max-w-7xl mx-auto py-8 px-4">
+      <div className="flex items-center gap-4 mb-8">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleGoBack}
+          className="rounded-full"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-3xl font-bold">Comunidade</h1>
+      </div>
+      
       <CommunityHeader 
         onCreatePost={handleOpenCreatePost}
         isDisabled={isLoading || !selectedChannelId || accessDenied}

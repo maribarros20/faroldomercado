@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, AlertTriangle } from "lucide-react";
+import { RefreshCw, AlertTriangle, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { fetchStockData, StockData } from "@/services/stockService";
@@ -15,18 +15,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+
 export default function MarketRadar() {
   const [userStocks, setUserStocks] = useState<StockData[]>([]);
   const [alerts, setAlerts] = useState<AlertData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedStock, setSelectedStock] = useState<string>("");
   const [snapshotStock, setSnapshotStock] = useState<StockData | null>(null);
-  const {
-    toast
-  } = useToast();
-  const {
-    userId
-  } = useUserProfile();
+  const { toast } = useToast();
+  const { userId } = useUserProfile();
+  const navigate = useNavigate();
+
+  // Handle back button click
+  const handleGoBack = () => {
+    // If there's a previous page in history, go back to it
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      // Default fallback to dashboard if no history
+      navigate('/dashboard');
+    }
+  };
 
   // Use React Query for auto-refreshing stock data
   const {
@@ -74,6 +84,7 @@ export default function MarketRadar() {
   const getBrazilianStocks = () => {
     return stocks.filter(stock => ["ITUB4", "BBDC4", "VALE3", "PETR4", "PETR3", "ABEV3", "BBAS3", "B3SA3", "ITSA4"].includes(stock.ticker));
   };
+
   async function generateAndFilterAlerts(data: StockData[], userStockTickers: string[]) {
     // Generate alerts based on all stocks, prioritizing user's stocks
     const allAlerts = generateAlerts(data, userStockTickers);
@@ -102,6 +113,7 @@ export default function MarketRadar() {
       setAlerts(allAlerts);
     }
   }
+
   async function loadUserFavorites() {
     if (!userId || stocks.length === 0) return;
     try {
@@ -123,6 +135,7 @@ export default function MarketRadar() {
       console.error("Error loading favorites:", err);
     }
   }
+
   const addStock = () => {
     const stockToAdd = stocks.find(stock => stock.ticker === selectedStock);
     if (stockToAdd && !userStocks.some(s => s.ticker === stockToAdd.ticker)) {
@@ -132,6 +145,7 @@ export default function MarketRadar() {
       setSnapshotStock(stockToAdd);
     }
   };
+
   const removeStock = (ticker: string) => {
     setUserStocks(prevStocks => prevStocks.filter(stock => stock.ticker !== ticker));
 
@@ -146,6 +160,7 @@ export default function MarketRadar() {
   const getCurrentDate = () => {
     return format(new Date(), "MM/dd/yy");
   };
+
   useEffect(() => {
     loadUserFavorites();
   }, [userId, stocks.length]);
@@ -163,15 +178,26 @@ export default function MarketRadar() {
       setSnapshotStock(ibov || stocks[0]);
     }
   }, [selectedStock, stocks]);
+
   return <div className="space-y-6 pb-6 bg-gray-100 rounded-lg p-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-[#0066FF]">Acompanhamento do mercado</h2>
-          <p className="text-gray-600">Acompanhe suas ações e principais índices de mercado</p>
-          <p className="text-xs text-gray-500">
-            Última atualização: {new Date().toLocaleTimeString()} 
-            {isRefetching && " (Atualizando...)"}
-          </p>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleGoBack}
+            className="rounded-full"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold text-[#0066FF]">Acompanhamento do mercado</h2>
+            <p className="text-gray-600">Acompanhe suas ações e principais índices de mercado</p>
+            <p className="text-xs text-gray-500">
+              Última atualização: {new Date().toLocaleTimeString()} 
+              {isRefetching && " (Atualizando...)"}
+            </p>
+          </div>
         </div>
         <Button onClick={() => refetch()} variant="outline" className="bg-white shadow-md hover:bg-blue-50" disabled={isRefetching}>
           <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? "animate-spin" : ""}`} />
