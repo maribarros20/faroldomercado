@@ -86,6 +86,8 @@ export const getDefaultNewsImage = (source?: string): string => {
         return 'https://www.valor.com.br/sites/all/themes/valor_2016/logo.png';
       case 'CNN Money':
         return 'https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png';
+      case 'Bloomberg Markets':
+      case 'Bloomberg Economics':
       case 'Bloomberg':
       case 'Bloomberg Línea':
         return 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
@@ -140,11 +142,13 @@ export const fetchManualNews = async (): Promise<NewsItem[]> => {
 // Função para buscar notícias de APIs externas e RSS feeds
 export const fetchExternalNews = async (category?: string): Promise<NewsItem[]> => {
   try {
+    console.log("Fetching external news with category:", category);
+    
     // Chamada para a edge function que lida com as integrações externas
     const { data, error } = await supabase.functions.invoke('fetch-news', {
       body: { 
         category,
-        excludeSources: ["Reuters"] // Excluir Thomson Reuters
+        excludeSources: ["Reuters"] // Excluir fontes não desejadas
       }
     });
     
@@ -153,9 +157,16 @@ export const fetchExternalNews = async (category?: string): Promise<NewsItem[]> 
       return [];
     }
     
+    if (!data || !Array.isArray(data)) {
+      console.error("Dados inválidos recebidos da API:", data);
+      return [];
+    }
+    
+    console.log(`Recebidas ${data.length} notícias externas`);
+    
     // Garantir que todo o conteúdo esteja limpo de tags CDATA e HTML
     // E que todas as notícias tenham imagens válidas
-    return data ? data.map((item: NewsItem) => ({
+    return data.map((item: NewsItem) => ({
       ...item,
       title: cleanTextContent(item.title),
       subtitle: cleanTextContent(item.subtitle),
@@ -164,7 +175,7 @@ export const fetchExternalNews = async (category?: string): Promise<NewsItem[]> 
       category: cleanTextContent(item.category),
       image_url: getValidImageUrl(item.image_url),
       source_url: item.source_url || ''
-    })) : [];
+    }));
   } catch (error) {
     console.error("Erro ao buscar notícias externas:", error);
     return [];
