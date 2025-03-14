@@ -1,4 +1,3 @@
-
 import { StockData } from "@/services/stockService";
 
 export interface AlertData {
@@ -217,23 +216,31 @@ function sortAlertsByPriority(alerts: AlertData[]): AlertData[] {
   });
 }
 
-export async function markAlertAsSeen(userId: string, alertId: string, ticker: string, alertType: string, message: string) {
-  if (!userId) return false;
-  
+export async function markAlertAsSeen(
+  userId: string, 
+  alertId: string, 
+  ticker: string, 
+  alertType: string, 
+  alertMessage: string
+) {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('users_alerts_seen')
-      .upsert({
+      .insert({
         user_id: userId,
-        ticker: ticker,
+        ticker,
         alert_type: alertType,
-        alert_message: message,
-        seen_at: new Date().toISOString()
+        alert_message: alertMessage
       });
-      
-    return !error;
+    
+    if (error) {
+      console.error("Error marking alert as seen:", error);
+      return false;
+    }
+    
+    return true;
   } catch (err) {
-    console.error("Error marking alert as seen:", err);
+    console.error("Exception marking alert as seen:", err);
     return false;
   }
 }
