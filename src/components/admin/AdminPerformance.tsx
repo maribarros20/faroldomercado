@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useUserPerformance } from "@/hooks/use-user-performance";
 import { PerformanceStats } from "@/components/admin/performance/PerformanceStats";
@@ -72,7 +73,7 @@ const AdminPerformance = () => {
   });
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-7xl mx-auto">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Desempenho dos Usuários</h2>

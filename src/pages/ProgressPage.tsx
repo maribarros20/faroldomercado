@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,18 @@ import { calculateUserLevel } from "@/hooks/use-user-performance";
 
 const ProgressPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Function to handle the back button click
+  const handleGoBack = () => {
+    // If there's a previous page in history, go back to it
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      // Default fallback to dashboard if no history
+      navigate('/dashboard');
+    }
+  };
 
   // Log login activity when the page loads
   useEffect(() => {
@@ -157,7 +169,7 @@ const ProgressPage = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => navigate('/dashboard')}
+            onClick={handleGoBack}
             className="rounded-full"
           >
             <ArrowLeft className="h-5 w-5" />

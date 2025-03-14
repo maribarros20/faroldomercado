@@ -15,7 +15,7 @@ const VideosStatusTabs: React.FC<VideosStatusTabsProps> = ({
   children
 }) => {
   return (
-    <Tabs defaultValue={activeStatus} onValueChange={onStatusChange} className="w-full">
+    <Tabs defaultValue={activeStatus} onValueChange={onStatusChange} className="w-full max-w-7xl mx-auto">
       <TabsList className="grid grid-cols-4 mb-6">
         <TabsTrigger value="all" className="flex items-center gap-1">
           <LayoutGrid className="w-4 h-4" />

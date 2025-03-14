@@ -17,7 +17,7 @@ const UserPerformance: React.FC<UserPerformanceProps> = ({ userId }) => {
   
   if (isLoading) {
     return (
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Seu Desempenho</CardTitle>
         </CardHeader>
@@ -38,7 +38,7 @@ const UserPerformance: React.FC<UserPerformanceProps> = ({ userId }) => {
   
   if (error || !performance) {
     return (
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Seu Desempenho</CardTitle>
         </CardHeader>
@@ -75,7 +75,7 @@ const UserPerformance: React.FC<UserPerformanceProps> = ({ userId }) => {
   const levelInfo = calculateUserLevel(xp);
   
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
           <span>Seu Desempenho</span>

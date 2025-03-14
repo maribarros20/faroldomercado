@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -114,7 +115,7 @@ const ProfileSettingsPage = () => {
   }, [navigate, toast]);
 
   return (
-    <div className="container mx-auto py-6 px-4">
+    <div className="max-w-7xl mx-auto py-6 px-4">
       <h1 className="text-2xl font-bold mb-6">Configurações da Conta</h1>
       
       {isLoading ? (
