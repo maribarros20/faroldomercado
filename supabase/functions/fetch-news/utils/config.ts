@@ -10,6 +10,7 @@ export const BBC_ECONOMIA_RSS_FEED = "http://www.bbc.co.uk/portuguese/topicos/ec
 export const UOL_ECONOMIA_RSS_FEED = "https://rss.uol.com.br/feed/economia.xml";
 export const FOLHA_MERCADO_RSS_FEED = "https://feeds.folha.uol.com.br/mercado/rss091.xml";
 export const VALOR_INVESTING_RSS_FEED = "https://pox.globo.com/rss/valorinveste";
+export const NYTIMES_ECONOMY_RSS_FEED = "https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml";
 
 // News item interface
 export interface NewsItem {
