@@ -137,7 +137,7 @@ const AuthPage = ({
             </button>
             <div className="text-gray-700">
               {isLogin ? <span>
-                  Não tem conta? <button onClick={toggleAuthMode} className="text-[#0066ff] text-base font-medium">Cadastrar</button>
+                  Não tem conta? <button onClick={toggleAuthMode} className="text-[#0066ff] text-base font-medium hover: text-[#0066ff] hover:scale-105 transition-transform duration-200\n">Cadastrar</button>
                 </span> : <span>
                   Já tem conta? <button onClick={toggleAuthMode} className="text-primary font-medium">Entrar</button>
                 </span>}
