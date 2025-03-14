@@ -5,6 +5,7 @@ import { useUserPlan } from "@/contexts/UserPlanContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import QuickActions from "@/components/QuickActions";
 
 const DashboardHeader = () => {
   const { userName } = useUserPlan();
@@ -26,15 +27,15 @@ const DashboardHeader = () => {
           variant="ghost" 
           size="icon" 
           onClick={handleGoBack}
-          className="rounded-full"
+          className="rounded-full shadow-sm hover:bg-[#e6f0ff] hover:text-[#0066FF] border border-transparent hover:border-gray-100"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-3xl font-bold">Radar</h1>
       </div>
       <div className="flex items-center gap-3">
-        {greeting && <span className="text-sm text-muted-foreground">{greeting}</span>}
-        {/* QuickActions is handled in the main layout */}
+        {greeting && <span className="text-sm text-muted-foreground mr-2">{greeting}</span>}
+        <QuickActions />
       </div>
     </div>
   );

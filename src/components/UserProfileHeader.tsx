@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { User, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 interface UserProfileHeaderProps {
   userName: string | null;
@@ -61,7 +62,13 @@ const UserProfileHeader = ({ userName, userRole, avatarUrl }: UserProfileHeaderP
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="focus:outline-none">
-        <div className="flex items-center space-x-2 cursor-pointer p-2 hover:bg-[#e6f0ff] hover:text-[#0066FF] rounded-md transition-colors">
+        <div className={cn(
+          "flex items-center space-x-2 cursor-pointer",
+          "transition-all duration-200 ease-in-out",
+          "rounded-full p-1 hover:bg-[#e6f0ff]",
+          "border border-transparent hover:border-gray-100",
+          "shadow-sm"
+        )}>
           <Avatar className="h-8 w-8">
             {avatarUrl ? (
               <AvatarImage src={avatarUrl} alt={userName || "Usuário"} />
@@ -69,7 +76,7 @@ const UserProfileHeader = ({ userName, userRole, avatarUrl }: UserProfileHeaderP
               <AvatarFallback>{initials}</AvatarFallback>
             )}
           </Avatar>
-          <div className="hidden md:flex flex-col text-left">
+          <div className="hidden md:flex flex-col text-left mr-2">
             <span className="text-sm font-medium truncate max-w-32">
               {userName || "Usuário"}
             </span>
