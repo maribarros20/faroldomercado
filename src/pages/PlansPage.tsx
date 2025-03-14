@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Loader2, AlertCircle } from "lucide-react";
+import { Check, X, Loader2, AlertCircle, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +31,14 @@ const PlansPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Get auth status
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
   const { data: session } = useQuery({
     queryKey: ['auth-session'],
     queryFn: async () => {
@@ -41,7 +47,6 @@ const PlansPage = () => {
     }
   });
 
-  // Get user subscription if logged in
   const { data: userSubscription } = useQuery({
     queryKey: ['user-subscription', session?.user?.id],
     queryFn: async () => {
@@ -60,11 +65,9 @@ const PlansPage = () => {
     enabled: !!session?.user?.id
   });
 
-  // Fetch plans from Supabase
   const { data: plans = [], isLoading, error } = useQuery({
     queryKey: ['public-plans'],
     queryFn: async () => {
-      // Fetch active plans
       const { data: plansData, error: plansError } = await supabase
         .from('plans')
         .select('*')
@@ -76,7 +79,6 @@ const PlansPage = () => {
         throw plansError;
       }
 
-      // Fetch features for each plan
       const plansWithFeatures = await Promise.all(plansData.map(async (plan) => {
         const { data: featuresData, error: featuresError } = await supabase
           .from('plan_features')
@@ -115,7 +117,6 @@ const PlansPage = () => {
       return;
     }
 
-    // Implement subscription logic here
     toast({
       title: "Funcionalidade em desenvolvimento",
       description: "A funcionalidade de assinatura será implementada em breve.",
@@ -144,8 +145,19 @@ const PlansPage = () => {
 
   return (
     <div className="container py-12 max-w-6xl mx-auto">
+      <div className="flex items-center gap-4 mb-8 px-4">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleGoBack}
+          className="rounded-full"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-3xl font-bold">Planos e Preços</h1>
+      </div>
+      
       <div className="text-center mb-12">
-        <h1 className="text-3xl md:text-4xl font-bold mb-4">Planos e Preços</h1>
         <p className="text-gray-600 max-w-2xl mx-auto">
           Escolha o plano ideal para sua jornada de aprendizado em trading. Todos os planos incluem acesso 
           à plataforma e conteúdos exclusivos.
@@ -173,7 +185,6 @@ const PlansPage = () => {
           const isCurrentPlan = userSubscription && userSubscription.plan_id === plan.id && userSubscription.is_active;
           const relevantPrice = billingPeriod === 'monthly' ? plan.monthly_price : plan.yearly_price;
           
-          // Skip plans that don't have the selected billing period
           if ((billingPeriod === 'monthly' && plan.monthly_price === null) || 
               (billingPeriod === 'yearly' && plan.yearly_price === null)) {
             return null;

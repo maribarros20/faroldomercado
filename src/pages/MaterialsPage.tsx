@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MaterialsService from "@/services/MaterialsService";
@@ -9,7 +12,9 @@ import MaterialsFilters from "@/components/materials/MaterialsFilters";
 import MaterialsStatusTabs from "@/components/materials/MaterialsStatusTabs";
 import { Material } from "@/services/materials/types";
 import { Spinner } from "@/components/ui/spinner";
+
 const MaterialsPage = () => {
+  const navigate = useNavigate();
   // Filter and search state
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -21,6 +26,17 @@ const MaterialsPage = () => {
   const {
     toast
   } = useToast();
+
+  // Handle back button click
+  const handleGoBack = () => {
+    // If there's a previous page in history, go back to it
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      // Default fallback to dashboard if no history
+      navigate('/dashboard');
+    }
+  };
 
   // Fetch categories
   const {
@@ -124,6 +140,7 @@ const MaterialsPage = () => {
       return matchesSearch && matchesCategory && matchesNavigation && matchesFormat;
     });
   }, [allMaterials, searchQuery, selectedCategory, selectedNavigation, selectedFormat]);
+
   const handleMaterialLikeToggle = (materialId: string) => {
     MaterialsService.likeMaterial(materialId).then(() => {
       // If viewing favorites, we might need to refetch
@@ -142,6 +159,7 @@ const MaterialsPage = () => {
       });
     });
   };
+
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedCategory("all");
@@ -158,9 +176,20 @@ const MaterialsPage = () => {
         </div>
       </div>;
   }
+
   return <div className="container mx-auto py-8 px-4">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Documentos</h1>
+        <div className="flex items-center gap-4 mb-8">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleGoBack}
+            className="rounded-full"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-3xl font-bold">Documentos</h1>
+        </div>
         
         {/* Filters section */}
         <div className="mb-8">
@@ -174,4 +203,5 @@ const MaterialsPage = () => {
       </div>
     </div>;
 };
+
 export default MaterialsPage;

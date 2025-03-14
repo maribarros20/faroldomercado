@@ -1,15 +1,29 @@
-
 import React, { useState, useEffect } from "react";
 import VideosView from "@/components/videos/VideosView";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const VideosPage = () => {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Handle back button click
+  const handleGoBack = () => {
+    // If there's a previous page in history, go back to it
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      // Default fallback to dashboard if no history
+      navigate('/dashboard');
+    }
+  };
 
   // Check if user is authenticated
   useEffect(() => {
@@ -93,7 +107,20 @@ const VideosPage = () => {
 
   return (
     <div className="container mx-auto animate-fade-in">
-      <VideosView />
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex items-center gap-4 mb-8">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleGoBack}
+            className="rounded-full"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">Vídeos</h1>
+        </div>
+        <VideosView />
+      </div>
     </div>
   );
 };
