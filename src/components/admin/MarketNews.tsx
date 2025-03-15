@@ -12,7 +12,7 @@ import { NewsSearchFilters } from "./news/NewsSearchFilters";
 import { NewsSourceBadges } from "./news/NewsSourceBadges";
 import { NewsTabs } from "./news/NewsTabs";
 import { formatMarkdownContent } from "./news/utils/formatMarkdown";
-import { FINANCE_CATEGORIES } from "./news/constants";
+import { FINANCE_CATEGORIES, BCB_CATEGORIES } from "./news/constants";
 
 const MarketNews = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,7 +41,8 @@ const MarketNews = () => {
       if (showOnlyFinancialNews) {
         filteredNews = filteredNews.filter(newsItem => 
           FINANCE_CATEGORIES.includes(newsItem.category || "") || 
-          FINANCIAL_NEWS_SOURCES.includes(newsItem.source || "")
+          FINANCIAL_NEWS_SOURCES.includes(newsItem.source || "") ||
+          BCB_CATEGORIES.includes(newsItem.category || "")
         );
       }
       
@@ -66,6 +67,11 @@ const MarketNews = () => {
       
       if (error) {
         console.error("Erro ao buscar notícias do Banco Central:", error);
+        toast({
+          title: "Erro de conexão",
+          description: "Não foi possível conectar ao serviço de notícias do Banco Central.",
+          variant: "destructive"
+        });
         return [];
       }
       
@@ -85,6 +91,7 @@ const MarketNews = () => {
     return news.filter(item => item.category === 'Resumo de Mercado');
   }, [news]);
 
+  // Função para filtrar notícias do BCB por categoria
   const getBcbNewsByCategory = (category?: string) => {
     if (!bcbNews) return [];
     

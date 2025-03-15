@@ -9,17 +9,15 @@ export const FINANCE_CATEGORIES = [
   "Economia",
   "Negócios",
   "Resumo de Mercado",
-  "Comunicados BCB",
-  "Notícias BCB",
   "Comunicados COPOM",
-  "Relatório de Inflação",
-  "Boletim Focus"
+  "Notícias BCB",
+  "Boletim Focus",
+  "Relatório de Inflação"
 ];
 
 export const BCB_CATEGORIES = [
-  "Comunicados BCB",
-  "Notícias BCB",
   "Comunicados COPOM",
-  "Relatório de Inflação",
-  "Boletim Focus"
+  "Notícias BCB",
+  "Boletim Focus",
+  "Relatório de Inflação"
 ];

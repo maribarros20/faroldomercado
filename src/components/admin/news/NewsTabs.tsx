@@ -8,6 +8,8 @@ import type { NewsItem } from "@/services/NewsService";
 import { NewsGrid } from "./NewsGrid";
 import { NewsCard } from "./NewsCard";
 import { TwitterFeed } from "../twitter/TwitterFeed";
+import { BCBNewsCard } from "./BCBNewsCard";
+import { Badge } from "@/components/ui/badge";
 
 interface NewsTabsProps {
   viewMode: string;
@@ -99,6 +101,8 @@ export const NewsTabs: React.FC<NewsTabsProps> = ({
                       <a
                         href={item.source_url}
                         className="text-primary hover:underline inline-flex items-center gap-1"
+                        target="_blank"
+                        rel="noopener noreferrer"
                       >
                         Ler matéria completa
                       </a>
@@ -160,83 +164,36 @@ export const NewsTabs: React.FC<NewsTabsProps> = ({
             <Tabs defaultValue="all">
               <TabsList>
                 <TabsTrigger value="all">Todos</TabsTrigger>
-                <TabsTrigger value="Comunicados BCB">Comunicados</TabsTrigger>
-                <TabsTrigger value="Notícias BCB">Notícias</TabsTrigger>
                 <TabsTrigger value="Comunicados COPOM">COPOM</TabsTrigger>
-                <TabsTrigger value="Relatório de Inflação">RI</TabsTrigger>
+                <TabsTrigger value="Notícias BCB">Notícias</TabsTrigger>
                 <TabsTrigger value="Boletim Focus">Focus</TabsTrigger>
+                <TabsTrigger value="Relatório de Inflação">Relatório de Inflação</TabsTrigger>
               </TabsList>
 
               <TabsContent value="all" className="mt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {bcbNews.map((item, index) => (
-                    <Card key={`bcb-${index}`}>
-                      <CardContent className="p-4">
-                        <Badge variant="outline" className="mb-2">
-                          {item.category}
-                        </Badge>
-                        <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                        <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                          {item.content}
-                        </p>
-                        <div className="text-xs text-muted-foreground mb-3">
-                          {new Date(item.publication_date).toLocaleDateString(
-                            "pt-BR"
-                          )}
-                        </div>
-                        {item.source_url && (
-                          <a
-                            href={item.source_url}
-                            className="text-xs flex items-center gap-1 text-primary hover:underline"
-                          >
-                            <ExternalLink size={12} />
-                            Ver no site do BCB
-                          </a>
-                        )}
-                      </CardContent>
-                    </Card>
+                    <BCBNewsCard key={`bcb-${index}`} newsItem={item} />
                   ))}
                 </div>
               </TabsContent>
 
               {[
-                "Comunicados BCB",
-                "Notícias BCB",
                 "Comunicados COPOM",
-                "Relatório de Inflação",
+                "Notícias BCB",
                 "Boletim Focus",
+                "Relatório de Inflação",
               ].map((category) => (
                 <TabsContent key={category} value={category} className="mt-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {getBcbNewsByCategory(category).map((item, index) => (
-                      <Card key={`bcb-cat-${index}`}>
-                        <CardContent className="p-4">
-                          <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                          <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                            {item.content}
-                          </p>
-                          <div className="text-xs text-muted-foreground mb-3">
-                            {new Date(item.publication_date).toLocaleDateString(
-                              "pt-BR"
-                            )}
-                          </div>
-                          {item.source_url && (
-                            <a
-                              href={item.source_url}
-                              className="text-xs flex items-center gap-1 text-primary hover:underline"
-                            >
-                              <ExternalLink size={12} />
-                              Ver no site do BCB
-                            </a>
-                          )}
-                        </CardContent>
-                      </Card>
+                      <BCBNewsCard key={`bcb-cat-${index}`} newsItem={item} />
                     ))}
                     {getBcbNewsByCategory(category).length === 0 && (
                       <Card className="col-span-full">
                         <CardContent className="p-6 text-center">
                           <p className="text-muted-foreground">
-                            Nenhuma notícia encontrada para esta categoria.
+                            Nenhuma notícia encontrada para {category}.
                           </p>
                         </CardContent>
                       </Card>
@@ -245,6 +202,12 @@ export const NewsTabs: React.FC<NewsTabsProps> = ({
                 </TabsContent>
               ))}
             </Tabs>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => refetchBcb()}>
+                <RefreshCw size={16} className="mr-2" />
+                Buscar notícias do BCB
+              </Button>
+            </div>
           </div>
         ) : (
           <Card>
@@ -263,6 +226,3 @@ export const NewsTabs: React.FC<NewsTabsProps> = ({
     </Tabs>
   );
 };
-
-// Missing Badge import
-import { Badge } from "@/components/ui/badge";
