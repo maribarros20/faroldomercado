@@ -42,6 +42,23 @@ export const TwitterFeed: React.FC<TwitterFeedProps> = ({ tweets = [] }) => {
     }
   };
 
+  const getProfileImageUrl = (tweet: NewsItem) => {
+    if (tweet.image_url && tweet.image_url.includes("unavatar.io")) {
+      return tweet.image_url;
+    }
+    
+    // Use specific profile images for known accounts
+    if (tweet.author?.includes("Lula")) {
+      return "https://unavatar.io/twitter/LulaOficial";
+    }
+    if (tweet.author?.includes("Trump")) {
+      return "https://unavatar.io/twitter/realDonaldTrump";
+    }
+    
+    // Default Twitter/X logo
+    return "https://upload.wikimedia.org/wikipedia/commons/5/53/X_logo_2023.svg";
+  };
+
   return (
     <div className="space-y-4">
       {tweets.map((tweet, index) => (
@@ -49,11 +66,7 @@ export const TwitterFeed: React.FC<TwitterFeedProps> = ({ tweets = [] }) => {
           <CardHeader className="p-4 pb-0">
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10 ring-2 ring-offset-2 ring-blue-300">
-                {tweet.image_url ? (
-                  <AvatarImage src={tweet.image_url} />
-                ) : (
-                  <AvatarImage src="https://upload.wikimedia.org/wikipedia/commons/5/53/X_logo_2023.svg" />
-                )}
+                <AvatarImage src={getProfileImageUrl(tweet)} />
                 <AvatarFallback>
                   {tweet.author?.substring(0, 2) || "TW"}
                 </AvatarFallback>

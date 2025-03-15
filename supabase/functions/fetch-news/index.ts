@@ -6,6 +6,7 @@ import {
   WSJOURNAL_ECONOMY_RSS_FEED,
   decodeHtmlEntities,
   extractImage,
+  extractImageFromItem,
   getDefaultSourceImage
 } from './utils/config.ts';
 import { 
@@ -53,45 +54,16 @@ async function fetchNYTimesEconomyNews(): Promise<NewsItem[]> {
         const pubDate = item.querySelector("pubDate")?.textContent || "";
         const creator = item.querySelector("dc\\:creator")?.textContent || "New York Times";
         
-        // Extract media/image with multiple methods
-        let image_url = "";
+        // Use the new image extraction function
+        let image_url = extractImageFromItem(item);
         
-        // Try media namespace tags first
-        const mediaContent = item.querySelector("media\\:content");
-        if (mediaContent) {
-          image_url = mediaContent.getAttribute("url") || "";
-        }
-        
-        // Try media:thumbnail
-        if (!image_url) {
-          const mediaThumbnail = item.querySelector("media\\:thumbnail");
-          if (mediaThumbnail) {
-            image_url = mediaThumbnail.getAttribute("url") || "";
-          }
-        }
-        
-        // Try enclosure tag
-        if (!image_url) {
-          const enclosure = item.querySelector("enclosure");
-          if (enclosure && enclosure.getAttribute("type")?.startsWith("image/")) {
-            image_url = enclosure.getAttribute("url") || "";
-          }
-        }
-        
-        // If no media content is found, try to find an image in the description
+        // If no image found, try to extract from description
         if (!image_url) {
           image_url = extractImage(description, "New York Times") || "";
         }
         
         // Use NYT logo as fallback if no image is found
         if (!image_url) {
-          image_url = getDefaultSourceImage("New York Times");
-        }
-        
-        // Validate image URL
-        try {
-          if (image_url) new URL(image_url);
-        } catch (e) {
           image_url = getDefaultSourceImage("New York Times");
         }
         
@@ -157,26 +129,15 @@ async function fetchWSJournalNews(): Promise<NewsItem[]> {
         const pubDate = item.querySelector("pubDate")?.textContent || "";
         const creator = item.querySelector("dc\\:creator")?.textContent || "Wall Street Journal";
         
-        // Extract media/image with WSJ specific approach
-        let image_url = "";
+        // Use the new image extraction function
+        let image_url = extractImageFromItem(item);
         
-        const mediaContent = item.querySelector("media\\:content");
-        if (mediaContent) {
-          image_url = mediaContent.getAttribute("url") || "";
-        }
-        
+        // If no image found, try to extract from description
         if (!image_url) {
           image_url = extractImage(description, "Wall Street Journal") || "";
         }
         
         if (!image_url) {
-          image_url = getDefaultSourceImage("Wall Street Journal");
-        }
-        
-        // Validate image URL
-        try {
-          if (image_url) new URL(image_url);
-        } catch (e) {
           image_url = getDefaultSourceImage("Wall Street Journal");
         }
         

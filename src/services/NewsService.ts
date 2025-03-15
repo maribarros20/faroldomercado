@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface NewsItem {
@@ -97,13 +98,27 @@ export const getDefaultNewsImage = (source?: string): string => {
         return '/lovable-uploads/08c37f81-bb96-41bd-9b6e-2ade4bae59df.png';
       case 'Twitter':
         return 'https://upload.wikimedia.org/wikipedia/commons/5/53/X_logo_2023.svg';
+      case 'BBC Economia':
+        return 'https://m.files.bbci.co.uk/modules/bbc-morph-news-waf-page-meta/5.2.0/bbc_news_logo.png';
+      case 'UOL Economia':
+        return 'https://conteudo.imguol.com.br/c/home/layout/mobile/v1/logo-uol.png';
+      case 'Folha de São Paulo':
+        return 'https://f.i.uol.com.br/hunting/folha/1/common/logo-folha-facebook.jpg';
+      case 'New York Times':
+        return 'https://static01.nyt.com/images/icons/t_logo_291_black.png';
+      case 'Wall Street Journal':
+        return 'https://s.wsj.net/media/wsj_apple-touch-icon-180x180.png';
     }
   }
   
   const defaultImages = [
     "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=2070&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1640340434855-6084b1f4901c?q=80&w=2064&auto=format&fit=crop"
+    "https://images.unsplash.com/photo-1640340434855-6084b1f4901c?q=80&w=2064&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?q=80&w=2070&auto=format&fit=crop", 
+    "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2070&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?q=80&w=2070&auto=format&fit=crop"
   ];
   
   // Selecionar uma imagem aleatória do array
