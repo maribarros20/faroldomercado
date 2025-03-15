@@ -12,7 +12,8 @@ export const FINANCE_CATEGORIES = [
   "Comunicados COPOM",
   "Notícias BCB",
   "Boletim Focus",
-  "Relatório de Inflação"
+  "Relatório de Inflação",
+  "Twitter"
 ];
 
 export const BCB_CATEGORIES = [
@@ -20,4 +21,9 @@ export const BCB_CATEGORIES = [
   "Notícias BCB",
   "Boletim Focus",
   "Relatório de Inflação"
+];
+
+export const TWITTER_ACCOUNTS = [
+  { username: "LulaOficial", name: "Luiz Inácio Lula da Silva" },
+  { username: "realDonaldTrump", name: "Donald Trump" }
 ];

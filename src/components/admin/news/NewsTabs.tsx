@@ -49,6 +49,11 @@ export const NewsTabs: React.FC<NewsTabsProps> = ({
         <TabsTrigger value="twitter" className="flex items-center gap-1">
           <Twitter size={14} />
           Twitter
+          {twitterPosts.length > 0 && (
+            <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]">
+              {twitterPosts.length}
+            </Badge>
+          )}
         </TabsTrigger>
         <TabsTrigger value="bcb" className="flex items-center gap-1">
           <Building size={14} />
@@ -139,9 +144,51 @@ export const NewsTabs: React.FC<NewsTabsProps> = ({
       </TabsContent>
 
       <TabsContent value="twitter">
-        <div className="grid grid-cols-1 gap-6">
-          <div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium">Posts de Líderes no Twitter</h3>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setViewMode("twitter")}
+              className="text-xs flex items-center gap-1"
+            >
+              <RefreshCw size={14} />
+              Atualizar
+            </Button>
+          </div>
+          
+          {isLoading ? (
+            <div className="grid grid-cols-1 gap-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gray-200" />
+                      <div className="space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-24" />
+                        <div className="h-3 bg-gray-200 rounded w-32" />
+                      </div>
+                    </div>
+                    <div className="h-16 bg-gray-200 rounded w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
             <TwitterFeed tweets={twitterPosts} />
+          )}
+          
+          <div className="flex justify-center mt-6">
+            <a 
+              href="https://twitter.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-sm flex items-center gap-1 text-primary hover:underline"
+            >
+              <ExternalLink size={14} />
+              Ver mais no Twitter
+            </a>
           </div>
         </div>
       </TabsContent>

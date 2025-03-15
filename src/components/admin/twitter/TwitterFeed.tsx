@@ -45,10 +45,10 @@ export const TwitterFeed: React.FC<TwitterFeedProps> = ({ tweets = [] }) => {
   return (
     <div className="space-y-4">
       {tweets.map((tweet, index) => (
-        <Card key={index} className="overflow-hidden">
+        <Card key={index} className="overflow-hidden hover:shadow-md transition-all duration-300">
           <CardHeader className="p-4 pb-0">
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-10 w-10 ring-2 ring-offset-2 ring-blue-300">
                 {tweet.image_url ? (
                   <AvatarImage src={tweet.image_url} />
                 ) : (
@@ -67,12 +67,19 @@ export const TwitterFeed: React.FC<TwitterFeedProps> = ({ tweets = [] }) => {
             </div>
           </CardHeader>
           <CardContent className="p-4">
-            <p className="text-sm">{tweet.content}</p>
-            {tweet.category && (
-              <Badge variant="outline" className="mt-2">
-                {tweet.category}
-              </Badge>
-            )}
+            <p className="text-sm whitespace-pre-wrap">{tweet.content}</p>
+            <div className="flex flex-wrap gap-2 mt-3">
+              {tweet.category && (
+                <Badge variant="outline" className="text-xs">
+                  {tweet.category}
+                </Badge>
+              )}
+              {tweet.subtitle && (
+                <div className="text-xs text-muted-foreground">
+                  {tweet.subtitle}
+                </div>
+              )}
+            </div>
           </CardContent>
           <CardFooter className="p-4 pt-0 flex justify-between border-t">
             <div className="flex gap-3 text-muted-foreground text-xs">
