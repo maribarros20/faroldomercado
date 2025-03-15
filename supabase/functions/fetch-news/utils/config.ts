@@ -28,6 +28,8 @@ export interface NewsItem {
 
 // Character encoding helper function
 export function decodeHtmlEntities(text: string): string {
+  if (!text) return '';
+  
   return text
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
@@ -53,65 +55,117 @@ export function decodeHtmlEntities(text: string): string {
     .replace(/&#249;/g, 'ù');
 }
 
-// Image extraction helper
+// Image extraction helper with improved source-specific handling
 export function extractImage(content: string, source?: string): string | null {
   if (!content) return null;
   
   // Source-specific extraction patterns
   if (source) {
+    // UOL specific extraction
     if (source.includes('UOL')) {
       const uolRegex = /<img[^>]+src="(https:\/\/conteudo\.imguol\.com\.br\/[^">]+)"/i;
       const uolMatch = content.match(uolRegex);
       if (uolMatch && uolMatch[1]) return uolMatch[1];
     } 
+    // Folha specific extraction
     else if (source.includes('Folha')) {
       const folhaRegex = /<img[^>]+src="(https:\/\/f\.i\.uol\.com\.br\/[^">]+)"/i;
       const folhaMatch = content.match(folhaRegex);
       if (folhaMatch && folhaMatch[1]) return folhaMatch[1];
     }
+    // BBC specific extraction
     else if (source.includes('BBC')) {
       const bbcRegex = /<img[^>]+src="(https:\/\/ichef\.bbci\.co\.uk\/[^">]+)"/i;
       const bbcMatch = content.match(bbcRegex);
       if (bbcMatch && bbcMatch[1]) return bbcMatch[1];
     }
+    // NYTimes specific extraction
     else if (source.includes('NYTimes') || source.includes('New York Times')) {
       const nytRegex = /<img[^>]+src="(https:\/\/static01\.nyt\.com\/[^">]+)"/i;
       const nytMatch = content.match(nytRegex);
       if (nytMatch && nytMatch[1]) return nytMatch[1];
     }
+    // WSJ specific extraction
+    else if (source.includes('Wall Street Journal') || source.includes('WSJ')) {
+      const wsjRegex = /<img[^>]+src="(https:\/\/images\.wsj\.net\/[^">]+)"/i;
+      const wsjMatch = content.match(wsjRegex);
+      if (wsjMatch && wsjMatch[1]) return wsjMatch[1];
+    }
   }
   
-  // General extraction patterns
+  // General extraction patterns in priority order
   
   // Try media:content tags with url attribute
   const mediaContentRegex = /<media:content[^>]+url="([^">]+)"/i;
   const mediaContentMatch = content.match(mediaContentRegex);
-  if (mediaContentMatch && mediaContentMatch[1]) return mediaContentMatch[1];
+  if (mediaContentMatch && mediaContentMatch[1]) {
+    try {
+      new URL(mediaContentMatch[1]);
+      return mediaContentMatch[1];
+    } catch (e) {
+      // Invalid URL, continue to next method
+    }
+  }
   
   // Try media:thumbnail tags
   const mediaThumbnailRegex = /<media:thumbnail[^>]+url="([^">]+)"/i;
   const mediaThumbnailMatch = content.match(mediaThumbnailRegex);
-  if (mediaThumbnailMatch && mediaThumbnailMatch[1]) return mediaThumbnailMatch[1];
+  if (mediaThumbnailMatch && mediaThumbnailMatch[1]) {
+    try {
+      new URL(mediaThumbnailMatch[1]);
+      return mediaThumbnailMatch[1];
+    } catch (e) {
+      // Invalid URL, continue to next method
+    }
+  }
   
   // Try image tags with src attribute
   const imgRegex = /<img[^>]+src="([^">]+)"/i;
   const imgMatch = content.match(imgRegex);
-  if (imgMatch && imgMatch[1]) return imgMatch[1];
+  if (imgMatch && imgMatch[1]) {
+    try {
+      new URL(imgMatch[1]);
+      return imgMatch[1];
+    } catch (e) {
+      // Invalid URL, continue to next method
+    }
+  }
   
   // Try enclosure tags with url attribute (common in RSS)
   const enclosureRegex = /<enclosure[^>]+url="([^">]+)"/i;
   const enclosureMatch = content.match(enclosureRegex);
-  if (enclosureMatch && enclosureMatch[1]) return enclosureMatch[1];
+  if (enclosureMatch && enclosureMatch[1]) {
+    try {
+      new URL(enclosureMatch[1]);
+      return enclosureMatch[1];
+    } catch (e) {
+      // Invalid URL, continue to next method
+    }
+  }
   
   // Try og:image meta tags
   const ogImageRegex = /<meta[^>]+property="og:image"[^>]+content="([^">]+)"/i;
   const ogImageMatch = content.match(ogImageRegex);
-  if (ogImageMatch && ogImageMatch[1]) return ogImageMatch[1];
+  if (ogImageMatch && ogImageMatch[1]) {
+    try {
+      new URL(ogImageMatch[1]);
+      return ogImageMatch[1];
+    } catch (e) {
+      // Invalid URL, continue to next method
+    }
+  }
   
   // Try direct image URLs
   const urlRegex = /(https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png|webp))/i;
   const urlMatch = content.match(urlRegex);
-  if (urlMatch && urlMatch[0]) return urlMatch[0];
+  if (urlMatch && urlMatch[0]) {
+    try {
+      new URL(urlMatch[0]);
+      return urlMatch[0];
+    } catch (e) {
+      // Invalid URL, continue to next method
+    }
+  }
   
   return null;
 }

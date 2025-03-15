@@ -3,6 +3,7 @@ import { corsHeaders } from './utils/cors.ts';
 import { 
   NewsItem, 
   NYTIMES_ECONOMY_RSS_FEED,
+  WSJOURNAL_ECONOMY_RSS_FEED,
   decodeHtmlEntities,
   extractImage,
   getDefaultSourceImage
@@ -21,8 +22,6 @@ import {
 } from './utils/rss-fetchers.ts';
 
 async function fetchNYTimesEconomyNews(): Promise<NewsItem[]> {
-  console.log("Fetching NY Times Economy news from:", NYTIMES_ECONOMY_RSS_FEED);
-  
   try {
     const response = await fetch(NYTIMES_ECONOMY_RSS_FEED, {
       headers: {
@@ -40,8 +39,6 @@ async function fetchNYTimesEconomyNews(): Promise<NewsItem[]> {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xml, "text/xml");
     const items = xmlDoc.querySelectorAll("item");
-    
-    console.log(`Found ${items.length} items in NY Times RSS feed`);
     
     const result: NewsItem[] = [];
     
@@ -95,7 +92,6 @@ async function fetchNYTimesEconomyNews(): Promise<NewsItem[]> {
         try {
           if (image_url) new URL(image_url);
         } catch (e) {
-          console.warn(`Invalid image URL for NYTimes article "${title}": ${image_url}`);
           image_url = getDefaultSourceImage("New York Times");
         }
         
@@ -121,11 +117,93 @@ async function fetchNYTimesEconomyNews(): Promise<NewsItem[]> {
       }
     }
     
-    console.log(`Successfully fetched ${result.length} articles from NY Times Economy`);
     return result;
     
   } catch (error) {
     console.error("Error fetching NY Times Economy news:", error.message);
+    return [];
+  }
+}
+
+async function fetchWSJournalNews(): Promise<NewsItem[]> {
+  try {
+    const response = await fetch(WSJOURNAL_ECONOMY_RSS_FEED, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; FarolInveste/1.0; +http://farolinveste.com)'
+      },
+      timeout: 10000 // 10 seconds timeout
+    });
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch WSJ news: ${response.status} ${response.statusText}`);
+      return [];
+    }
+    
+    const xml = await response.text();
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xml, "text/xml");
+    const items = xmlDoc.querySelectorAll("item");
+    
+    const result: NewsItem[] = [];
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      
+      try {
+        // Extract basic info
+        const title = decodeHtmlEntities(item.querySelector("title")?.textContent || "");
+        const link = item.querySelector("link")?.textContent || "";
+        const description = item.querySelector("description")?.textContent || "";
+        const pubDate = item.querySelector("pubDate")?.textContent || "";
+        const creator = item.querySelector("dc\\:creator")?.textContent || "Wall Street Journal";
+        
+        // Extract media/image with WSJ specific approach
+        let image_url = "";
+        
+        const mediaContent = item.querySelector("media\\:content");
+        if (mediaContent) {
+          image_url = mediaContent.getAttribute("url") || "";
+        }
+        
+        if (!image_url) {
+          image_url = extractImage(description, "Wall Street Journal") || "";
+        }
+        
+        if (!image_url) {
+          image_url = getDefaultSourceImage("Wall Street Journal");
+        }
+        
+        // Validate image URL
+        try {
+          if (image_url) new URL(image_url);
+        } catch (e) {
+          image_url = getDefaultSourceImage("Wall Street Journal");
+        }
+        
+        // Get content and clean it
+        let content = description;
+        content = decodeHtmlEntities(content.replace(/<[^>]*>/g, ' ').trim());
+        content = content.replace(/\s+/g, ' ');
+        
+        result.push({
+          title,
+          content,
+          publication_date: pubDate,
+          author: creator,
+          category: "Economia",
+          image_url,
+          source: "Wall Street Journal",
+          source_url: link
+        });
+      } catch (itemError) {
+        console.error(`Error processing WSJ news item: ${itemError.message}`);
+      }
+    }
+    
+    return result;
+    
+  } catch (error) {
+    console.error("Error fetching WSJ news:", error.message);
     return [];
   }
 }
@@ -142,19 +220,15 @@ serve(async (req) => {
     try {
       requestData = await req.json();
     } catch (e) {
-      console.log("No request body or invalid JSON");
+      // No request body or invalid JSON, continue with empty object
     }
     
     const { excludeSources = [] } = requestData;
-    console.log(`Recebendo request para fetch-news, excluindo fontes: ${excludeSources}`);
 
     // Sempre excluir Reuters
     const sourcesToExclude = [...excludeSources, "Reuters"];
-    console.log("Fontes a serem excluídas:", sourcesToExclude);
 
     // Fetch news from all RSS sources with detailed logging
-    console.log("Iniciando busca de todas as fontes RSS");
-    
     const results = await Promise.allSettled([
       fetchBloombergMarketsNews(),
       fetchBloombergEconomicsNews(),
@@ -166,7 +240,8 @@ serve(async (req) => {
       fetchUOLEconomiaNews(),
       fetchFolhaMercadoNews(),
       fetchValorInvestingNews(),
-      fetchNYTimesEconomyNews()
+      fetchNYTimesEconomyNews(),
+      fetchWSJournalNews()
     ]);
     
     // Process results, handling any rejected promises
@@ -181,7 +256,8 @@ serve(async (req) => {
       uolEconomiaResult,
       folhaMercadoResult,
       valorInvestingResult,
-      nyTimesEconomyResult
+      nyTimesEconomyResult,
+      wsjournalResult
     ] = results;
     
     const bloombergMarketsNews = bloombergMarketsResult.status === 'fulfilled' ? bloombergMarketsResult.value : [];
@@ -195,19 +271,7 @@ serve(async (req) => {
     const folhaMercadoNews = folhaMercadoResult.status === 'fulfilled' ? folhaMercadoResult.value : [];
     const valorInvestingNews = valorInvestingResult.status === 'fulfilled' ? valorInvestingResult.value : [];
     const nyTimesEconomyNews = nyTimesEconomyResult.status === 'fulfilled' ? nyTimesEconomyResult.value : [];
-    
-    // Log results and validation from each source
-    console.log(`Bloomberg Markets: ${bloombergMarketsNews.length} items`);
-    console.log(`Bloomberg Economics: ${bloombergEconomicsNews.length} items`);
-    console.log(`CNN Money Markets: ${cnnMoneyMarketsNews.length} items`);
-    console.log(`CNN Money Economy: ${cnnMoneyEconomyNews.length} items`);
-    console.log(`Bloomberg Línea: ${bloombergLineaNews.length} items`);
-    console.log(`Valor Econômico: ${valorEconomicoNews.length} items`);
-    console.log(`BBC Economia: ${bbcEconomiaNews.length} items`);
-    console.log(`UOL Economia: ${uolEconomiaNews.length} items`);
-    console.log(`Folha Mercado: ${folhaMercadoNews.length} items`);
-    console.log(`Valor Investing: ${valorInvestingNews.length} items`);
-    console.log(`NY Times Economy: ${nyTimesEconomyNews.length} items`);
+    const wsjournalNews = wsjournalResult.status === 'fulfilled' ? wsjournalResult.value : [];
 
     // Combine all news sources
     let allData: NewsItem[] = [
@@ -221,20 +285,17 @@ serve(async (req) => {
       ...uolEconomiaNews,
       ...folhaMercadoNews,
       ...valorInvestingNews,
-      ...nyTimesEconomyNews
+      ...nyTimesEconomyNews,
+      ...wsjournalNews
     ];
-
-    console.log(`Total de notícias encontradas: ${allData.length}`);
 
     // Validate all items have the necessary fields
     allData = allData.filter(item => {
       if (!item.title || typeof item.title !== 'string') {
-        console.warn('Removing item without valid title');
         return false;
       }
       
       if (!item.content || typeof item.content !== 'string') {
-        console.warn(`Removing item "${item.title}" without valid content`);
         return false;
       }
       
@@ -258,40 +319,29 @@ serve(async (req) => {
     yesterday.setDate(yesterday.getDate() - 1);
     yesterday.setHours(0, 0, 0, 0);
     
-    console.log(`Filtrando notícias apenas de hoje (${now.toISOString()}) e ontem (${yesterday.toISOString()})`);
-    
     allData = allData.filter(item => {
       try {
-        // Tenta parsear a data da notícia
+        // Try to parse the news date
         const rawDate = item.publication_date;
         if (!rawDate) {
-          // Se não houver data, mantém a notícia (consideramos como nova)
-          console.log(`Notícia sem data: "${item.title}"`);
+          // If no date, keep the news (consider it new)
           return true;
         }
         
         const itemDate = new Date(rawDate);
-        // Verifica se a data é válida
+        // Check if date is valid
         if (isNaN(itemDate.getTime())) {
-          console.warn(`Data inválida para notícia "${item.title}": ${rawDate}`);
-          // Se a data for inválida, mantém a notícia
+          // If date is invalid, keep the news
           return true;
         }
         
-        // Verifica se a notícia é de hoje ou ontem
-        const isRecentNews = itemDate >= yesterday;
-        if (!isRecentNews) {
-          console.log(`Notícia antiga descartada: "${item.title}" com data ${itemDate.toISOString()}`);
-        }
-        return isRecentNews;
+        // Check if news is from today or yesterday
+        return itemDate >= yesterday;
       } catch (e) {
-        console.warn(`Erro ao processar data para notícia "${item.title}": ${item.publication_date}`);
-        // Em caso de erro, mantém a notícia
+        // In case of error, keep the news
         return true;
       }
     });
-    
-    console.log(`Total de notícias após filtro de data: ${allData.length}`);
 
     // Ensure all items have valid image_url and fix any broken URLs
     allData = allData.map(item => {
@@ -303,7 +353,6 @@ serve(async (req) => {
           new URL(item.image_url);
           validatedImageUrl = item.image_url;
         } catch (e) {
-          console.warn(`URL de imagem inválida para "${item.title}": ${item.image_url}`);
           validatedImageUrl = '';
         }
       }
@@ -316,7 +365,7 @@ serve(async (req) => {
             new URL(extractedImage);
             validatedImageUrl = extractedImage;
           } catch (e) {
-            console.warn(`URL de imagem extraída inválida para "${item.title}": ${extractedImage}`);
+            // Invalid extracted URL
           }
         }
       }
@@ -332,19 +381,12 @@ serve(async (req) => {
       };
     });
 
-    // Filtrar para remover notícias das fontes excluídas (incluindo Reuters)
+    // Filter to remove news from excluded sources (including Reuters)
     const filteredData = allData.filter(item => {
       return !sourcesToExclude.includes(item.source);
     });
 
-    console.log(`Total de notícias após filtragem: ${filteredData.length}`);
-
-    // If we have no news after filtering, log a warning
-    if (filteredData.length === 0) {
-      console.warn("Nenhuma notícia encontrada após filtragem. Verifique as fontes e filtros.");
-    }
-
-    // Return the filtered news with detailed logging
+    // Return the filtered news
     return new Response(
       JSON.stringify(filteredData),
       { 
@@ -353,7 +395,6 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error(`Error in fetch-news: ${error.message}`);
     return new Response(
       JSON.stringify({ 
         error: error.message,

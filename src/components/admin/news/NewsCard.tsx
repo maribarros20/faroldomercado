@@ -13,7 +13,6 @@ interface NewsCardProps {
 export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [fallbackTriggered, setFallbackTriggered] = useState(false);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
@@ -30,26 +29,9 @@ export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
   };
 
   // Improved image fallback handling with progressive loading
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    // Only do fallback once to prevent infinite loops
-    if (fallbackTriggered) {
-      setImageError(true);
-      setImageLoaded(true);
-      return;
-    }
-    
-    setFallbackTriggered(true);
+  const handleImageError = () => {
     setImageError(true);
-    console.warn(`Failed to load image for news: ${newsItem.title}`);
-    
-    // Get source-specific fallback image
-    const fallbackImage = getSourceFallbackImage(newsItem.source);
-    
-    // Only change src if the current src is different from fallback
-    if (e.currentTarget.src !== fallbackImage) {
-      e.currentTarget.src = fallbackImage;
-      e.currentTarget.onload = () => setImageLoaded(true);
-    }
+    setImageLoaded(true);
   };
 
   const getSourceFallbackImage = (source?: string): string => {
@@ -77,6 +59,9 @@ export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
       case 'New York Times':
       case 'NYTimes':
         return 'https://static01.nyt.com/images/2022/09/12/NYT-METS-1000x1000-1678734279986/NYT-METS-1000x1000-1678734279986-mobileMasterAt3x.jpg';
+      case 'Wall Street Journal':
+      case 'WSJ':
+        return 'https://s.wsj.net/img/meta/wsj-social-share.png';
       default:
         return 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop';
     }
@@ -84,7 +69,10 @@ export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
 
   // Preload image with better error handling
   React.useEffect(() => {
-    if (!newsItem.image_url) return;
+    if (!newsItem.image_url) {
+      setImageLoaded(true);
+      return;
+    }
     
     const img = new Image();
     
@@ -94,31 +82,17 @@ export const NewsCard: React.FC<NewsCardProps> = ({ newsItem }) => {
     };
     
     img.onerror = () => {
-      if (!fallbackTriggered) {
-        setFallbackTriggered(true);
-        setImageError(true);
-        
-        // Try with fallback immediately
-        const fallbackImg = new Image();
-        const fallbackSrc = getSourceFallbackImage(newsItem.source);
-        
-        fallbackImg.onload = () => {
-          setImageLoaded(true);
-        };
-        
-        fallbackImg.onerror = () => {
-          setImageLoaded(true); // Show something rather than nothing
-          console.error(`Even fallback image failed for ${newsItem.title}`);
-        };
-        
-        fallbackImg.src = fallbackSrc;
-      } else {
-        setImageLoaded(true); // Show something rather than nothing
-      }
+      setImageError(true);
+      setImageLoaded(true);
     };
     
     img.src = newsItem.image_url;
-  }, [newsItem.image_url, newsItem.source, newsItem.title, fallbackTriggered]);
+    
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [newsItem.image_url]);
 
   const handleImageLoad = () => {
     setImageLoaded(true);

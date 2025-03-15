@@ -1,23 +1,34 @@
 
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import AppLayout from "@/components/AppLayout";
-import Index from "@/pages/Index";
-import NotFound from "@/pages/NotFound";
-import MaterialsPage from "@/pages/MaterialsPage";
-import VideosPage from "@/pages/VideosPage";
-import DashboardPage from "@/pages/DashboardPage";
-import CommunityPage from "@/pages/CommunityPage";
-import ProgressPage from "@/pages/ProgressPage";
-import ProfilePage from "@/pages/ProfilePage";
-import AuthPage from "@/pages/AuthPage";
-import PlansPage from "@/pages/PlansPage";
-import ProfileSettingsPage from "@/pages/ProfileSettingsPage";
-import AdminPage from "@/pages/AdminPage";
 import { supabase } from "@/integrations/supabase/client";
-import VideoDetail from "@/components/videos/VideoDetail";
 import { useToast } from "@/hooks/use-toast";
+import { Spinner } from "@/components/ui/spinner";
+
+// Lazy loaded components
+const Index = lazy(() => import("@/pages/Index"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const MaterialsPage = lazy(() => import("@/pages/MaterialsPage"));
+const VideosPage = lazy(() => import("@/pages/VideosPage"));
+const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
+const CommunityPage = lazy(() => import("@/pages/CommunityPage"));
+const ProgressPage = lazy(() => import("@/pages/ProgressPage"));
+const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
+const AuthPage = lazy(() => import("@/pages/AuthPage"));
+const PlansPage = lazy(() => import("@/pages/PlansPage"));
+const ProfileSettingsPage = lazy(() => import("@/pages/ProfileSettingsPage"));
+const AdminPage = lazy(() => import("@/pages/AdminPage"));
+const VideoDetail = lazy(() => import("@/components/videos/VideoDetail"));
+
+// Loading component for suspense fallback
+const PageLoader = () => (
+  <div className="flex justify-center items-center h-screen">
+    <Spinner size="lg" />
+    <span className="ml-3">Carregando...</span>
+  </div>
+);
 
 function App() {
   const navigate = useNavigate();
@@ -64,8 +75,6 @@ function App() {
     // Set up auth state listener
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth event:", event);
-        
         if (event === 'SIGNED_OUT') {
           // Always redirect to auth page on sign out and show toast
           navigate('/auth', { replace: true });
@@ -106,22 +115,24 @@ function App() {
   return (
     <>
       <AppLayout>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/register" element={<AuthPage isRegister />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/materials" element={<MaterialsPage />} />
-          <Route path="/videos" element={<VideosPage />} />
-          <Route path="/videos/:id" element={<VideoDetail />} />
-          <Route path="/community" element={<CommunityPage />} />
-          <Route path="/progress" element={<ProgressPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/plans" element={<PlansPage />} />
-          <Route path="/profile-settings" element={<ProfileSettingsPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/register" element={<AuthPage isRegister />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/materials" element={<MaterialsPage />} />
+            <Route path="/videos" element={<VideosPage />} />
+            <Route path="/videos/:id" element={<VideoDetail />} />
+            <Route path="/community" element={<CommunityPage />} />
+            <Route path="/progress" element={<ProgressPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/plans" element={<PlansPage />} />
+            <Route path="/profile-settings" element={<ProfileSettingsPage />} />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </AppLayout>
       <Toaster />
     </>
