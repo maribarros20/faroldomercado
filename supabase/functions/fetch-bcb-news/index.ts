@@ -17,24 +17,10 @@ interface BCBNews {
   source_url: string;
 }
 
-// Centralized RSS feed URLs for BCB
-const BCB_FEEDS = {
-  'Comunicados COPOM': 'https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/comunicadoscopom',
-  'Notícias BCB': 'https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/noticias?ano=2024',
-  'Boletim Focus': 'https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/focus',
-  'Relatório de Inflação': 'https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/ri'
-};
-
 async function fetchRSS(url: string, category: string): Promise<BCBNews[]> {
   console.log(`Buscando RSS de ${category}: ${url}`);
   try {
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/xml, text/xml, */*;q=0.8',
-        'Cache-Control': 'no-cache',
-      },
-      timeout: 10000 // 10 second timeout
-    });
+    const response = await fetch(url);
     
     if (!response.ok) {
       console.error(`Erro ao buscar RSS ${category}: ${response.status} ${response.statusText}`);
@@ -61,22 +47,17 @@ async function fetchRSS(url: string, category: string): Promise<BCBNews[]> {
         const pubDate = item.querySelector('pubDate')?.textContent || '';
         const description = item.querySelector('description')?.textContent || '';
         
-        // Skip empty entries
-        if (!title || !link) return;
-        
-        // Decode HTML entities
-        const decodedTitle = decodeHtmlEntities(title);
-        const decodedDescription = decodeHtmlEntities(description);
-        
-        news.push({
-          title: decodedTitle,
-          content: decodedDescription || decodedTitle,
-          publication_date: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
-          category: category,
-          image_url: 'https://www.bcb.gov.br/content/home/img/Logo-BC-transparente.png',
-          source: 'Banco Central',
-          source_url: link,
-        });
+        if (title && link) {
+          news.push({
+            title: title,
+            content: description || title,
+            publication_date: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
+            category: category,
+            image_url: 'https://www.bcb.gov.br/content/home/img/Logo-BC-transparente.png',
+            source: 'Banco Central',
+            source_url: link,
+          });
+        }
       });
       
       console.log(`Obtidas ${news.length} notícias de ${category}`);
@@ -90,8 +71,8 @@ async function fetchRSS(url: string, category: string): Promise<BCBNews[]> {
         
         if (Array.isArray(jsonData)) {
           const news: BCBNews[] = jsonData.map(item => ({
-            title: decodeHtmlEntities(item.title || ''),
-            content: decodeHtmlEntities(item.description || item.content || ''),
+            title: item.title || '',
+            content: item.description || item.content || '',
             publication_date: item.pubDate || item.date || new Date().toISOString(),
             category: category,
             image_url: 'https://www.bcb.gov.br/content/home/img/Logo-BC-transparente.png',
@@ -115,44 +96,6 @@ async function fetchRSS(url: string, category: string): Promise<BCBNews[]> {
   }
 }
 
-// Helper function to decode HTML entities
-function decodeHtmlEntities(text: string): string {
-  const entities: Record<string, string> = {
-    '&amp;': '&',
-    '&lt;': '<',
-    '&gt;': '>',
-    '&quot;': '"',
-    '&#39;': "'",
-    '&nbsp;': ' ',
-    '&aacute;': 'á',
-    '&eacute;': 'é',
-    '&iacute;': 'í',
-    '&oacute;': 'ó',
-    '&uacute;': 'ú',
-    '&ccedil;': 'ç',
-    '&atilde;': 'ã',
-    '&otilde;': 'õ',
-    '&acirc;': 'â',
-    '&ecirc;': 'ê',
-    '&ocirc;': 'ô',
-    '&Aacute;': 'Á',
-    '&Eacute;': 'É',
-    '&Iacute;': 'Í',
-    '&Oacute;': 'Ó',
-    '&Uacute;': 'Ú',
-    '&Ccedil;': 'Ç',
-    '&Atilde;': 'Ã',
-    '&Otilde;': 'Õ',
-    '&Acirc;': 'Â',
-    '&Ecirc;': 'Ê',
-    '&Ocirc;': 'Ô'
-  };
-  
-  return text.replace(/&[a-z0-9]+;/gi, (entity) => {
-    return entities[entity] || entity;
-  });
-}
-
 // Endpoint para buscar notícias do Banco Central
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -163,6 +106,15 @@ Deno.serve(async (req) => {
   try {
     console.log('Iniciando função fetch-bcb-news');
     
+    // Feeds RSS do Banco Central
+    const rssFeeds = {
+      'Comunicados BCB': 'https://www.bcb.gov.br/api/feed/app/demaisnormativos/atosecomunicados?ano=2021',
+      'Notícias BCB': 'https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/noticias?ano=2024',
+      'Comunicados COPOM': 'https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/comunicadoscopom',
+      'Relatório de Inflação': 'https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/ri',
+      'Boletim Focus': 'https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/focus'
+    };
+    
     let requestedCategory: string | undefined;
     
     // Se for uma requisição POST, verificar se há categoria específica
@@ -172,7 +124,6 @@ Deno.serve(async (req) => {
         requestedCategory = body.category;
       } catch (e) {
         // Se não for possível parsear o corpo, ignorar
-        console.error('Erro ao parsear corpo da requisição:', e);
       }
     }
     
@@ -180,20 +131,17 @@ Deno.serve(async (req) => {
     let allNews: BCBNews[] = [];
     
     // Se uma categoria específica foi solicitada
-    if (requestedCategory && BCB_FEEDS[requestedCategory as keyof typeof BCB_FEEDS]) {
-      const categoryKey = requestedCategory as keyof typeof BCB_FEEDS;
-      const categoryFeed = await fetchRSS(BCB_FEEDS[categoryKey], requestedCategory);
+    if (requestedCategory && rssFeeds[requestedCategory]) {
+      const categoryFeed = await fetchRSS(rssFeeds[requestedCategory], requestedCategory);
       allNews = categoryFeed;
-      console.log(`Retornando ${allNews.length} notícias da categoria ${requestedCategory}`);
     } else {
       // Buscar todas as categorias
-      const fetchPromises = Object.entries(BCB_FEEDS).map(([category, url]) => 
+      const fetchPromises = Object.entries(rssFeeds).map(([category, url]) => 
         fetchRSS(url, category)
       );
       
       const results = await Promise.all(fetchPromises);
       allNews = results.flat();
-      console.log(`Retornando ${allNews.length} notícias de todas as categorias`);
     }
     
     // Ordenar por data (mais recentes primeiro)
@@ -210,7 +158,6 @@ Deno.serve(async (req) => {
         body = await req.json();
       } catch (e) {
         // Erro ao parsear o corpo
-        console.error('Erro ao parsear corpo para persistência:', e);
       }
     }
     

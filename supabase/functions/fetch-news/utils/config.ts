@@ -1,9 +1,20 @@
 
-import { XMLParser } from "https://esm.sh/fast-xml-parser@4.3.2";
+// RSS feed URLs
+export const BLOOMBERG_MARKETS_RSS_FEED = "https://feeds.bloomberg.com/markets/news.rss";
+export const BLOOMBERG_ECONOMICS_RSS_FEED = "https://feeds.bloomberg.com/economics/news.rss";
+export const CNN_MONEY_MARKETS_RSS_FEED = "http://rss.cnn.com/rss/money_markets.rss";
+export const CNN_MONEY_ECONOMY_RSS_FEED = "http://rss.cnn.com/rss/money_news_economy.rss";
+export const BLOOMBERG_LINEA_RSS_FEED = "https://www.bloomberglinea.com.br/arc/outboundfeeds/sections-feed.xml";
+export const VALOR_ECONOMICO_RSS_FEED = "https://pox.globo.com/rss/valor";
+export const BBC_ECONOMIA_RSS_FEED = "http://www.bbc.co.uk/portuguese/topicos/economia/";
+export const UOL_ECONOMIA_RSS_FEED = "https://rss.uol.com.br/feed/economia.xml";
+export const FOLHA_MERCADO_RSS_FEED = "https://feeds.folha.uol.com.br/mercado/rss091.xml";
+export const VALOR_INVESTING_RSS_FEED = "https://pox.globo.com/rss/valorinveste";
+export const NYTIMES_ECONOMY_RSS_FEED = "https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml";
+export const WSJOURNAL_ECONOMY_RSS_FEED = "https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml";
 
-// Interfaces
+// News item interface
 export interface NewsItem {
-  id?: string;
   title: string;
   subtitle?: string;
   content: string;
@@ -11,27 +22,11 @@ export interface NewsItem {
   author?: string;
   category?: string;
   image_url?: string;
-  source: string;
+  source?: string;
   source_url?: string;
-  created_at?: string;
-  updated_at?: string;
 }
 
-// RSS feed URLs
-export const NYTIMES_ECONOMY_RSS_FEED = "https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml";
-export const WSJOURNAL_ECONOMY_RSS_FEED = "https://feeds.a.dj.com/rss/RSSEconomics.xml";
-export const BLOOMBERG_MARKETS_RSS_FEED = "https://feeds.bloomberg.com/markets/news.rss";
-export const BLOOMBERG_ECONOMICS_RSS_FEED = "https://feeds.bloomberg.com/economics/news.rss";
-export const CNN_MONEY_MARKETS_RSS_FEED = "http://rss.cnn.com/rss/money_markets.rss";
-export const CNN_MONEY_ECONOMY_RSS_FEED = "http://rss.cnn.com/rss/money_news_economy.rss";
-export const BLOOMBERG_LINEA_RSS_FEED = "https://www.bloomberglinea.com/feed/";
-export const VALOR_ECONOMICO_RSS_FEED = "https://valor.globo.com/rss/financas/";
-export const BBC_ECONOMIA_RSS_FEED = "https://feeds.bbci.co.uk/portuguese/rss.xml";
-export const UOL_ECONOMIA_RSS_FEED = "https://economia.uol.com.br/rss/ultnot/index.xml";
-export const FOLHA_MERCADO_RSS_FEED = "https://feeds.folha.uol.com.br/mercado/rss091.xml";
-export const VALOR_INVESTING_RSS_FEED = "https://br.investing.com/rss/news.rss";
-
-// Function to decode HTML entities
+// Character encoding helper function
 export function decodeHtmlEntities(text: string): string {
   if (!text) return '';
   
@@ -42,122 +37,169 @@ export function decodeHtmlEntities(text: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, ' ')
-    .replace(/&aacute;/g, 'á')
-    .replace(/&eacute;/g, 'é')
-    .replace(/&iacute;/g, 'í')
-    .replace(/&oacute;/g, 'ó')
-    .replace(/&uacute;/g, 'ú')
-    .replace(/&ccedil;/g, 'ç')
-    .replace(/&atilde;/g, 'ã')
-    .replace(/&otilde;/g, 'õ');
+    .replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))
+    // Specific for Portuguese characters
+    .replace(/&#243;/g, 'ó')
+    .replace(/&#231;/g, 'ç')
+    .replace(/&#227;/g, 'ã')
+    .replace(/&#237;/g, 'í')
+    .replace(/&#224;/g, 'à')
+    .replace(/&#233;/g, 'é')
+    .replace(/&#250;/g, 'ú')
+    .replace(/&#234;/g, 'ê')
+    .replace(/&#225;/g, 'á')
+    .replace(/&#242;/g, 'ò')
+    .replace(/&#244;/g, 'ô')
+    .replace(/&#226;/g, 'â')
+    .replace(/&#236;/g, 'ì')
+    .replace(/&#249;/g, 'ù');
 }
 
-// Improved function to extract images from content
+// Image extraction helper with improved source-specific handling
 export function extractImage(content: string, source?: string): string | null {
   if (!content) return null;
   
-  // Try to find an image tag
-  const imgRegex = /<img[^>]+src="([^">]+)"/i;
-  const imgMatch = content.match(imgRegex);
-  
-  if (imgMatch && imgMatch[1]) {
-    const imageUrl = imgMatch[1].trim();
-    
-    // Validate the URL
-    try {
-      new URL(imageUrl);
-      return imageUrl;
-    } catch (e) {
-      console.warn(`Invalid image URL in content: ${imageUrl}`);
+  // Source-specific extraction patterns
+  if (source) {
+    // UOL specific extraction
+    if (source.includes('UOL')) {
+      const uolRegex = /<img[^>]+src="(https:\/\/conteudo\.imguol\.com\.br\/[^">]+)"/i;
+      const uolMatch = content.match(uolRegex);
+      if (uolMatch && uolMatch[1]) return uolMatch[1];
+    } 
+    // Folha specific extraction
+    else if (source.includes('Folha')) {
+      const folhaRegex = /<img[^>]+src="(https:\/\/f\.i\.uol\.com\.br\/[^">]+)"/i;
+      const folhaMatch = content.match(folhaRegex);
+      if (folhaMatch && folhaMatch[1]) return folhaMatch[1];
+    }
+    // BBC specific extraction
+    else if (source.includes('BBC')) {
+      const bbcRegex = /<img[^>]+src="(https:\/\/ichef\.bbci\.co\.uk\/[^">]+)"/i;
+      const bbcMatch = content.match(bbcRegex);
+      if (bbcMatch && bbcMatch[1]) return bbcMatch[1];
+    }
+    // NYTimes specific extraction
+    else if (source.includes('NYTimes') || source.includes('New York Times')) {
+      const nytRegex = /<img[^>]+src="(https:\/\/static01\.nyt\.com\/[^">]+)"/i;
+      const nytMatch = content.match(nytRegex);
+      if (nytMatch && nytMatch[1]) return nytMatch[1];
+    }
+    // WSJ specific extraction
+    else if (source.includes('Wall Street Journal') || source.includes('WSJ')) {
+      const wsjRegex = /<img[^>]+src="(https:\/\/images\.wsj\.net\/[^">]+)"/i;
+      const wsjMatch = content.match(wsjRegex);
+      if (wsjMatch && wsjMatch[1]) return wsjMatch[1];
     }
   }
   
-  // Try to find a figure tag
-  const figureRegex = /<figure[^>]*>[\s\S]*?<img[^>]+src="([^">]+)"[\s\S]*?<\/figure>/i;
-  const figureMatch = content.match(figureRegex);
+  // General extraction patterns in priority order
   
-  if (figureMatch && figureMatch[1]) {
-    const imageUrl = figureMatch[1].trim();
-    
+  // Try media:content tags with url attribute
+  const mediaContentRegex = /<media:content[^>]+url="([^">]+)"/i;
+  const mediaContentMatch = content.match(mediaContentRegex);
+  if (mediaContentMatch && mediaContentMatch[1]) {
     try {
-      new URL(imageUrl);
-      return imageUrl;
+      new URL(mediaContentMatch[1]);
+      return mediaContentMatch[1];
     } catch (e) {
-      console.warn(`Invalid image URL in figure: ${imageUrl}`);
+      // Invalid URL, continue to next method
+    }
+  }
+  
+  // Try media:thumbnail tags
+  const mediaThumbnailRegex = /<media:thumbnail[^>]+url="([^">]+)"/i;
+  const mediaThumbnailMatch = content.match(mediaThumbnailRegex);
+  if (mediaThumbnailMatch && mediaThumbnailMatch[1]) {
+    try {
+      new URL(mediaThumbnailMatch[1]);
+      return mediaThumbnailMatch[1];
+    } catch (e) {
+      // Invalid URL, continue to next method
+    }
+  }
+  
+  // Try image tags with src attribute
+  const imgRegex = /<img[^>]+src="([^">]+)"/i;
+  const imgMatch = content.match(imgRegex);
+  if (imgMatch && imgMatch[1]) {
+    try {
+      new URL(imgMatch[1]);
+      return imgMatch[1];
+    } catch (e) {
+      // Invalid URL, continue to next method
+    }
+  }
+  
+  // Try enclosure tags with url attribute (common in RSS)
+  const enclosureRegex = /<enclosure[^>]+url="([^">]+)"/i;
+  const enclosureMatch = content.match(enclosureRegex);
+  if (enclosureMatch && enclosureMatch[1]) {
+    try {
+      new URL(enclosureMatch[1]);
+      return enclosureMatch[1];
+    } catch (e) {
+      // Invalid URL, continue to next method
+    }
+  }
+  
+  // Try og:image meta tags
+  const ogImageRegex = /<meta[^>]+property="og:image"[^>]+content="([^">]+)"/i;
+  const ogImageMatch = content.match(ogImageRegex);
+  if (ogImageMatch && ogImageMatch[1]) {
+    try {
+      new URL(ogImageMatch[1]);
+      return ogImageMatch[1];
+    } catch (e) {
+      // Invalid URL, continue to next method
+    }
+  }
+  
+  // Try direct image URLs
+  const urlRegex = /(https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png|webp))/i;
+  const urlMatch = content.match(urlRegex);
+  if (urlMatch && urlMatch[0]) {
+    try {
+      new URL(urlMatch[0]);
+      return urlMatch[0];
+    } catch (e) {
+      // Invalid URL, continue to next method
     }
   }
   
   return null;
 }
 
-// New advanced function to extract image from RSS item
-export function extractImageFromItem(item: Element): string | null {
-  let imageUrl = null;
-
-  // 1. Try to extract from <media:content>
-  if (!imageUrl) {
-    const mediaContent = item.querySelector("media\\:content, content");
-    imageUrl = mediaContent ? mediaContent.getAttribute("url") : null;
-  }
-
-  // 2. Try to extract from <enclosure>
-  if (!imageUrl) {
-    const enclosure = item.querySelector("enclosure");
-    imageUrl = enclosure && enclosure.getAttribute("type")?.startsWith("image/") 
-      ? enclosure.getAttribute("url") 
-      : null;
-  }
-
-  // 3. Try to extract from <media:thumbnail>
-  if (!imageUrl) {
-    const thumbnail = item.querySelector("media\\:thumbnail");
-    imageUrl = thumbnail ? thumbnail.getAttribute("url") : null;
-  }
-
-  // 4. If still not found, try to extract from <description> or <content:encoded>
-  if (!imageUrl) {
-    const description = item.querySelector("description")?.textContent || 
-                        item.querySelector("content\\:encoded")?.textContent;
-    if (description) {
-      const imgMatch = description.match(/<img[^>]+src="([^">]+)"/i);
-      if (imgMatch) {
-        imageUrl = imgMatch[1];
-      }
-    }
-  }
-
-  // Validate the URL
-  if (imageUrl) {
-    try {
-      new URL(imageUrl);
-    } catch (e) {
-      console.warn(`Invalid image URL extracted: ${imageUrl}`);
-      imageUrl = null;
-    }
-  }
-
-  return imageUrl;
-}
-
-// Function to get a default image for a news source
+// Source-specific default images
 export function getDefaultSourceImage(source?: string): string {
-  const defaultImages = {
-    "Bloomberg Markets": "https://assets.bbhub.io/media/sites/1/2014/05/logo.png",
-    "Bloomberg Economics": "https://assets.bbhub.io/media/sites/1/2014/05/logo.png",
-    "Bloomberg": "https://assets.bbhub.io/media/sites/1/2014/05/logo.png",
-    "Bloomberg Línea": "https://www.bloomberglinea.com/resizer/xA3v4S_mpcJFKHXgxH3KBwfwgm0=/filters:format(webp):quality(75):focal(1920x1080:1930x1090)/cloudfront-us-east-1.images.arcpublishing.com/bloomberglinea/X5T6PVIUCNEC5BPKC66SCKQP44.jpg",
-    "CNN Money": "https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png",
-    "Valor Econômico": "https://valor.globo.com/content/themes/valorstatic/img/valor-bg-2021-11.svg",
-    "BBC Economia": "https://m.files.bbci.co.uk/modules/bbc-morph-news-waf-page-meta/5.2.0/bbc_news_logo.png",
-    "UOL Economia": "https://conteudo.imguol.com.br/c/home/layout/mobile/v1/logo-uol.png",
-    "Folha de São Paulo": "https://f.i.uol.com.br/hunting/folha/1/common/logo-folha-facebook.jpg",
-    "Valor Investing": "https://i-invdn-com.investing.com/logos/investing-logo-social.jpg",
-    "New York Times": "https://static01.nyt.com/images/icons/t_logo_291_black.png",
-    "Wall Street Journal": "https://s.wsj.net/media/wsj_apple-touch-icon-180x180.png",
-    "Twitter": "https://upload.wikimedia.org/wikipedia/commons/5/53/X_logo_2023.svg",
-    "Farol Investe": "/lovable-uploads/08c37f81-bb96-41bd-9b6e-2ade4bae59df.png"
-  };
+  if (!source) return 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop';
   
-  // Get source-specific image or use a fallback
-  return defaultImages[source] || "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop";
+  switch (source) {
+    case 'Bloomberg Markets':
+    case 'Bloomberg Economics':
+    case 'Bloomberg':
+    case 'Bloomberg Línea':
+      return 'https://assets.bbhub.io/media/sites/1/2014/05/logo.png';
+    case 'CNN Money':
+      return 'https://money.cnn.com/.element/img/1.0/logos/cnnmoney_logo_144x32.png';
+    case 'Valor Econômico':
+    case 'Valor Investing':
+      return 'https://www.valor.com.br/sites/all/themes/valor_2016/logo.png';
+    case 'BBC Economia':
+    case 'BBC':
+      return 'https://ichef.bbci.co.uk/news/640/cpsprodpb/F3C4/production/_123996607_bbcbrasil.png';
+    case 'UOL Economia':
+    case 'UOL':
+      return 'https://conteudo.imguol.com.br/c/home/11/2019/10/30/logo-uol-horizontal-1572447337368_1920x1080.jpg';
+    case 'Folha de São Paulo':
+      return 'https://upload.wikimedia.org/wikipedia/commons/f/f1/Logo_Folha_de_S.Paulo.svg';
+    case 'New York Times':
+    case 'NYTimes':
+      return 'https://static01.nyt.com/images/2022/09/12/NYT-METS-1000x1000-1678734279986/NYT-METS-1000x1000-1678734279986-mobileMasterAt3x.jpg';
+    case 'Wall Street Journal':
+    case 'WSJ':
+      return 'https://s.wsj.net/img/meta/wsj-social-share.png';
+    default:
+      return 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop';
+  }
 }

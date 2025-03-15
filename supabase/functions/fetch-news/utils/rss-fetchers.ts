@@ -13,7 +13,6 @@ import {
   NewsItem,
   decodeHtmlEntities,
   extractImage,
-  extractImageFromItem,
   getDefaultSourceImage
 } from "./config.ts";
 
@@ -181,7 +180,7 @@ function createNewsItem(
   // Get the source URL
   const sourceUrl = entry.links?.[0]?.href || entry.link || entry.url || '';
   
-  // Extract image URL with improved fallback system
+  // Extract image URL with fallbacks
   let imageUrl = '';
   
   // First try media object if available
@@ -195,7 +194,7 @@ function createNewsItem(
   }
   
   // If no media, try extracting from content
-  if (!imageUrl && rawContent) {
+  if (!imageUrl) {
     imageUrl = extractImage(rawContent, source) || '';
   }
   
@@ -256,7 +255,7 @@ export async function fetchBloombergMarketsNews(): Promise<NewsItem[]> {
     console.log(`Successfully fetched ${feed.entries.length} Bloomberg Markets news items`);
     
     const newsItems = feed.entries.map(entry => {
-      return createNewsItem('Bloomberg Markets', entry, 'Mercado de Aç��es');
+      return createNewsItem('Bloomberg Markets', entry, 'Mercado de Ações');
     });
     
     // Filter for freshness - only current day and one day prior

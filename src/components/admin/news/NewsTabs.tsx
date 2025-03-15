@@ -8,8 +8,6 @@ import type { NewsItem } from "@/services/NewsService";
 import { NewsGrid } from "./NewsGrid";
 import { NewsCard } from "./NewsCard";
 import { TwitterFeed } from "../twitter/TwitterFeed";
-import { BCBNewsCard } from "./BCBNewsCard";
-import { Badge } from "@/components/ui/badge";
 
 interface NewsTabsProps {
   viewMode: string;
@@ -49,11 +47,6 @@ export const NewsTabs: React.FC<NewsTabsProps> = ({
         <TabsTrigger value="twitter" className="flex items-center gap-1">
           <Twitter size={14} />
           Twitter
-          {twitterPosts.length > 0 && (
-            <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]">
-              {twitterPosts.length}
-            </Badge>
-          )}
         </TabsTrigger>
         <TabsTrigger value="bcb" className="flex items-center gap-1">
           <Building size={14} />
@@ -106,8 +99,6 @@ export const NewsTabs: React.FC<NewsTabsProps> = ({
                       <a
                         href={item.source_url}
                         className="text-primary hover:underline inline-flex items-center gap-1"
-                        target="_blank"
-                        rel="noopener noreferrer"
                       >
                         Ler matéria completa
                       </a>
@@ -144,51 +135,9 @@ export const NewsTabs: React.FC<NewsTabsProps> = ({
       </TabsContent>
 
       <TabsContent value="twitter">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium">Posts de Líderes no Twitter</h3>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setViewMode("twitter")}
-              className="text-xs flex items-center gap-1"
-            >
-              <RefreshCw size={14} />
-              Atualizar
-            </Button>
-          </div>
-          
-          {isLoading ? (
-            <div className="grid grid-cols-1 gap-4">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardContent className="p-4 space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-gray-200" />
-                      <div className="space-y-2">
-                        <div className="h-4 bg-gray-200 rounded w-24" />
-                        <div className="h-3 bg-gray-200 rounded w-32" />
-                      </div>
-                    </div>
-                    <div className="h-16 bg-gray-200 rounded w-full" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
+        <div className="grid grid-cols-1 gap-6">
+          <div>
             <TwitterFeed tweets={twitterPosts} />
-          )}
-          
-          <div className="flex justify-center mt-6">
-            <a 
-              href="https://twitter.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-sm flex items-center gap-1 text-primary hover:underline"
-            >
-              <ExternalLink size={14} />
-              Ver mais no Twitter
-            </a>
           </div>
         </div>
       </TabsContent>
@@ -211,36 +160,83 @@ export const NewsTabs: React.FC<NewsTabsProps> = ({
             <Tabs defaultValue="all">
               <TabsList>
                 <TabsTrigger value="all">Todos</TabsTrigger>
-                <TabsTrigger value="Comunicados COPOM">COPOM</TabsTrigger>
+                <TabsTrigger value="Comunicados BCB">Comunicados</TabsTrigger>
                 <TabsTrigger value="Notícias BCB">Notícias</TabsTrigger>
+                <TabsTrigger value="Comunicados COPOM">COPOM</TabsTrigger>
+                <TabsTrigger value="Relatório de Inflação">RI</TabsTrigger>
                 <TabsTrigger value="Boletim Focus">Focus</TabsTrigger>
-                <TabsTrigger value="Relatório de Inflação">Relatório de Inflação</TabsTrigger>
               </TabsList>
 
               <TabsContent value="all" className="mt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {bcbNews.map((item, index) => (
-                    <BCBNewsCard key={`bcb-${index}`} newsItem={item} />
+                    <Card key={`bcb-${index}`}>
+                      <CardContent className="p-4">
+                        <Badge variant="outline" className="mb-2">
+                          {item.category}
+                        </Badge>
+                        <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                          {item.content}
+                        </p>
+                        <div className="text-xs text-muted-foreground mb-3">
+                          {new Date(item.publication_date).toLocaleDateString(
+                            "pt-BR"
+                          )}
+                        </div>
+                        {item.source_url && (
+                          <a
+                            href={item.source_url}
+                            className="text-xs flex items-center gap-1 text-primary hover:underline"
+                          >
+                            <ExternalLink size={12} />
+                            Ver no site do BCB
+                          </a>
+                        )}
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               </TabsContent>
 
               {[
-                "Comunicados COPOM",
+                "Comunicados BCB",
                 "Notícias BCB",
-                "Boletim Focus",
+                "Comunicados COPOM",
                 "Relatório de Inflação",
+                "Boletim Focus",
               ].map((category) => (
                 <TabsContent key={category} value={category} className="mt-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {getBcbNewsByCategory(category).map((item, index) => (
-                      <BCBNewsCard key={`bcb-cat-${index}`} newsItem={item} />
+                      <Card key={`bcb-cat-${index}`}>
+                        <CardContent className="p-4">
+                          <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                          <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                            {item.content}
+                          </p>
+                          <div className="text-xs text-muted-foreground mb-3">
+                            {new Date(item.publication_date).toLocaleDateString(
+                              "pt-BR"
+                            )}
+                          </div>
+                          {item.source_url && (
+                            <a
+                              href={item.source_url}
+                              className="text-xs flex items-center gap-1 text-primary hover:underline"
+                            >
+                              <ExternalLink size={12} />
+                              Ver no site do BCB
+                            </a>
+                          )}
+                        </CardContent>
+                      </Card>
                     ))}
                     {getBcbNewsByCategory(category).length === 0 && (
                       <Card className="col-span-full">
                         <CardContent className="p-6 text-center">
                           <p className="text-muted-foreground">
-                            Nenhuma notícia encontrada para {category}.
+                            Nenhuma notícia encontrada para esta categoria.
                           </p>
                         </CardContent>
                       </Card>
@@ -249,12 +245,6 @@ export const NewsTabs: React.FC<NewsTabsProps> = ({
                 </TabsContent>
               ))}
             </Tabs>
-            <div className="flex justify-end">
-              <Button variant="outline" onClick={() => refetchBcb()}>
-                <RefreshCw size={16} className="mr-2" />
-                Buscar notícias do BCB
-              </Button>
-            </div>
           </div>
         ) : (
           <Card>
@@ -273,3 +263,6 @@ export const NewsTabs: React.FC<NewsTabsProps> = ({
     </Tabs>
   );
 };
+
+// Missing Badge import
+import { Badge } from "@/components/ui/badge";
